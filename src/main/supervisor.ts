@@ -10,6 +10,10 @@ import { AGENTS, READ_ONLY_AGENTS } from "../shared.js";
 import { resolveOnPath, defaultRunner } from "./connectors.js";
 import { exact, text, redact } from "./validate.js";
 import type { Agent, Run, ProviderHealth } from "../shared.js";
+import { hermesLaunch, geminiScript } from "./provider-launch.js";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+const execute = promisify(execFile);
 
 export type AdapterFactory = (agent: Agent, cwd: string) => AgentAdapter;
 type Active = {
@@ -27,6 +31,8 @@ export class Supervisor {
   private starting = new Set<string>();
   private factory: AdapterFactory;
   private readonly injected: boolean;
+  private signingIn = new Map<Agent, AbortController>();
+  private signInTasks = new Set<Promise<ProviderHealth>>();
   constructor(
     readonly store: Store,
     readonly dataDir: string,
@@ -34,6 +40,24 @@ export class Supervisor {
     providerEnvironment: (agent: Agent) => NodeJS.ProcessEnv = () => ({}),
   ) {
     this.injected = !!factory;
+    const oldGemini = store.runs.provider("gemini");
+    if (
+      oldGemini?.consent &&
+      /[\\/]dist[\\/]index\.js$/i.test(oldGemini.command)
+    ) {
+      const updated = geminiScript(
+        join(oldGemini.command, "..", "..", "..", "..", "..", "gemini.cmd"),
+      );
+      if (updated)
+        store.runs.configure(
+          "gemini",
+          updated,
+          ["--acp"],
+          "acp",
+          "existing",
+          oldGemini.model,
+        );
+    }
     this.worktrees = new Worktrees(join(dataDir, "workspaces"));
     this.factory =
       factory ??
@@ -47,22 +71,43 @@ export class Supervisor {
           config.protocol === "antigravity-cli"
         )
           return new CliAdapter(
-            { command: config.command, args: config.args, cwd },
+            {
+              command: config.command,
+              args: [
+                ...config.args,
+                ...(agent === "antigravity" && config.model
+                  ? ["--model", config.model]
+                  : []),
+              ],
+              cwd,
+            },
             config.protocol,
           );
-        if (config.protocol === "acp")
-          return new AcpAdapter({
-            command:
-              agent === "gemini" && /\.js$/i.test(config.command)
-                ? (resolveOnPath("node") ?? "node")
-                : config.command,
-            args:
-              agent === "gemini" && /\.js$/i.test(config.command)
-                ? [config.command, ...config.args]
-                : config.args,
-            cwd,
-            env: providerEnvironment(agent),
-          });
+        if (config.protocol === "acp") {
+          const spec =
+            agent === "hermes"
+              ? hermesLaunch(config.command, config.args, cwd)
+              : {
+                  command:
+                    agent === "gemini" && /\.js$/i.test(config.command)
+                      ? (resolveOnPath("node") ?? "node")
+                      : config.command,
+                  args:
+                    agent === "gemini" && /\.js$/i.test(config.command)
+                      ? [config.command, "--acp"]
+                      : config.args,
+                  cwd,
+                  env: agent === "gemini" ? { NODE_USE_SYSTEM_CA: "1" } : {},
+                };
+          return new AcpAdapter(
+            { ...spec, env: { ...spec.env, ...providerEnvironment(agent) } },
+            {
+              authMethod: agent === "gemini" ? "oauth-personal" : undefined,
+              model: config.model,
+              requireModel: agent === "hermes",
+            },
+          );
+        }
         return new CodexAdapter({
           command: config.command,
           args: [...config.args, "app-server", "--listen", "stdio://"],
@@ -91,6 +136,7 @@ export class Supervisor {
       "protocol",
       "consent",
       "profile",
+      "model",
     ]);
     if (!AGENTS.includes(p.agent as Agent) || p.consent !== true)
       throw Error("EXPLICIT_CONSENT_REQUIRED");
@@ -98,9 +144,11 @@ export class Supervisor {
     if (
       !isAbsolute(command) ||
       !realpathSync.native(command) ||
-      /\.(cmd|bat|ps1)$/i.test(command)
+      (/\.(cmd|bat|ps1)$/i.test(command) &&
+        !(p.agent === "hermes" && /\.cmd$/i.test(command)))
     )
       throw Error("EXECUTABLE_PATH_REQUIRED");
+    if (p.agent === "hermes") hermesLaunch(command, ["acp"], this.dataDir);
     if (!Array.isArray(p.args) || p.args.length > 20)
       throw Error("INVALID_INPUT");
     const args = p.args.map((value) => text(value, 2048, true));
@@ -129,7 +177,7 @@ export class Supervisor {
       throw Error("INVALID_PROTOCOL");
     if (
       p.agent === "gemini" &&
-      (args.length !== 1 || args[0] !== "--experimental-acp")
+      (args.length !== 1 || !["--experimental-acp", "--acp"].includes(args[0]))
     )
       throw Error("INVALID_PROTOCOL");
     if (
@@ -146,6 +194,7 @@ export class Supervisor {
       args,
       String(p.protocol),
       profile,
+      p.model == null || p.model === "" ? null : text(p.model, 240),
     );
   }
   settings() {
@@ -156,6 +205,7 @@ export class Supervisor {
         configured: !!p?.consent,
         command: p?.command ?? "",
         args: p?.args ?? [],
+        model: p?.model ?? null,
         protocol:
           p?.protocol ??
           {
@@ -207,6 +257,27 @@ export class Supervisor {
         };
       }
       adapter = this.factory(agent, cwd);
+      if (config.protocol === "antigravity-cli") {
+        const catalog = await defaultRunner(config.command, ["models"], 20000);
+        const models = catalog.stdout
+          .split(/\r?\n/)
+          .flatMap((line) => {
+            const m = line.match(
+              /^([a-zA-Z0-9][a-zA-Z0-9._:/-]{1,200})\t(.{1,240})$/,
+            );
+            return m ? [{ id: m[1], name: m[2] }] : [];
+          })
+          .slice(0, 100);
+        return {
+          ...result,
+          state:
+            catalog.code === 0 && models.length ? "connected" : "needs-auth",
+          detail: models.length
+            ? "ANTIGRAVITY_MODELS_READY"
+            : "SIGN_IN_REQUIRED",
+          models,
+        };
+      }
       if (adapter instanceof CodexAdapter) {
         await adapter.initialize();
         const auth = await adapter.account();
@@ -221,25 +292,108 @@ export class Supervisor {
         return {
           ...result,
           state: "connected",
-          detail: "ACP_READY_AUTH_UNVERIFIED",
+          detail:
+            agent === "gemini"
+              ? "GOOGLE_SIGN_IN_VERIFIED"
+              : "ACP_READY_AUTH_UNVERIFIED",
           models,
         };
       }
       return { ...result, detail: "USE_LIVE_TASK_TO_VERIFY" };
-    } catch {
+    } catch (error) {
       return {
         ...result,
+        state:
+          error instanceof Error &&
+          ["PROVIDER_AUTH_REQUIRED", "ACP_AUTH_METHOD_UNAVAILABLE"].includes(
+            error.message,
+          )
+            ? "needs-auth"
+            : "unavailable",
         detail:
-          agent === "hermes"
-            ? "HERMES_ACP_CHECK_REQUIRED"
-            : agent === "gemini"
-              ? "GEMINI_ACP_CHECK_REQUIRED"
-              : "CONNECTION_CHECK_FAILED",
+          error instanceof Error &&
+          ["GEMINI_SUBSCRIPTION_MOVED", "PROVIDER_TLS_ERROR"].includes(
+            error.message,
+          )
+            ? error.message
+            : agent === "hermes"
+              ? "HERMES_ACP_CHECK_REQUIRED"
+              : agent === "gemini"
+                ? "GEMINI_ACP_CHECK_REQUIRED"
+                : "CONNECTION_CHECK_FAILED",
       };
     } finally {
       adapter?.close();
       await adapter?.stopped();
     }
+  }
+  signIn(input: unknown): Promise<ProviderHealth> {
+    const promise = this.performSignIn(input);
+    this.signInTasks.add(promise);
+    void promise
+      .finally(() => this.signInTasks.delete(promise))
+      .catch(() => {});
+    return promise;
+  }
+  private async performSignIn(input: unknown): Promise<ProviderHealth> {
+    const p = exact(input, ["agent"]);
+    if (!["gemini", "hermes"].includes(String(p.agent)))
+      throw Error("INVALID_INPUT");
+    const agent = p.agent as Agent;
+    if (this.signingIn.has(agent)) throw Error("SIGN_IN_BUSY");
+    const config = this.store.runs.provider(agent);
+    if (!config?.consent) throw Error("PROVIDER_NOT_CONFIGURED");
+    const controller = new AbortController();
+    this.signingIn.set(agent, controller);
+    const cwd = join(this.dataDir, "connection-check");
+    mkdirSync(cwd, { recursive: true });
+    try {
+      if (agent === "gemini") {
+        const adapter = this.factory(agent, cwd);
+        if (!(adapter instanceof AcpAdapter)) throw Error("INVALID_PROTOCOL");
+        const abort = () => adapter.close();
+        controller.signal.addEventListener("abort", abort, { once: true });
+        try {
+          await adapter.signIn();
+        } finally {
+          controller.signal.removeEventListener("abort", abort);
+          adapter.close();
+          await adapter.stopped();
+        }
+      } else {
+        const spec = hermesLaunch(
+          config.command,
+          ["auth", "add", "openai-codex", "--type", "oauth", "--browser"],
+          cwd,
+        );
+        await execute(spec.command, spec.args, {
+          cwd,
+          env: { ...process.env, ...spec.env },
+          windowsHide: true,
+          timeout: 300000,
+          signal: controller.signal,
+          maxBuffer: 65536,
+        });
+      }
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        ["GEMINI_SUBSCRIPTION_MOVED", "PROVIDER_TLS_ERROR"].includes(
+          error.message,
+        )
+      )
+        return {
+          agent,
+          state: "unavailable",
+          detail: error.message,
+          models: [],
+          observedAt: new Date().toISOString(),
+        };
+      throw Error("PROVIDER_SIGN_IN_FAILED");
+    } finally {
+      this.signingIn.delete(agent);
+    }
+    return this.health({ agent });
   }
   view(input: unknown) {
     const p = exact(input, ["projectId", "taskId"]),
@@ -769,6 +923,8 @@ export class Supervisor {
     await this.active.get(runId)?.promise;
   }
   async close() {
+    for (const controller of this.signingIn.values()) controller.abort();
+    await Promise.allSettled([...this.signInTasks]);
     for (const active of this.active.values()) {
       active.controller.abort();
       active.adapter.close();

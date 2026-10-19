@@ -1,5 +1,11 @@
 # Agenting OS — przekazanie projektu
 
+## Działające subskrypcje Hermesa i Google — 2026-10-19
+
+Gemini CLI zaktualizowano do 0.64.0. Zainstalowane Hermes 0.22.2 i Antigravity CLI 1.4.2 są teraz wykrywane w natywnych lokalizacjach Windows. Hermes został zalogowany do ChatGPT/Codex i działa w aplikacji na `openai-codex:gpt-6.1-sol`; Google działa przez Antigravity na `gemini-4-argon-medium`. Dwie tury rozmowy i zachowanie kontekstu potwierdzono w prawdziwym oknie aplikacji.
+
+Google zakończył obsługę kont indywidualnych AI Pro/Ultra w Gemini CLI. Aplikacja pokazuje ten stan i kieruje do Antigravity. Wcześniejszy błąd wymiany OAuth wynikał z certyfikatów Node; procesy Gemini korzystają teraz z systemowego magazynu Windows. Wybór modeli jest zapisywany osobno w Agenting OS (baza v12); globalny model Hermesa pozostaje bez zmian. 80/80 testów przeszło. [Pełny raport i źródła](docs/SUBSCRIPTION_CONNECTIONS.md).
+
 ## Czat, pamięć i subskrypcje — 2026-10-19
 
 Nowy ekran startowy to **Czaty**: wybór agenta, rozmowy/planowania oraz kontekstu domyślnego, folderu lokalnego lub GitHuba. Odpowiedzi są strumieniowane i zapisywane; można je zatrzymać, zapamiętać albo przenieść do zadania z osobnym recenzentem. Odczyt zwykłego folderu bez Git i dwie tury historii potwierdzono na prawdziwych subskrypcjach Codexa i Claude'a. Klonowanie publicznego repozytorium przez `gh` i odczyt limitów Codexa również przeszły test.

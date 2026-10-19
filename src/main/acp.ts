@@ -45,8 +45,42 @@ export function workspaceEdit(cwd: string, locations: unknown): boolean {
 // ACP v1. The selected executable is trusted local code and must enforce its own OS sandbox.
 export class AcpAdapter implements AgentAdapter {
   readonly rpc: RpcProcess;
-  constructor(spec: ProcessSpec) {
+  constructor(
+    spec: ProcessSpec,
+    private options: {
+      authMethod?: string;
+      model?: string | null;
+      requireModel?: boolean;
+    } = {},
+  ) {
     this.rpc = new RpcProcess(spec);
+  }
+  private async authenticate(init: any, timeout = 60000) {
+    if (!this.options.authMethod) return;
+    if (!init.authMethods?.some((m: any) => m.id === this.options.authMethod))
+      throw Error("ACP_AUTH_METHOD_UNAVAILABLE");
+    await this.rpc.request(
+      "authenticate",
+      { methodId: this.options.authMethod },
+      timeout,
+    );
+  }
+  async signIn() {
+    try {
+      const init = await this.rpc.request(
+        "initialize",
+        {
+          protocolVersion: 1,
+          clientCapabilities: {},
+          clientInfo: { name: "agenting-os", version: "0.4.0" },
+        },
+        30000,
+      );
+      await this.authenticate(init, 600000);
+    } finally {
+      this.close();
+      await this.stopped();
+    }
   }
   async probe(cwd: string) {
     try {
@@ -63,6 +97,7 @@ export class AcpAdapter implements AgentAdapter {
         15000,
       );
       if (init.protocolVersion !== 1) throw Error("ACP_VERSION_UNSUPPORTED");
+      await this.authenticate(init);
       const session = await this.rpc.request(
         "session/new",
         { cwd, mcpServers: [] },
@@ -74,7 +109,12 @@ export class AcpAdapter implements AgentAdapter {
           ? session.models.availableModels
           : []
       )
-        .slice(0, 100)
+        .sort(
+          (a: any, b: any) =>
+            Number(String(b.modelId).startsWith("openai-codex:")) -
+            Number(String(a.modelId).startsWith("openai-codex:")),
+        )
+        .slice(0, 300)
         .map((m: any) => ({
           id: text(m.modelId, 240),
           name: text(m.name ?? m.modelId, 240),
@@ -85,6 +125,11 @@ export class AcpAdapter implements AgentAdapter {
     }
   }
   async run(input: AgentInput): Promise<AgentResult> {
+    if (this.options.requireModel && !this.options.model) {
+      this.close();
+      await this.stopped();
+      throw Error("PROVIDER_MODEL_REQUIRED");
+    }
     let sessionId = "",
       summary = "";
     const turnId = `acp:${randomUUID()}`;
@@ -146,6 +191,7 @@ export class AcpAdapter implements AgentAdapter {
         clientInfo: { name: "agenting-os", version: "0.4.0" },
       });
       if (init.protocolVersion !== 1) throw Error("ACP_VERSION_UNSUPPORTED");
+      await this.authenticate(init);
       if (input.threadId && !init.agentCapabilities?.loadSession)
         throw Error("ACP_RESUME_UNSUPPORTED");
       const session = await this.rpc.request(
@@ -157,6 +203,18 @@ export class AcpAdapter implements AgentAdapter {
         },
       );
       sessionId = input.threadId || text(session.sessionId);
+      if (this.options.model) {
+        if (
+          !session.models?.availableModels?.some(
+            (m: any) => m.modelId === this.options.model,
+          )
+        )
+          throw Error("PROVIDER_MODEL_UNAVAILABLE");
+        await this.rpc.request("session/set_model", {
+          sessionId,
+          modelId: this.options.model,
+        });
+      }
       input.session(sessionId, turnId);
       if (input.readOnly) {
         const mode = session.modes?.availableModes?.find((mode: any) =>

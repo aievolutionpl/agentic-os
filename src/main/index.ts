@@ -208,6 +208,7 @@ app
         });
       },
       providerCheck: (input) => supervisor.health(input),
+      providerSignIn: (input) => supervisor.signIn(input),
       providerConnectDetected: (input) => {
         const p = exact(input, ["agent", "consent"]);
         if (p.consent !== true || !AGENTS.includes(p.agent as Agent))
@@ -220,7 +221,7 @@ app
           command,
           args:
             agent === "gemini"
-              ? ["--experimental-acp"]
+              ? ["--acp"]
               : ["hermes", "opencode", "local"].includes(agent)
                 ? ["acp"]
                 : [],

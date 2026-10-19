@@ -1,6 +1,26 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { object } from "./validate.js";
+export class ProviderRpcError extends Error {
+  constructor(
+    readonly rpcCode: number,
+    message: unknown = "",
+  ) {
+    super(
+      typeof message === "string" &&
+        message.includes(
+          "This client is no longer supported for Gemini Code Assist",
+        )
+        ? "GEMINI_SUBSCRIPTION_MOVED"
+        : typeof message === "string" &&
+            /certificate|CERT_HAS_EXPIRED|UNABLE_TO_VERIFY/i.test(message)
+          ? "PROVIDER_TLS_ERROR"
+          : rpcCode === -32000
+            ? "PROVIDER_AUTH_REQUIRED"
+            : "PROVIDER_REQUEST_FAILED",
+    );
+  }
+}
 
 export interface ProcessSpec {
   command: string;
@@ -63,7 +83,7 @@ export class RpcProcess extends EventEmitter {
       this.close();
       return;
     }
-    for (let end; (end = this.buffer.indexOf("\n")) >= 0; ) {
+    for (let end; (end = this.buffer.indexOf("\n")) >= 0;) {
       const line = this.buffer.slice(0, end);
       this.buffer = this.buffer.slice(end + 1);
       if (!line.trim()) continue;
@@ -79,8 +99,12 @@ export class RpcProcess extends EventEmitter {
           if (pending) {
             clearTimeout(pending.timer);
             this.pending.delete(message.id);
-            if (message.error) pending.reject(Error("PROVIDER_REQUEST_FAILED"));
-            else pending.resolve(message.result);
+            if (message.error) {
+              const error = object(message.error);
+              pending.reject(
+                new ProviderRpcError(Number(error.code), error.message),
+              );
+            } else pending.resolve(message.result);
           }
         }
       } catch {

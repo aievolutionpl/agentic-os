@@ -50,6 +50,7 @@ jobs:
             docs/evidence/workspace-06
             docs/evidence/master-07
             docs/evidence/harness-08
+            docs/evidence/subscriptions-09
           retention-days: 14
   windows-package:
     needs: verify

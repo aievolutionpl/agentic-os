@@ -28,6 +28,18 @@ function MessageText({ content }: { content: string }) {
   );
 }
 const errors: Record<string, [string, string]> = {
+  PROVIDER_MODEL_REQUIRED: [
+    "W Połączeniach wybierz i zapisz model Hermesa, np. model z subskrypcji ChatGPT/Codex.",
+    "Select and save a Hermes model in Connections, for example a ChatGPT/Codex subscription model.",
+  ],
+  PROVIDER_AUTH_REQUIRED: [
+    "Zaloguj konto dostawcy w Połączeniach i ponów wiadomość.",
+    "Sign in to the provider in Connections and resend the message.",
+  ],
+  PROVIDER_MODEL_UNAVAILABLE: [
+    "Zapisany model nie jest dostępny. Odśwież modele i wybierz go ponownie w Połączeniach.",
+    "The saved model is unavailable. Refresh and select a model again in Connections.",
+  ],
   PROVIDER_NOT_CONFIGURED: [
     "Najpierw podłącz wybranego agenta w Połączeniach.",
     "Connect this agent in Connections first.",
@@ -335,7 +347,7 @@ export function ChatWorkspace({
                   <label>
                     {pl ? "Tryb pracy" : "Work mode"}
                     <select
-                        aria-label={pl ? "Tryb pracy" : "Work mode"}
+                      aria-label={pl ? "Tryb pracy" : "Work mode"}
                       value={mode}
                       onChange={(e) => setMode(e.target.value as typeof mode)}
                     >
@@ -402,7 +414,9 @@ export function ChatWorkspace({
                     <label>
                       {pl ? "Istniejący projekt" : "Existing project"}
                       <select
-                        aria-label={pl ? "Istniejący projekt" : "Existing project"}
+                        aria-label={
+                          pl ? "Istniejący projekt" : "Existing project"
+                        }
                         value={existing}
                         onChange={(e) => setExisting(e.target.value)}
                       >
@@ -498,6 +512,7 @@ export function ChatWorkspace({
                         ? "Rozmowa"
                         : "Chat"}{" "}
                     · {chat.source}
+                    {providers.find(p=>p.id===chat.agent)?.model ? ` · ${providers.find(p=>p.id===chat.agent)!.model}` : ""}
                   </small>
                   <span className="chat-root" title={chat.root}>
                     {chat.root}

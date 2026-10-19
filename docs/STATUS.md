@@ -1,3 +1,7 @@
+# Hermes and Google subscription connections — 2026-10-19
+
+Gemini CLI updated locally to 0.64.0; native Hermes 0.22.2 and Antigravity 1.4.2 installations are detected. Actual two-turn Electron chats pass on Hermes ChatGPT/Codex and Google's Antigravity subscription path. Google's consumer deprecation in Gemini CLI is explicitly reported. Schema v12 persists app-specific models, browser sign-in stays provider-owned, and Windows system CA trust fixes the observed Google token-exchange failure. 80/80 tests pass. [Current connection report](SUBSCRIPTION_CONNECTIONS.md) and [evidence](evidence/subscriptions-09/README.md). Earlier sections are historical.
+
 # Conversation and shared-memory harness — 2026-10-19
 
 Persistent chat with agent/planning/context selection, real GitHub cloning, streamed responses, stop/restart recovery, answer-to-memory and answer-to-task handoffs. Schema v11 adds pinned shared memory and chat persistence. Nine licensed skills, local Markdown imports, detected-CLI connection checks, Hermes native Windows discovery and background authoritative quota polling are implemented. The UI uses Sora, Lucide, distinct cyan/violet surfaces and two generated illustrations.

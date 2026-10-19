@@ -57,7 +57,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 11) {
+      if (version.user_version > 12) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -99,6 +99,20 @@ export class Store {
       migrateWorkspace(this.db);
       this.missions = new Missions(this.db);
       this.chats = new ChatStore(this.db);
+      if (
+        Number(this.db.prepare("PRAGMA user_version").get()!.user_version) ===
+        11
+      ) {
+        this.db.exec("BEGIN IMMEDIATE");
+        if (
+          !this.db
+            .prepare("PRAGMA table_info(provider_settings)")
+            .all()
+            .some((c) => c.name === "model")
+        )
+          this.db.exec("ALTER TABLE provider_settings ADD COLUMN model TEXT");
+        this.db.exec("PRAGMA user_version=12; COMMIT;");
+      }
     } catch (error) {
       this.db.close();
       throw error;

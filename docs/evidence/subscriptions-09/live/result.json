@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-19T22:24:16.133Z",
+  "status": "passed",
+  "checks": [
+    "hermes-subscription-two-turn-chat-over-native-ipc",
+    "antigravity-subscription-two-turn-chat-over-native-ipc",
+    "selected-subscription-models-persist-after-renderer-restart",
+    "gemini-personal-account-deprecation-reported-without-api-fallback"
+  ],
+  "providers": {
+    "hermes": {
+      "state": "live-verified",
+      "model": "openai-codex:gpt-6.1-sol",
+      "turns": 2
+    },
+    "antigravity": {
+      "state": "live-verified",
+      "model": "gemini-4-argon-medium",
+      "turns": 2
+    },
+    "gemini": {
+      "state": "unavailable",
+      "detail": "GEMINI_SUBSCRIPTION_MOVED"
+    }
+  },
+  "errors": [],
+  "scope": "Real native Electron IPC and existing Hermes ChatGPT/Codex / Antigravity Google subscriptions. Temporary app data; no API keys, source edits or push."
+}

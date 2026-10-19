@@ -17,6 +17,8 @@ import { readSkillFile } from "../dist/main/skill-files.js";
 import { Supervisor } from "../dist/main/supervisor.js";
 import { CodexAdapter } from "../dist/main/providers.js";
 import { AcpAdapter } from "../dist/main/acp.js";
+import { geminiScript, hermesLaunch } from "../dist/main/provider-launch.js";
+import { ProviderRpcError } from "../dist/main/rpc.js";
 
 function setup(t) {
   const dir = mkdtempSync(join(tmpdir(), "agenting-chat-test-"));
@@ -58,6 +60,187 @@ test("GitHub context validates exact repository names and rejects injection, cre
     "a/b/tree/main",
   ])
     assert.throws(() => githubRepository(input));
+});
+
+test("CLI discovery follows new and legacy Gemini npm entries and rejects package traversal; Hermes cmd launches a bounded Python bootstrap", (t) => {
+  const { dir } = setup(t),
+    pkg = join(dir, "node_modules", "@google", "gemini-cli");
+  mkdirSync(join(pkg, "bundle"), { recursive: true });
+  mkdirSync(join(pkg, "dist"));
+  for (const entry of ["bundle/gemini.js", "dist/index.js"]) {
+    writeFileSync(join(pkg, entry), "");
+    writeFileSync(
+      join(pkg, "package.json"),
+      JSON.stringify({ name: "@google/gemini-cli", bin: { gemini: entry } }),
+    );
+    assert.equal(
+      geminiScript(join(dir, "gemini.cmd")),
+      realpathSync.native(join(pkg, entry)),
+    );
+  }
+  writeFileSync(join(dir, "outside.js"), "");
+  writeFileSync(
+    join(pkg, "package.json"),
+    JSON.stringify({
+      name: "@google/gemini-cli",
+      bin: { gemini: "../../../outside.js" },
+    }),
+  );
+  assert.equal(geminiScript(join(dir, "gemini.cmd")), null);
+  const home = join(dir, "hermes"),
+    bin = join(home, "bin"),
+    tools = join(home, "tools", "python"),
+    checkout = join(home, "hermes-agent");
+  for (const p of [bin, tools, checkout]) mkdirSync(p, { recursive: true });
+  const python = join(tools, "python.exe"),
+    cmd = join(bin, "hermes.cmd");
+  writeFileSync(python, "");
+  writeFileSync(join(checkout, "hermes_bootstrap.py"), "");
+  writeFileSync(
+    cmd,
+    `@echo off\n"${python}" -I -c "untrusted shell text"\nother shell command\n`,
+  );
+  const spec = hermesLaunch(cmd, ["acp"], dir);
+  assert.equal(spec.command, realpathSync.native(python));
+  assert.equal(spec.env.HERMES_HOME, realpathSync.native(home));
+  assert.equal(spec.args.at(-1), "acp");
+  assert.ok(!JSON.stringify(spec).includes("untrusted shell text"));
+  writeFileSync(cmd, `"${process.execPath}" -I -c "unexpected python"`);
+  assert.throws(() => hermesLaunch(cmd, ["acp"], dir), /UNSUPPORTED/);
+});
+
+test("Gemini path migration and selected ACP models persist without changing another provider", (t) => {
+  const { dir, store } = setup(t),
+    npm = join(dir, "npm"),
+    pkg = join(npm, "node_modules", "@google", "gemini-cli");
+  mkdirSync(join(pkg, "bundle"), { recursive: true });
+  writeFileSync(join(pkg, "bundle", "gemini.js"), "");
+  writeFileSync(
+    join(pkg, "package.json"),
+    JSON.stringify({
+      name: "@google/gemini-cli",
+      bin: { gemini: "bundle/gemini.js" },
+    }),
+  );
+  store.runs.configure(
+    "gemini",
+    join(pkg, "dist", "index.js"),
+    ["--experimental-acp"],
+    "acp",
+    "existing",
+  );
+  store.runs.configure(
+    "hermes",
+    process.execPath,
+    ["acp"],
+    "acp",
+    "existing",
+    "openai-codex:fixture",
+  );
+  const supervisor = new Supervisor(store, dir, () => {
+    throw Error("No process should start");
+  });
+  assert.equal(
+    supervisor.settings().find((s) => s.id === "gemini").command,
+    realpathSync.native(join(pkg, "bundle", "gemini.js")),
+  );
+  assert.equal(store.runs.provider("hermes").model, "openai-codex:fixture");
+  assert.deepEqual(store.runs.provider("gemini").args, ["--acp"]);
+});
+
+test("ACP authenticates before creating a session and applies the saved model before a prompt", async (t) => {
+  const { dir } = setup(t),
+    spec = {
+      command: process.execPath,
+      args: [resolve("tests/fixtures/acp-auth-server.mjs")],
+      cwd: dir,
+    };
+  const probe = new AcpAdapter(spec, { authMethod: "oauth-personal" });
+  assert.deepEqual(await probe.probe(dir), [
+    { id: "subscription:fixture", name: "Subscription fixture" },
+  ]);
+  const adapter = new AcpAdapter(spec, {
+    authMethod: "oauth-personal",
+    model: "subscription:fixture",
+    requireModel: true,
+  });
+  const result = await adapter.run({
+    cwd: dir,
+    prompt: "Check",
+    readOnly: true,
+    signal: new AbortController().signal,
+    session: () => {},
+    activity: () => {},
+  });
+  assert.match(
+    result.summary,
+    /auth=true model=subscription:fixture prompts=1/,
+  );
+  const missing = new AcpAdapter(spec, { requireModel: true });
+  await assert.rejects(missing.run({}), /MODEL_REQUIRED/);
+  const invalid = new AcpAdapter(spec, {
+    authMethod: "oauth-personal",
+    model: "not-advertised",
+  });
+  await assert.rejects(
+    invalid.run({
+      cwd: dir,
+      prompt: "Check",
+      readOnly: true,
+      signal: new AbortController().signal,
+      session: () => {},
+      activity: () => {},
+    }),
+    /MODEL_UNAVAILABLE/,
+  );
+});
+
+test("provider errors expose safe migration and TLS codes without retaining raw OAuth payloads", () => {
+  const message =
+    "This client is no longer supported for Gemini Code Assist for individuals. https://example.test?code=private";
+  assert.equal(
+    new ProviderRpcError(-32000, message).message,
+    "GEMINI_SUBSCRIPTION_MOVED",
+  );
+  assert.equal(
+    new ProviderRpcError(-32000, "unable to verify the first certificate")
+      .message,
+    "PROVIDER_TLS_ERROR",
+  );
+  assert.equal(
+    new ProviderRpcError(-32000, "secret-token").message,
+    "PROVIDER_AUTH_REQUIRED",
+  );
+  assert.equal(
+    new ProviderRpcError(-32603, "secret-token").message,
+    "PROVIDER_REQUEST_FAILED",
+  );
+});
+
+test("closing the application cancels a pending provider sign-in and waits for process exit", async (t) => {
+  const { dir, store } = setup(t);
+  let adapter;
+  store.runs.configure("gemini", process.execPath, [], "acp", "existing");
+  const supervisor = new Supervisor(
+    store,
+    dir,
+    () =>
+      (adapter = new AcpAdapter(
+        {
+          command: process.execPath,
+          args: [resolve("tests/fixtures/acp-auth-server.mjs")],
+          cwd: dir,
+          env: { QA_AUTH_HANG: "1" },
+        },
+        { authMethod: "oauth-personal" },
+      )),
+  );
+  const result = supervisor.signIn({ agent: "gemini" });
+  const rejection = assert.rejects(result, /SIGN_IN_FAILED/);
+  await new Promise((r) => setTimeout(r, 100));
+  await supervisor.close();
+  await rejection;
+  assert.equal(await adapter.stopped(), true);
 });
 test("shared pinned memory is automatic for all contexts while private project pins remain isolated and edits are searchable", (t) => {
   const { store } = setup(t),

@@ -87,9 +87,7 @@ export interface Task {
   createdAt: string;
 }
 export type FailureCode =
-  | "worker_error"
-  | "validation_failed"
-  | "lease_expired";
+  "worker_error" | "validation_failed" | "lease_expired";
 export interface TaskEvent {
   seq: number;
   projectId: string;
@@ -372,6 +370,9 @@ export interface API {
   skillCatalog?(): Promise<Extension[]>;
   skillImportFile?(input: { projectId: string }): Promise<Extension | null>;
   providerCheck?(input: { agent: Agent }): Promise<ProviderHealth>;
+  providerSignIn?(input: {
+    agent: "gemini" | "hermes";
+  }): Promise<ProviderHealth>;
   providerConnectDetected?(input: {
     agent: Agent;
     consent: true;
@@ -445,13 +446,7 @@ export interface API {
   browserAction(input: {
     projectId: string;
     action:
-      | "navigate"
-      | "back"
-      | "forward"
-      | "reload"
-      | "state"
-      | "bounds"
-      | "hide";
+      "navigate" | "back" | "forward" | "reload" | "state" | "bounds" | "hide";
     url?: string;
     bounds?: { x: number; y: number; width: number; height: number };
   }): Promise<BrowserState | null>;
@@ -504,6 +499,7 @@ export interface API {
     args: string[];
     protocol: "codex" | "acp" | "claude-cli" | "antigravity-cli";
     profile?: "isolated" | "existing";
+    model?: string | null;
     consent: true;
   }): Promise<void>;
   providerSettings(): Promise<ProviderSetting[]>;
@@ -612,6 +608,7 @@ export interface ProviderSetting {
   args: string[];
   protocol: string;
   profile?: "isolated" | "existing";
+  model?: string | null;
 }
 export interface RuntimeView {
   runs: Run[];

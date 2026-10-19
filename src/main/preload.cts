@@ -12,6 +12,7 @@ const api: API = {
   skillCatalog: () => ipcRenderer.invoke("app:skillCatalog"),
   skillImportFile: (input) => ipcRenderer.invoke("app:skillImportFile", input),
   providerCheck: (input) => ipcRenderer.invoke("app:providerCheck", input),
+  providerSignIn: (input) => ipcRenderer.invoke("app:providerSignIn", input),
   providerConnectDetected: (input) =>
     ipcRenderer.invoke("app:providerConnectDetected", input),
   missionPlan: (input) => ipcRenderer.invoke("app:missionPlan", input),

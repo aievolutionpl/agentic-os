@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { homedir } from "node:os";
 import type { Agent } from "../shared.js";
 import { resolveOnPath } from "./connectors.js";
+import { geminiScript, hermesLaunch } from "./provider-launch.js";
 
 /** Only discover paths; never execute installers, wrappers, or provider sign-in automatically. */
 export function detectExecutables(): Partial<Record<Agent, string>> {
@@ -19,15 +20,14 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
     const path = resolveOnPath(command);
     if (path && !/\.(cmd|bat|ps1)$/i.test(path)) result[id] = path;
     if (id === "gemini" && path && /\.cmd$/i.test(path)) {
-      const script = join(
-        dirname(path),
-        "node_modules",
-        "@google",
-        "gemini-cli",
-        "dist",
-        "index.js",
-      );
-      if (existsSync(script)) result.gemini = script;
+      const script = geminiScript(path);
+      if (script) result.gemini = script;
+    }
+    if (id === "hermes" && path && /\.cmd$/i.test(path)) {
+      try {
+        hermesLaunch(path, ["acp"], homedir());
+        result.hermes = path;
+      } catch {}
     }
     if (id === "codex" && path && process.platform === "win32") {
       const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
@@ -61,6 +61,18 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
       if (native) result.codex = native;
     }
   }
+  if (!result.antigravity) {
+    const candidate =
+      process.platform === "win32"
+        ? join(
+            process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"),
+            "agy",
+            "bin",
+            "agy.exe",
+          )
+        : join(homedir(), ".local", "bin", "agy");
+    if (existsSync(candidate)) result.antigravity = candidate;
+  }
   if (!result.hermes) {
     const candidates =
       process.platform === "win32"
@@ -70,6 +82,12 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
               "hermes",
               "bin",
               "hermes.exe",
+            ),
+            join(
+              process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"),
+              "hermes",
+              "bin",
+              "hermes.cmd",
             ),
             join(homedir(), ".local", "bin", "hermes.exe"),
             join(
@@ -93,7 +111,12 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
             ),
           ];
     const found = candidates.find((p) => existsSync(p));
-    if (found) result.hermes = found;
+    if (found) {
+      try {
+        hermesLaunch(found, ["acp"], homedir());
+        result.hermes = found;
+      } catch {}
+    }
   }
   return result;
 }

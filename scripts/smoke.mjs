@@ -95,7 +95,7 @@ try {
     (await page.evaluate(() => Object.keys(window.agenting))).sort(),
     [
       "snapshot",
-      "chatList", "chatCreate", "chatSend", "chatAction", "chatRemember", "chatTask", "memoryList", "memoryUpdate", "skillCatalog", "skillImportFile", "providerCheck", "providerConnectDetected",
+      "chatList", "chatCreate", "chatSend", "chatAction", "chatRemember", "chatTask", "memoryList", "memoryUpdate", "skillCatalog", "skillImportFile", "providerCheck", "providerSignIn", "providerConnectDetected",
       "connectorScan",
       "orchestrationStart", "orchestrationState", "orchestrationStop",
       "missionPlan", "missionList", "missionAction", "missionRemember", "localModelSettings", "localModelSave", "localModelRemove",

@@ -31,6 +31,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
     useState<Parameters<API["configureProvider"]>[0]["protocol"]>("codex");
   const [profile, setProfile] = useState<"existing" | "isolated">("existing");
   const [health, setHealth] = useState<ProviderHealth | null>(null);
+  const [model, setModel] = useState("");
   const [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
     [status, setStatus] = useState("");
@@ -55,13 +56,14 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
           : ["opencode", "local", "hermes"].includes(agent)
             ? ["acp"]
             : agent === "gemini"
-              ? ["--experimental-acp"]
+              ? ["--acp"]
               : [],
       ),
     );
     setProfile(
       config?.configured ? (config.profile ?? "isolated") : "existing",
     );
+    setModel(config?.model ?? "");
     setConsent(false);
     setStatus("");
   }, [agent, settings, detected]);
@@ -135,6 +137,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
               args: protocol === "acp" ? JSON.parse(args) : [],
               protocol,
               profile,
+              model,
               consent: true,
             }),
           );
@@ -151,19 +154,23 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
             <p>
               {agent === "hermes"
                 ? pl
-                  ? "W Hermes wybierz dostawcę przez hermes model (np. subskrypcję Codex lub Nous). Następnie sprawdź hermes acp --check. Połączymy się z tym samym profilem."
-                  : "Choose a provider with hermes model, then run hermes acp --check. This connection uses that same profile."
-                : agent === "claude"
+                  ? "Połącz wykrytą instalację, zaloguj ChatGPT/Codex i sprawdź połączenie. Wybierz model openai-codex poniżej i zapisz. Ten wybór obowiązuje w Agenting OS; globalny model Hermesa pozostaje osobny."
+                  : "Connect the detected installation, sign in to ChatGPT/Codex and check the connection. Select an openai-codex model below and save. This selection applies in Agenting OS, separately from Hermes' global model."
+                : agent === "gemini"
                   ? pl
-                    ? "Zaloguj Claude Code poleceniem claude auth login. Agenting OS użyje jego sesji, bez kopiowania tokenów."
-                    : "Sign in with claude auth login. Agenting OS uses the CLI session without copying tokens."
-                  : agent === "codex"
+                    ? "Google przeniósł konta indywidualne AI Pro/Ultra do Antigravity. Gemini CLI zachowujemy dla obsługiwanych kont Code Assist organizacji. Do Twojej indywidualnej subskrypcji wybierz Antigravity."
+                    : "Google moved personal AI Pro/Ultra accounts to Antigravity. Gemini CLI remains available for supported organizational Code Assist accounts. Select Antigravity for a personal subscription."
+                  : agent === "claude"
                     ? pl
-                      ? "Możesz użyć bieżącego konta Codex albo osobnego profilu aplikacji. Odczyt limitów uruchamia się automatycznie po połączeniu."
-                      : "Use your existing Codex account or an isolated app profile. Quota reads start automatically after connection."
-                    : pl
-                      ? "Zaloguj się w narzędziu dostawcy, a następnie zapisz i sprawdź połączenie."
-                      : "Sign in with the provider's tool, then save and check the connection."}
+                      ? "Zaloguj Claude Code poleceniem claude auth login. Agenting OS użyje jego sesji, bez kopiowania tokenów."
+                      : "Sign in with claude auth login. Agenting OS uses the CLI session without copying tokens."
+                    : agent === "codex"
+                      ? pl
+                        ? "Możesz użyć bieżącego konta Codex albo osobnego profilu aplikacji. Odczyt limitów uruchamia się automatycznie po połączeniu."
+                        : "Use your existing Codex account or an isolated app profile. Quota reads start automatically after connection."
+                      : pl
+                        ? "Zaloguj się w narzędziu dostawcy, a następnie zapisz i sprawdź połączenie."
+                        : "Sign in with the provider's tool, then save and check the connection."}
             </p>
           </div>
           {api.providerConnectDetected &&
@@ -281,8 +288,8 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
               : "Select the OpenCode executable. Configure your Ollama or LM Studio model below. This profile does not use the OpenRouter key."
             : agent === "gemini"
               ? pl
-                ? "Gemini CLI działa przez eksperymentalny ACP. Na Windows wybierz dist/index.js z instalacji @google/gemini-cli (wymaga Node.js w PATH). Master i recenzent wymagają trybu plan w wersji CLI."
-                : "Gemini CLI uses experimental ACP. On Windows select dist/index.js from @google/gemini-cli (requires Node.js on PATH). Master and review require CLI plan mode."
+                ? "Gemini CLI działa przez ACP (--acp). Wykrywamy punkt wejścia npm, w tym bundle/gemini.js. Master i recenzent wymagają udostępnionego przez CLI trybu plan."
+                : "Gemini CLI uses ACP (--acp). Discovery follows npm's entry point, including bundle/gemini.js. Master and review require the CLI's advertised plan mode."
               : agent === "hermes"
                 ? pl
                   ? "Wybierz hermes z zainstalowanym dodatkiem ACP i skonfigurowanym modelem. Uruchamiamy hermes acp. Obecnie dostępny jako wykonawca; nie deklarujemy trybu tylko do odczytu."
@@ -303,6 +310,45 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
                         ? "Wymaga CLI agy i jego logowania. Adapter wykonawczy jest eksperymentalny; przeglądy tylko do odczytu i wznowienia są niedostępne."
                         : "Requires agy CLI and its sign-in. Execution is experimental; read-only reviews and resume are unavailable."}
         </p>
+        {["gemini", "hermes", "antigravity"].includes(agent) && (
+          <label>
+            {pl ? "Model w Agenting OS" : "Model in Agenting OS"}
+            <select
+              aria-label={pl ? "Model w Agenting OS" : "Model in Agenting OS"}
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              disabled={busy}
+            >
+              <option value="">
+                {agent === "hermes"
+                  ? pl
+                    ? "Sprawdź połączenie i wybierz model"
+                    : "Check the connection and select a model"
+                  : pl
+                    ? "Automatyczny model dostawcy"
+                    : "Automatic provider model"}
+              </option>
+              {model && !health?.models.some((m) => m.id === model) && (
+                <option value={model}>{model}</option>
+              )}
+              {health?.models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.id.startsWith("openai-codex:")
+                    ? pl
+                      ? "Subskrypcja ChatGPT · "
+                      : "ChatGPT subscription · "
+                    : ""}
+                  {m.name}
+                </option>
+              ))}
+            </select>
+            <small>
+              {pl
+                ? "Zapisz połączenie po zmianie modelu. W Hermes wybór jest wymagany, aby uniknąć przypadkowego użycia innego dostawcy."
+                : "Save the connection after changing the model. Hermes requires an explicit choice to avoid unintentionally using another provider."}
+            </small>
+          </label>
+        )}
         <label className="dependency-choice consent">
           <input
             type="checkbox"
@@ -317,6 +363,33 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
           </span>
         </label>
         <div className="panel-actions">
+          {api.providerSignIn && (agent === "gemini" || agent === "hermes") && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={
+                busy || !settings.find((p) => p.id === agent)?.configured
+              }
+              onClick={() =>
+                void act(async () => {
+                  setHealth(
+                    await api.providerSignIn!({
+                      agent: agent as "gemini" | "hermes",
+                    }),
+                  );
+                }, "login")
+              }
+            >
+              <Icon name="globe" />
+              {pl
+                ? agent === "gemini"
+                  ? "Zaloguj Google"
+                  : "Zaloguj ChatGPT / Codex"
+                : agent === "gemini"
+                  ? "Sign in with Google"
+                  : "Sign in to ChatGPT / Codex"}
+            </button>
+          )}
           {api.providerCheck && (
             <button
               type="button"
@@ -353,6 +426,18 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
               </button>
             )}
         </div>
+        {agent === "gemini" && (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => setAgent("antigravity")}
+          >
+            {pl
+              ? "Google AI Pro/Ultra → Antigravity"
+              : "Google AI Pro/Ultra → Antigravity"}
+          </button>
+        )}
         {status && (
           <p role={status === "error" ? "alert" : "status"}>
             {status === "error"
@@ -378,25 +463,41 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
           <Icon name={health.state === "connected" ? "check" : "info"} />
           <div>
             <strong>
-              {health.detail === "CLI_SIGN_IN_VERIFIED"
+              {health.detail === "ANTIGRAVITY_MODELS_READY"
                 ? pl
-                  ? "Logowanie CLI potwierdzone"
-                  : "CLI sign-in verified"
-                : health.detail === "ACP_READY_AUTH_UNVERIFIED"
+                  ? "Antigravity udostępnia modele konta Google. Dostęp do rozmowy potwierdzi pierwsza odpowiedź."
+                  : "Antigravity lists the Google account models. The first response verifies conversation access."
+                : health.detail === "GEMINI_SUBSCRIPTION_MOVED"
                   ? pl
-                    ? "ACP odpowiada. Dostęp modelu potwierdzi pierwsza rozmowa."
-                    : "ACP responds. The first conversation verifies model access."
-                  : health.detail === "HERMES_ACP_CHECK_REQUIRED"
+                    ? "Google zakończył obsługę indywidualnych subskrypcji w Gemini CLI. Wybierz Antigravity."
+                    : "Google ended personal subscription support in Gemini CLI. Select Antigravity."
+                  : health.detail === "PROVIDER_TLS_ERROR"
                     ? pl
-                      ? "Sprawdź instalację dodatku ACP i uruchom hermes acp --check."
-                      : "Check the ACP extra and run hermes acp --check."
-                    : health.detail === "GEMINI_ACP_CHECK_REQUIRED"
+                      ? "Nie udało się zweryfikować certyfikatu dostawcy. Sprawdź zaufane certyfikaty Windows."
+                      : "Provider certificate verification failed. Check trusted Windows certificates."
+                    : health.detail === "GOOGLE_SIGN_IN_VERIFIED"
                       ? pl
-                        ? "Sprawdź logowanie i wersję Gemini CLI z obsługą --experimental-acp. Starsza instalacja wymaga aktualizacji."
-                        : "Check sign-in and a Gemini CLI version supporting --experimental-acp. Older installations need an update."
-                      : pl
-                        ? "Połączenie wymaga konfiguracji lub logowania."
-                        : "Connection requires setup or sign-in."}
+                        ? "Logowanie Google potwierdzone"
+                        : "Google sign-in verified"
+                      : health.detail === "CLI_SIGN_IN_VERIFIED"
+                        ? pl
+                          ? "Logowanie CLI potwierdzone"
+                          : "CLI sign-in verified"
+                        : health.detail === "ACP_READY_AUTH_UNVERIFIED"
+                          ? pl
+                            ? "ACP odpowiada. Dostęp modelu potwierdzi pierwsza rozmowa."
+                            : "ACP responds. The first conversation verifies model access."
+                          : health.detail === "HERMES_ACP_CHECK_REQUIRED"
+                            ? pl
+                              ? "Sprawdź instalację dodatku ACP i uruchom hermes acp --check."
+                              : "Check the ACP extra and run hermes acp --check."
+                            : health.detail === "GEMINI_ACP_CHECK_REQUIRED"
+                              ? pl
+                                ? "Sprawdź logowanie i wersję Gemini CLI z obsługą --experimental-acp. Starsza instalacja wymaga aktualizacji."
+                                : "Check sign-in and a Gemini CLI version supporting --experimental-acp. Older installations need an update."
+                              : pl
+                                ? "Połączenie wymaga konfiguracji lub logowania."
+                                : "Connection requires setup or sign-in."}
             </strong>
             <p>{new Date(health.observedAt).toLocaleTimeString(language)}</p>
             {!!health.models.length && (

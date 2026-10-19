@@ -1,0 +1,389 @@
+import React, { useEffect, useState } from "react";
+import type { Extension, McpTool } from "../shared";
+import { Modal, SelectField } from "./ui";
+const sample = JSON.stringify(
+  {
+    kind: "skill",
+    name: "Project conventions",
+    version: "1.0.0",
+    author: "Your team",
+    license: "Apache-2.0",
+    source: "local/project-conventions",
+    instructions:
+      "Read the existing README and reuse project patterns. Run relevant checks and report actual results.",
+  },
+  null,
+  2,
+);
+export function ExtensionsPanel({
+  projectId,
+  language,
+}: {
+  projectId: string;
+  language: "pl" | "en";
+}) {
+  const api = window.agenting!,
+    pl = language === "pl";
+  const [items, setItems] = useState<Extension[]>([]),
+    [manifest, setManifest] = useState(sample),
+    [consent, setConsent] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(false),
+    [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(""),
+    [tools, setTools] = useState<McpTool[]>([]),
+    [tool, setTool] = useState(""),
+    [args, setArgs] = useState("{}"),
+    [result, setResult] = useState<{ isError: boolean; text: string } | null>(
+      null,
+    ),
+    [pending, setPending] = useState<{
+      id: string;
+      name: string;
+      arguments: Record<string, unknown>;
+    } | null>(null),
+    [remove, setRemove] = useState<Extension | null>(null);
+  async function refresh() {
+    setItems(await api.extensionList({ projectId }));
+  }
+  useEffect(() => {
+    let alive = true;
+    void refresh()
+      .catch(() => {
+        if (alive) setError(true);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [projectId]);
+  async function act(fn: () => Promise<unknown>) {
+    setBusy(true);
+    setError(false);
+    try {
+      await fn();
+    } catch {
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="extensions-panel">
+      <div className="section-heading">
+        <div>
+          <h2>{pl ? "Rozszerzenia projektu" : "Project extensions"}</h2>
+          <p>
+            {pl
+              ? "Jawny kontekst i narzędzia uruchamiane na żądanie."
+              : "Explicit context and tools you run on demand."}
+          </p>
+        </div>
+      </div>
+      {error && (
+        <p className="inline-error" role="alert">
+          {pl
+            ? "Operacja odrzucona. Sprawdź manifest, zaufaną ścieżkę programu i stan połączenia."
+            : "Request rejected. Check the manifest, trusted executable path and connection state."}
+        </p>
+      )}
+      {loading ? (
+        <p role="status">{pl ? "Wczytywanie…" : "Loading…"}</p>
+      ) : (
+        <ul className="extension-list">
+          {items.map((item) => (
+            <li key={item.id}>
+              <div>
+                <strong>{item.name}</strong>
+                <span className="helper">
+                  {" "}
+                  {item.version} · {item.kind.toUpperCase()}
+                </span>
+                <p className="helper">
+                  {item.author} · {item.license} · {item.source}
+                </p>
+                {item.kind === "skill" && (
+                  <details>
+                    <summary>{pl ? "Instrukcje" : "Instructions"}</summary>
+                    <pre>{item.instructions}</pre>
+                  </details>
+                )}
+              </div>
+              {!item.id.startsWith("builtin:") && (
+                <button
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => setRemove(item)}
+                >
+                  {pl ? "Usuń" : "Remove"}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="helper">
+        {pl
+          ? "Skille nie są wykonywane. Wybierz je w szczegółach zadania, aby dołączyć instrukcje do podglądu kontekstu."
+          : "Skills are not executed. Select them in task details to add their instructions to the context preview."}
+      </p>
+      <details className="extension-import">
+        <summary>
+          {pl ? "Importuj manifest JSON" : "Import JSON manifest"}
+        </summary>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void act(async () => {
+              await api.extensionImport({ projectId, manifest, consent: true });
+              await refresh();
+              setConsent(false);
+            });
+          }}
+        >
+          <label>
+            {pl ? "Manifest (skill lub mcp)" : "Manifest (skill or mcp)"}
+            <textarea
+              className="code-input"
+              rows={10}
+              maxLength={32000}
+              value={manifest}
+              onChange={(e) => setManifest(e.target.value)}
+              disabled={busy}
+              required
+            />
+          </label>
+          <p className="helper">
+            {pl
+              ? "MCP: kind=mcp, name, version, author, license, source, command (pełna ścieżka), args (tablica). Bez instrukcji, kluczy i sekretów. Program działa z uprawnieniami użytkownika; import nie uruchamia go."
+              : "MCP: kind=mcp, name, version, author, license, source, command (absolute path), args (array). No instructions, keys or secrets. The program runs with your user permissions; importing does not launch it."}
+          </p>
+          <label className="dependency-choice consent">
+            <input
+              type="checkbox"
+              checked={consent}
+              disabled={busy}
+              onChange={(e) => setConsent(e.target.checked)}
+            />
+            <span>
+              {pl
+                ? "Sprawdziłem źródło, licencję i treść. Ufam temu rozszerzeniu."
+                : "I reviewed the source, license and contents. I trust this extension."}
+            </span>
+          </label>
+          <button className="primary" disabled={busy || !consent}>
+            {pl ? "Importuj do projektu" : "Import into project"}
+          </button>
+        </form>
+      </details>
+      <div className="mcp-console">
+        <h3>{pl ? "Narzędzia MCP" : "MCP tools"}</h3>
+        <p className="helper">
+          {pl
+            ? "Połączenie stdio 2025-11-25. Narzędzia wywołujesz ręcznie; agent nie ma do nich automatycznego dostępu. Lokalny serwer musi sam zapewniać swoją izolację."
+            : "Stdio compatibility protocol 2025-11-25. Calls are manual; agents do not automatically receive these tools. The local server must enforce its own isolation."}
+        </p>
+        {!items.some((i) => i.kind === "mcp") ? (
+          <p className="empty-list">
+            {pl
+              ? "Zaimportuj manifest zaufanego serwera MCP."
+              : "Import a trusted MCP server manifest to begin."}
+          </p>
+        ) : (
+          <>
+            <SelectField
+              label={pl ? "Serwer MCP" : "MCP server"}
+              value={selected}
+              disabled={busy || !!tools.length}
+              onChange={setSelected}
+              options={[
+                { value: "", label: pl ? "Wybierz serwer" : "Choose server" },
+                ...items
+                  .filter((i) => i.kind === "mcp")
+                  .map((i) => ({ value: i.id, label: i.name })),
+              ]}
+            />
+            <div className="button-row">
+              <button
+                className="secondary"
+                disabled={busy || !selected || !!tools.length}
+                onClick={() =>
+                  void act(async () => {
+                    const found = await api.mcpConnect({
+                      projectId,
+                      id: selected,
+                      consent: true,
+                    });
+                    setTools(found);
+                    setTool(found[0]?.name ?? "");
+                  })
+                }
+              >
+                {pl
+                  ? "Uruchom zaufany serwer i pobierz narzędzia"
+                  : "Start trusted server and list tools"}
+              </button>
+              <button
+                className="secondary"
+                disabled={busy || !selected}
+                onClick={() =>
+                  void act(async () => {
+                    await api.mcpDisconnect({ projectId, id: selected });
+                    setTools([]);
+                    setTool("");
+                  })
+                }
+              >
+                {pl ? "Rozłącz" : "Disconnect"}
+              </button>
+            </div>
+            {!!tools.length && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  try {
+                    const parsed = JSON.parse(args);
+                    if (
+                      !parsed ||
+                      Array.isArray(parsed) ||
+                      typeof parsed !== "object"
+                    )
+                      throw Error();
+                    setPending({ id: selected, name: tool, arguments: parsed });
+                  } catch {
+                    setError(true);
+                  }
+                }}
+              >
+                <SelectField
+                  label={pl ? "Narzędzie" : "Tool"}
+                  value={tool}
+                  disabled={busy}
+                  onChange={setTool}
+                  options={tools.map((t) => ({ value: t.name, label: t.name }))}
+                />
+                <p className="helper">
+                  {tools.find((t) => t.name === tool)?.description}
+                </p>
+                <details>
+                  <summary>
+                    {pl ? "Schemat argumentów" : "Argument schema"}
+                  </summary>
+                  <pre>
+                    {JSON.stringify(
+                      tools.find((t) => t.name === tool)?.inputSchema,
+                      null,
+                      2,
+                    )}
+                  </pre>
+                </details>
+                <label>
+                  {pl ? "Argumenty JSON" : "JSON arguments"}
+                  <textarea
+                    className="code-input"
+                    rows={4}
+                    value={args}
+                    maxLength={16000}
+                    disabled={busy}
+                    onChange={(e) => setArgs(e.target.value)}
+                  />
+                </label>
+                <button className="primary" disabled={busy || !tool}>
+                  {pl ? "Sprawdź wywołanie" : "Review call"}
+                </button>
+              </form>
+            )}
+          </>
+        )}
+        {result && (
+          <div className="run-output" role="status">
+            <strong>
+              {result.isError
+                ? pl
+                  ? "Narzędzie zgłosiło błąd"
+                  : "Tool returned an error"
+                : pl
+                  ? "Wynik narzędzia"
+                  : "Tool result"}
+            </strong>
+            <pre>{result.text}</pre>
+          </div>
+        )}
+      </div>
+      {pending && (
+        <Modal
+          open
+          titleId="tool-confirm-title"
+          onClose={() => setPending(null)}
+        >
+          <h2 id="tool-confirm-title">
+            {pl ? "Potwierdź wywołanie narzędzia" : "Confirm tool call"}
+          </h2>
+          <p>
+            {pl
+              ? "Zaufany serwer wykona to polecenie z własnymi uprawnieniami."
+              : "The trusted server will execute this call with its own permissions."}
+          </p>
+          <pre>
+            {pending.name + "\n" + JSON.stringify(pending.arguments, null, 2)}
+          </pre>
+          <div className="modal-actions">
+            <button className="secondary" onClick={() => setPending(null)}>
+              {pl ? "Anuluj" : "Cancel"}
+            </button>
+            <button
+              className="primary"
+              onClick={() => {
+                const call = pending;
+                setPending(null);
+                void act(async () =>
+                  setResult(
+                    await api.mcpCall({ projectId, ...call, consent: true }),
+                  ),
+                );
+              }}
+            >
+              {pl ? "Wywołaj raz" : "Run once"}
+            </button>
+          </div>
+        </Modal>
+      )}
+      {remove && (
+        <Modal
+          open
+          titleId="extension-remove-title"
+          onClose={() => setRemove(null)}
+        >
+          <h2 id="extension-remove-title">
+            {pl ? "Usunąć rozszerzenie?" : "Remove extension?"}
+          </h2>
+          <p>{remove.name}</p>
+          <div className="modal-actions">
+            <button className="secondary" onClick={() => setRemove(null)}>
+              {pl ? "Anuluj" : "Cancel"}
+            </button>
+            <button
+              className="primary"
+              onClick={() => {
+                const id = remove.id;
+                setRemove(null);
+                void act(async () => {
+                  await api.extensionRemove({ projectId, id });
+                  if (selected === id) {
+                    setSelected("");
+                    setTools([]);
+                  }
+                  await refresh();
+                });
+              }}
+            >
+              {pl ? "Usuń" : "Remove"}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </section>
+  );
+}

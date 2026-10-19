@@ -1,0 +1,8 @@
+Agenting OS
+Copyright 2026 AI Evolution Polska
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+Third-party code, fonts and runtime components retain their own licenses.
+See licenses/THIRD_PARTY_NOTICES.md, public/licenses/Inter-OFL.txt (also in
+dist/renderer/licenses in packaged builds) and the
+Electron/Chromium license files supplied alongside the packaged runtime.

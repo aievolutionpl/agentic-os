@@ -1,6 +1,6 @@
 {
   "name": "agenting-os",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "main": "dist/main/index.js",
@@ -12,42 +12,45 @@
   "scripts": {
     "build": "tsc -p tsconfig.main.json && vite build",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit",
-    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs",
+    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs",
     "start": "npm run build && electron .",
     "smoke": "node scripts/smoke.mjs",
     "smoke:headless": "xvfb-run -a node scripts/smoke.mjs",
     "pretest": "npm run build",
     "notices": "node scripts/notices.mjs",
     "qa:contrast": "node scripts/contrast-qa.mjs",
-    "probe:adapters": "node scripts/probe-adapters.mjs"
+    "probe:adapters": "node scripts/probe-adapters.mjs",
+    "package:win": "npm run build && electron-builder --win nsis --x64 --publish never",
+    "smoke:package": "node scripts/package-smoke.mjs",
+    "qa:tools": "node scripts/tools-qa.mjs"
   },
   "dependencies": {
     "react": "https://registry.npmjs.org/react/-/react-19.2.7.tgz",
     "react-dom": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.7.tgz"
   },
   "devDependencies": {
-    "electron": "https://registry.npmjs.org/electron/-/electron-43.1.0.tgz",
-    "typescript": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
-    "vite": "https://registry.npmjs.org/vite/-/vite-5.4.21.tgz",
+    "@types/node": "https://registry.npmjs.org/@types/node/-/node-24.13.3.tgz",
     "@types/react": "https://registry.npmjs.org/@types/react/-/react-19.2.17.tgz",
     "@types/react-dom": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.3.tgz",
-    "@types/node": "https://registry.npmjs.org/@types/node/-/node-24.13.3.tgz",
+    "electron": "https://registry.npmjs.org/electron/-/electron-43.8.0.tgz",
+    "electron-builder": "26.17.0",
+    "jsdom": "https://registry.npmjs.org/jsdom/-/jsdom-20.0.3.tgz",
     "playwright": "https://registry.npmjs.org/playwright/-/playwright-1.64.0.tgz",
-    "jsdom": "https://registry.npmjs.org/jsdom/-/jsdom-20.0.3.tgz"
+    "typescript": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+    "vite": "https://registry.npmjs.org/vite/-/vite-7.3.7.tgz"
   },
   "overrides": {
-    "@esbuild/linux-x64": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.21.5.tgz",
     "@types/estree": "https://registry.npmjs.org/@types/estree/-/estree-1.0.9.tgz",
     "undici": "https://registry.npmjs.org/undici/-/undici-8.11.2.tgz",
     "@electron/get": "https://registry.npmjs.org/@electron/get/-/get-5.0.0.tgz",
     "scheduler": "https://registry.npmjs.org/scheduler/-/scheduler-0.27.0.tgz",
-    "nanoid": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.11.tgz",
+    "nanoid": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.20.tgz",
     "undici-types": "https://registry.npmjs.org/undici-types/-/undici-types-7.18.2.tgz",
     "rollup": "https://registry.npmjs.org/rollup/-/rollup-4.64.5.tgz",
     "playwright-core": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.64.0.tgz",
     "picocolors": "https://registry.npmjs.org/picocolors/-/picocolors-1.1.1.tgz",
-    "postcss": "https://registry.npmjs.org/postcss/-/postcss-8.5.6.tgz",
-    "esbuild": "https://registry.npmjs.org/esbuild/-/esbuild-0.21.5.tgz",
+    "postcss": "https://registry.npmjs.org/postcss/-/postcss-8.5.31.tgz",
+    "esbuild": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
     "source-map-js": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz",
     "debug": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
     "env-paths": "https://registry.npmjs.org/env-paths/-/env-paths-3.0.0.tgz",
@@ -90,7 +93,7 @@
     "estraverse@^5.2.0": "https://registry.npmjs.org/estraverse/-/estraverse-5.3.0.tgz",
     "esutils@^2.0.2": "https://registry.npmjs.org/esutils/-/esutils-2.0.3.tgz",
     "esprima@^4.0.1": "https://registry.npmjs.org/esprima/-/esprima-4.0.1.tgz",
-    "form-data@^4.0.0": "https://registry.npmjs.org/form-data/-/form-data-4.0.5.tgz",
+    "form-data@^4.0.0": "https://registry.npmjs.org/form-data/-/form-data-4.0.6.tgz",
     "asynckit@^0.4.0": "https://registry.npmjs.org/asynckit/-/asynckit-0.4.0.tgz",
     "combined-stream@^1.0.8": "https://registry.npmjs.org/combined-stream/-/combined-stream-1.0.8.tgz",
     "delayed-stream@~1.0.0": "https://registry.npmjs.org/delayed-stream/-/delayed-stream-1.0.0.tgz",
@@ -118,7 +121,7 @@
     "iconv-lite@0.6.3": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.6.3.tgz",
     "safer-buffer@>= 2.1.2 < 3.0.0": "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz",
     "http-proxy-agent@^5.0.0": "https://registry.npmjs.org/http-proxy-agent/-/http-proxy-agent-5.0.0.tgz",
-    "@tootallnate/once@2": "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.0.tgz",
+    "@tootallnate/once@2": "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.1.tgz",
     "agent-base@6": "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz",
     "https-proxy-agent@^5.0.1": "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz",
     "is-potential-custom-element-name@^1.0.1": "https://registry.npmjs.org/is-potential-custom-element-name/-/is-potential-custom-element-name-1.0.1.tgz",
@@ -137,7 +140,15 @@
     "requires-port@^1.0.0": "https://registry.npmjs.org/requires-port/-/requires-port-1.0.0.tgz",
     "w3c-xmlserializer@^4.0.0": "https://registry.npmjs.org/w3c-xmlserializer/-/w3c-xmlserializer-4.0.0.tgz",
     "xml-name-validator@^4.0.0": "https://registry.npmjs.org/xml-name-validator/-/xml-name-validator-4.0.0.tgz",
-    "ws@^8.11.0": "https://registry.npmjs.org/ws/-/ws-8.19.0.tgz",
-    "jsdom": "$jsdom"
+    "ws@^8.11.0": "https://registry.npmjs.org/ws/-/ws-8.22.0.tgz",
+    "jsdom": "$jsdom",
+    "ws": "https://registry.npmjs.org/ws/-/ws-8.22.0.tgz",
+    "form-data": "https://registry.npmjs.org/form-data/-/form-data-4.0.6.tgz",
+    "@tootallnate/once": "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.1.tgz"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aievolutionpl/agenting-os.git"
   }
 }

@@ -74,15 +74,22 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
   try {
     boot();
     await wait(() => row("Child"));
-    const select = row("Child").querySelector("select");
-    select.options[0].selected = true;
-    select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    row("Child").querySelector("h3 button").click();
+    await wait(() => dom.window.document.querySelector(".task-panel").open);
+    dom.window.document
+      .querySelector('.task-panel input[type="checkbox"]')
+      .click();
     await wait(
       () =>
         s.tasks(p.id).find((t) => t.id === child.id).dependencies.length === 1,
     );
-    await wait(() => !row("Child").querySelector("button").disabled);
-    row("Child").querySelector("button").click();
+    dom.window.document
+      .querySelector('.task-panel button[aria-label="Zamknij"]')
+      .click();
+    await wait(
+      () => !row("Child").querySelector(".task-quick-action").disabled,
+    );
+    row("Child").querySelector(".task-quick-action").click();
     await wait(() =>
       row("Child").textContent.includes("Oczekuje na zależności"),
     );
@@ -91,9 +98,13 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
         .querySelector(".event-journal")
         .textContent.includes("Dodano do kolejki"),
     );
-    const settings = dom.window.document.querySelector(".settings select");
-    settings.value = "en";
-    settings.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+    dom.window.document
+      .querySelector('.settings button[aria-label="Język"]')
+      .click();
+    await wait(() => dom.window.document.querySelector('[role="listbox"]'));
+    [...dom.window.document.querySelectorAll('[role="option"]')]
+      .find((option) => option.textContent.trim() === "English")
+      .click();
     await wait(() =>
       row("Child").textContent.includes("Waiting for dependencies"),
     );
@@ -141,7 +152,7 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
         .textContent.includes("Retry queued"),
     );
     assert.ok(
-      dom.window.document.body.textContent.includes("Execution is disabled"),
+      dom.window.document.body.textContent.includes("Supervised execution"),
     );
   } finally {
     dom?.window.close();

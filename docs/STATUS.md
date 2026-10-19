@@ -1,3 +1,41 @@
+# Stage 0.4 — extensions and distribution — 2026-10-19
+
+Completed the requested three-stage implementation. Added project-scoped versioned skills, explicitly trusted/manual MCP stdio tools, isolated persistent project browsers, unsigned Windows x64 NSIS packaging, CI and open-source guidance. Current documentation starts at the root README. Native Windows: full **43/43** regression suite, typecheck/build, Electron UI and browser isolation checks passed. Package and contrast details are recorded in [0.4 evidence](evidence/release-04/README.md). No authenticated model call was needed for these checks; signed release and installer lifecycle testing remain future work.
+
+---
+
+# Stage 0.3 — collaboration and context — 2026-10-19
+
+Implemented scoped FTS5 retrieval, provenance-backed bounded context snapshots/preview, four workflow profiles, ACP v1 integration, independent review checks and explicit exact-artifact approval/application. Read-only recovery inspects committed state without replaying operations. Native Windows: typecheck/build PASS, **40/40 tests PASS**, real Electron smoke PASS with the host clipboard availability limitation reported separately. See [stage evidence](evidence/stage-03/README.md). Stage 0.4 follows: MCP/skills, browser, open-source documentation and distribution.
+
+---
+
+# Stage 0.2 — supervised execution — 2026-10-19
+
+Implemented managed worktrees, Codex app-server, durable runs, streaming summary/activity, real process cancellation, explicit recovery, artifact capture and a task execution/review panel. Existing source repositories remain unchanged until the later apply step. Native Windows: build/typecheck PASS, full 33/33 suite PASS, runtime cancellation/dead-PID checks PASS, real Electron smoke PASS and installed app-server handshake/account-read PASS without inference. See [stage evidence](evidence/stage-02/README.md).
+
+Current owner authorization includes all three roadmap stages, GitHub publication/merge and README. Earlier no-push/pause notes below are historical. ACP/context/apply and extensibility/distribution follow in stages 0.3 and 0.4. No paid model run or login was performed during implementation.
+
+---
+
+# Product UI polish — 2026-10-19
+
+Implemented the owner's presentation-only brief. Full-height 256px sidebar, fixed 56px top bar, shared theme/spacing/type tokens, custom listboxes, compact composer and task rows, native modal task drawer, cancellation confirmation, feedback toasts, timeline, mobile navigation, keyboard shortcuts and copy-path action. No backend, data-model, IPC or dependency changes in this increment. Existing provider execution remains disabled.
+
+Native Windows: typecheck/build PASS, 30/30 tests PASS, actual Electron smoke PASS, 2533 rendered text measurements over 75 screens PASS with no horizontal overflow. Both themes captured before/after at 1440/1024/390. Evidence, exact files and limitations: [UI polish](evidence/ui-polish/README.md). Independent review, screen-reader certification, installer and release QA remain pending.
+
+---
+
+# Workspace UI continuation — 2026-10-19
+
+Owner resumed development after the handoff. Implemented the handoff's first recommendation: local Inter typography, neutral dark/light workspace, quieter project sidebar/composer, expandable technical details/journal, task title search/status filters with reset, per-project session input across tab/project switches, named dialogs and compact navigation/focus return. Fixed a startup preference/snapshot race found by real Electron QA.
+
+Native Windows exposed an incomplete lockfile, DOS 8.3 path comparison in artifact capture, SQLite cleanup ordering in two tests and global autocrlf-dependent fixture bytes. Fixed without weakening worktree guards, changing schemas or upgrading dependency versions. Native Windows now passes typecheck, build, 30/30 tests, extended Electron smoke and 1986 text contrast measurements across 41 screens. Evidence, tested versions and limits: [workspace refresh](evidence/workspace-refresh/README.md).
+
+No final logo selection, provider execution, patch application, secret storage, automation schedule changes, login changes, paid calls or remote push. Installer, updates, release certification and independent review remain pending. Next bounded increment is supervised isolated execution → artifact → independent review → human decision. Older entries below are history and do not override this checkpoint.
+
+---
+
 # Bounded adapter contract correction — 2026-10-19
 
 This slice stops here; whole-app completion is not claimed. Windows remains **UNVERIFIED**. No other writers or workers, inference, paid API, login/auth change, Hermes config/cron change, dependency change, git init or public push.

@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "at": "2026-10-19T16:51:24.793Z",
+  "electron": "43.8.0",
+  "checks": [
+    "packaged executable starts",
+    "preload works from ASAR",
+    "isolated first-launch profile"
+  ],
+  "installerExecution": "not performed",
+  "codeSigning": "unsigned"
+}

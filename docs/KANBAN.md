@@ -1,3 +1,35 @@
+# Current continuation — 0.4.0 (2026-10-19)
+
+- Done: product UI polish, supervised worktrees/Codex runs, scoped FTS/context/workflows, ACP review, exact approval/application, skills, explicit MCP tools and isolated persistent browser.
+- Done: Apache-2.0, contribution/security guidance, issue/PR templates, Windows packaging and Windows/Linux CI definition.
+- Evidence: [0.4 checks and limitations](evidence/release-04/README.md), [stage scope](ROADMAP_IMPLEMENTATION.md).
+- Next: actual authenticated provider compatibility runs, signed installer lifecycle tests and OS-level isolation for third-party executable adapters.
+
+---
+
+# Historical continuation — product UI polish (2026-10-19)
+
+- Done: presentation-only product polish, reusable listbox/modal/icon primitives, responsive task details panel, timeline, confirmations, toasts, composer shortcuts and copy path.
+- Verified on native Windows: typecheck, build, 30/30 tests, Electron CRUD/restart/keyboard/copy/cancel smoke, 2533 text measurements on 75 screens without failures or horizontal overflow.
+- Delivered: before/after dark/light at 1440/1024/390 and [changed-file list](evidence/ui-polish/README.md).
+- Preserved: backend, schema, IPC, dependency versions and existing honest integration statuses. Execution and patch application remain disabled.
+- Pending: owner visual feedback, independent review, screen readers, installer and release QA. Next functional increment remains supervised isolated execution and review.
+
+---
+
+# Previous continuation — workspace UI and Windows (2026-10-19)
+
+- Done: implemented workspace visual refresh, local Inter, both themes and compact navigation.
+- Done: task search/status filters/reset, per-project session input, expandable task details/journal and named native dialogs.
+- Done: startup preference race, lockfile, DOS alias canonicalization and Windows test cleanup/fixture fixes.
+- Verified on native Windows: typecheck, production build, 30/30 tests, real Electron smoke, 320/390/768/1280/1440 reflow, long names, keyboard navigation, 1986 text contrast measurements with zero failures. See [evidence](evidence/workspace-refresh/README.md).
+- Pending: owner UI/logo feedback, independent review, installer/updates/release QA.
+- Next: supervised isolated Codex execution with cancellation and redacted streaming, then artifact review and human decision. Apply remains a separate increment.
+
+The entries below are historical checkpoints.
+
+---
+
 # Bounded adapter contract correction — 2026-10-19 (stopped)
 
 ## Done

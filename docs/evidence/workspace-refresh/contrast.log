@@ -1,0 +1,46 @@
+
+> agenting-os@0.1.0 qa:contrast
+> node scripts/contrast-qa.mjs
+
+dark-320-empty: 8 measurements, 0 failures
+dark-320-tasks: 35 measurements, 0 failures
+dark-320-memory: 21 measurements, 0 failures
+dark-320-integrations: 119 measurements, 0 failures
+dark-320-dialog: 9 measurements, 0 failures
+dark-390-tasks: 35 measurements, 0 failures
+dark-390-memory: 21 measurements, 0 failures
+dark-390-integrations: 119 measurements, 0 failures
+dark-390-dialog: 9 measurements, 0 failures
+dark-768-tasks: 42 measurements, 0 failures
+dark-768-memory: 28 measurements, 0 failures
+dark-768-integrations: 126 measurements, 0 failures
+dark-768-dialog: 9 measurements, 0 failures
+dark-1280-tasks: 43 measurements, 0 failures
+dark-1280-memory: 29 measurements, 0 failures
+dark-1280-integrations: 127 measurements, 0 failures
+dark-1280-dialog: 9 measurements, 0 failures
+dark-1440-tasks: 43 measurements, 0 failures
+dark-1440-memory: 29 measurements, 0 failures
+dark-1440-integrations: 127 measurements, 0 failures
+dark-1440-dialog: 9 measurements, 0 failures
+light-320-tasks: 35 measurements, 0 failures
+light-320-memory: 21 measurements, 0 failures
+light-320-integrations: 119 measurements, 0 failures
+light-320-dialog: 9 measurements, 0 failures
+light-390-tasks: 35 measurements, 0 failures
+light-390-memory: 21 measurements, 0 failures
+light-390-integrations: 119 measurements, 0 failures
+light-390-dialog: 9 measurements, 0 failures
+light-768-tasks: 42 measurements, 0 failures
+light-768-memory: 28 measurements, 0 failures
+light-768-integrations: 126 measurements, 0 failures
+light-768-dialog: 9 measurements, 0 failures
+light-1280-tasks: 43 measurements, 0 failures
+light-1280-memory: 29 measurements, 0 failures
+light-1280-integrations: 127 measurements, 0 failures
+light-1280-dialog: 9 measurements, 0 failures
+light-1440-tasks: 43 measurements, 0 failures
+light-1440-memory: 29 measurements, 0 failures
+light-1440-integrations: 127 measurements, 0 failures
+light-1440-dialog: 9 measurements, 0 failures
+Contrast QA: passed

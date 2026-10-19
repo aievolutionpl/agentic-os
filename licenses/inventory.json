@@ -1,10 +1,154 @@
 [
   {
+    "name": "@electron/asar",
+    "version": "3.4.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@electron_asar-3.4.1-LICENSE.md"
+    ]
+  },
+  {
+    "name": "balanced-match",
+    "version": "1.0.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/balanced-match-1.0.2-LICENSE.md"
+    ]
+  },
+  {
+    "name": "brace-expansion",
+    "version": "1.1.21",
+    "license": "MIT",
+    "notices": [
+      "dependencies/brace-expansion-1.1.21-LICENSE"
+    ]
+  },
+  {
+    "name": "minimatch",
+    "version": "3.1.5",
+    "license": "ISC",
+    "notices": [
+      "dependencies/minimatch-3.1.5-LICENSE"
+    ]
+  },
+  {
+    "name": "@electron/fuses",
+    "version": "1.8.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@electron_fuses-1.8.0-LICENSE"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "9.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-9.1.0-LICENSE"
+    ]
+  },
+  {
     "name": "@electron/get",
     "version": "5.0.0",
     "license": "MIT",
     "notices": [
       "dependencies/@electron_get-5.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "@electron/notarize",
+    "version": "2.5.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@electron_notarize-2.5.0-LICENSE"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "9.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-9.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "@electron/osx-sign",
+    "version": "1.3.3",
+    "license": "BSD-2-Clause",
+    "notices": [
+      "dependencies/@electron_osx-sign-1.3.3-LICENSE"
+    ]
+  },
+  {
+    "name": "isbinaryfile",
+    "version": "4.0.10",
+    "license": "MIT",
+    "notices": [
+      "dependencies/isbinaryfile-4.0.10-LICENSE.txt"
+    ]
+  },
+  {
+    "name": "@electron/rebuild",
+    "version": "4.2.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@electron_rebuild-4.2.1-LICENSE"
+    ]
+  },
+  {
+    "name": "@electron/universal",
+    "version": "2.0.3",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@electron_universal-2.0.3-LICENSE"
+    ]
+  },
+  {
+    "name": "balanced-match",
+    "version": "1.0.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/balanced-match-1.0.2-LICENSE.md"
+    ]
+  },
+  {
+    "name": "brace-expansion",
+    "version": "2.1.7",
+    "license": "MIT",
+    "notices": [
+      "dependencies/brace-expansion-2.1.7-LICENSE"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "11.4.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-11.4.1-LICENSE"
+    ]
+  },
+  {
+    "name": "minimatch",
+    "version": "9.0.9",
+    "license": "ISC",
+    "notices": [
+      "dependencies/minimatch-9.0.9-LICENSE"
+    ]
+  },
+  {
+    "name": "@electron/windows-sign",
+    "version": "1.2.2",
+    "license": "BSD-2-Clause",
+    "notices": [
+      "dependencies/@electron_windows-sign-1.2.2-LICENSE"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "11.4.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-11.4.1-LICENSE"
     ]
   },
   {
@@ -14,23 +158,109 @@
     "notices": []
   },
   {
-    "name": "@napi-rs/lzma-linux-x64-gnu",
-    "version": "1.5.1",
+    "name": "@esbuild/win32-x64",
+    "version": "0.25.12",
     "license": "MIT",
     "notices": []
   },
   {
-    "name": "@rollup/rollup-linux-x64-gnu",
+    "name": "@isaacs/fs-minipass",
+    "version": "4.0.1",
+    "license": "ISC",
+    "notices": [
+      "dependencies/@isaacs_fs-minipass-4.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "@malept/cross-spawn-promise",
+    "version": "2.0.0",
+    "license": "Apache-2.0",
+    "notices": [
+      "dependencies/@malept_cross-spawn-promise-2.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "@malept/flatpak-bundler",
+    "version": "0.4.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@malept_flatpak-bundler-0.4.0-LICENSE"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "9.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-9.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "@noble/hashes",
+    "version": "1.8.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@noble_hashes-1.8.0-LICENSE"
+    ]
+  },
+  {
+    "name": "@peculiar/asn1-schema",
+    "version": "2.11.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@peculiar_asn1-schema-2.11.0-LICENSE"
+    ]
+  },
+  {
+    "name": "@peculiar/json-schema",
+    "version": "1.1.12",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@peculiar_json-schema-1.1.12-LICENSE"
+    ]
+  },
+  {
+    "name": "@peculiar/utils",
+    "version": "2.0.3",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@peculiar_utils-2.0.3-LICENSE"
+    ]
+  },
+  {
+    "name": "@peculiar/webcrypto",
+    "version": "1.7.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@peculiar_webcrypto-1.7.1-LICENSE.md"
+    ]
+  },
+  {
+    "name": "@rollup/rollup-win32-x64-gnu",
+    "version": "4.64.5",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "@rollup/rollup-win32-x64-msvc",
     "version": "4.64.5",
     "license": "MIT",
     "notices": []
   },
   {
     "name": "@tootallnate/once",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "license": "MIT",
     "notices": [
-      "dependencies/@tootallnate_once-2.0.0-LICENSE"
+      "dependencies/@tootallnate_once-2.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "@types/debug",
+    "version": "4.1.13",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@types_debug-4.1.13-LICENSE"
     ]
   },
   {
@@ -39,6 +269,22 @@
     "license": "MIT",
     "notices": [
       "dependencies/@types_estree-1.0.9-LICENSE"
+    ]
+  },
+  {
+    "name": "@types/fs-extra",
+    "version": "9.0.13",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@types_fs-extra-9.0.13-LICENSE"
+    ]
+  },
+  {
+    "name": "@types/ms",
+    "version": "2.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@types_ms-2.1.0-LICENSE"
     ]
   },
   {
@@ -66,11 +312,27 @@
     ]
   },
   {
+    "name": "@xmldom/xmldom",
+    "version": "0.8.15",
+    "license": "MIT",
+    "notices": [
+      "dependencies/@xmldom_xmldom-0.8.15-LICENSE"
+    ]
+  },
+  {
     "name": "abab",
     "version": "2.0.6",
     "license": "BSD-3-Clause",
     "notices": [
       "dependencies/abab-2.0.6-LICENSE.md"
+    ]
+  },
+  {
+    "name": "abbrev",
+    "version": "4.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/abbrev-4.0.0-LICENSE"
     ]
   },
   {
@@ -99,9 +361,81 @@
   },
   {
     "name": "agent-base",
-    "version": "6.0.2",
+    "version": "7.1.4",
+    "license": "MIT",
+    "notices": [
+      "dependencies/agent-base-7.1.4-LICENSE"
+    ]
+  },
+  {
+    "name": "ajv",
+    "version": "8.20.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/ajv-8.20.0-LICENSE"
+    ]
+  },
+  {
+    "name": "ansi-regex",
+    "version": "5.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/ansi-regex-5.0.1-license"
+    ]
+  },
+  {
+    "name": "ansi-styles",
+    "version": "4.3.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/ansi-styles-4.3.0-license"
+    ]
+  },
+  {
+    "name": "app-builder-lib",
+    "version": "26.17.0",
     "license": "MIT",
     "notices": []
+  },
+  {
+    "name": "ci-info",
+    "version": "4.3.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/ci-info-4.3.1-LICENSE"
+    ]
+  },
+  {
+    "name": "argparse",
+    "version": "2.0.1",
+    "license": "Python-2.0",
+    "notices": [
+      "dependencies/argparse-2.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "asn1js",
+    "version": "3.1.0",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "dependencies/asn1js-3.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "async",
+    "version": "3.2.6",
+    "license": "MIT",
+    "notices": [
+      "dependencies/async-3.2.6-LICENSE"
+    ]
+  },
+  {
+    "name": "async-exit-hook",
+    "version": "2.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/async-exit-hook-2.0.1-license"
+    ]
   },
   {
     "name": "asynckit",
@@ -109,6 +443,86 @@
     "license": "MIT",
     "notices": [
       "dependencies/asynckit-0.4.0-LICENSE"
+    ]
+  },
+  {
+    "name": "at-least-node",
+    "version": "1.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/at-least-node-1.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "aws4",
+    "version": "1.13.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/aws4-1.13.2-LICENSE"
+    ]
+  },
+  {
+    "name": "balanced-match",
+    "version": "4.0.4",
+    "license": "MIT",
+    "notices": [
+      "dependencies/balanced-match-4.0.4-LICENSE.md"
+    ]
+  },
+  {
+    "name": "base64-js",
+    "version": "1.5.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/base64-js-1.5.1-LICENSE"
+    ]
+  },
+  {
+    "name": "bluebird",
+    "version": "3.7.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/bluebird-3.7.2-LICENSE"
+    ]
+  },
+  {
+    "name": "brace-expansion",
+    "version": "5.0.12",
+    "license": "MIT",
+    "notices": [
+      "dependencies/brace-expansion-5.0.12-LICENSE"
+    ]
+  },
+  {
+    "name": "buffer-from",
+    "version": "1.1.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/buffer-from-1.1.2-LICENSE"
+    ]
+  },
+  {
+    "name": "builder-util",
+    "version": "26.16.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/builder-util-26.16.0-LICENSE"
+    ]
+  },
+  {
+    "name": "builder-util-runtime",
+    "version": "9.7.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/builder-util-runtime-9.7.0-LICENSE"
+    ]
+  },
+  {
+    "name": "bytestreamjs",
+    "version": "2.0.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "dependencies/bytestreamjs-2.0.1-LICENSE"
     ]
   },
   {
@@ -120,11 +534,125 @@
     ]
   },
   {
+    "name": "chalk",
+    "version": "4.1.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/chalk-4.1.2-license"
+    ]
+  },
+  {
+    "name": "chownr",
+    "version": "3.0.0",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/chownr-3.0.0-LICENSE.md"
+    ]
+  },
+  {
+    "name": "chromium-pickle-js",
+    "version": "0.2.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "ci-info",
+    "version": "4.4.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/ci-info-4.4.0-LICENSE"
+    ]
+  },
+  {
+    "name": "cliui",
+    "version": "8.0.1",
+    "license": "ISC",
+    "notices": [
+      "dependencies/cliui-8.0.1-LICENSE.txt"
+    ]
+  },
+  {
+    "name": "color-convert",
+    "version": "2.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/color-convert-2.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "color-name",
+    "version": "1.1.4",
+    "license": "MIT",
+    "notices": [
+      "dependencies/color-name-1.1.4-LICENSE"
+    ]
+  },
+  {
     "name": "combined-stream",
     "version": "1.0.8",
     "license": "MIT",
     "notices": [
       "dependencies/combined-stream-1.0.8-License"
+    ]
+  },
+  {
+    "name": "commander",
+    "version": "5.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/commander-5.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "compare-version",
+    "version": "0.1.2",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "concat-map",
+    "version": "0.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/concat-map-0.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "core-util-is",
+    "version": "1.0.3",
+    "license": "MIT",
+    "notices": [
+      "dependencies/core-util-is-1.0.3-LICENSE"
+    ]
+  },
+  {
+    "name": "cross-dirname",
+    "version": "0.1.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "cross-spawn",
+    "version": "7.0.6",
+    "license": "MIT",
+    "notices": [
+      "dependencies/cross-spawn-7.0.6-LICENSE"
+    ]
+  },
+  {
+    "name": "isexe",
+    "version": "2.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/isexe-2.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "which",
+    "version": "2.0.2",
+    "license": "ISC",
+    "notices": [
+      "dependencies/which-2.0.2-LICENSE"
     ]
   },
   {
@@ -141,6 +669,14 @@
     "license": "MIT",
     "notices": [
       "dependencies/cssstyle-2.3.0-LICENSE"
+    ]
+  },
+  {
+    "name": "cssom",
+    "version": "0.3.8",
+    "license": "MIT",
+    "notices": [
+      "dependencies/cssom-0.3.8-LICENSE.txt"
     ]
   },
   {
@@ -184,11 +720,65 @@
     ]
   },
   {
+    "name": "dir-compare",
+    "version": "4.2.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/dir-compare-4.2.0-LICENSE"
+    ]
+  },
+  {
+    "name": "balanced-match",
+    "version": "1.0.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/balanced-match-1.0.2-LICENSE.md"
+    ]
+  },
+  {
+    "name": "brace-expansion",
+    "version": "1.1.21",
+    "license": "MIT",
+    "notices": [
+      "dependencies/brace-expansion-1.1.21-LICENSE"
+    ]
+  },
+  {
+    "name": "minimatch",
+    "version": "3.1.5",
+    "license": "ISC",
+    "notices": [
+      "dependencies/minimatch-3.1.5-LICENSE"
+    ]
+  },
+  {
+    "name": "dmg-builder",
+    "version": "26.17.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
     "name": "domexception",
     "version": "4.0.0",
     "license": "MIT",
     "notices": [
       "dependencies/domexception-4.0.0-LICENSE.txt"
+    ]
+  },
+  {
+    "name": "dotenv",
+    "version": "16.6.1",
+    "license": "BSD-2-Clause",
+    "notices": [
+      "dependencies/dotenv-16.6.1-LICENSE"
+    ]
+  },
+  {
+    "name": "dotenv-expand",
+    "version": "11.0.7",
+    "license": "BSD-2-Clause",
+    "notices": [
+      "dependencies/dotenv-expand-11.0.7-LICENSE"
     ]
   },
   {
@@ -200,11 +790,91 @@
     ]
   },
   {
+    "name": "duplexer2",
+    "version": "0.1.4",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "dependencies/duplexer2-0.1.4-LICENSE.md"
+    ]
+  },
+  {
+    "name": "ejs",
+    "version": "3.1.10",
+    "license": "Apache-2.0",
+    "notices": [
+      "dependencies/ejs-3.1.10-LICENSE"
+    ]
+  },
+  {
     "name": "electron",
-    "version": "43.1.0",
+    "version": "43.8.0",
     "license": "MIT",
     "notices": [
-      "dependencies/electron-43.1.0-LICENSE"
+      "dependencies/electron-43.8.0-LICENSE"
+    ]
+  },
+  {
+    "name": "electron-builder",
+    "version": "26.17.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/electron-builder-26.17.0-LICENSE"
+    ]
+  },
+  {
+    "name": "electron-builder-squirrel-windows",
+    "version": "26.17.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/electron-builder-squirrel-windows-26.17.0-LICENSE"
+    ]
+  },
+  {
+    "name": "electron-publish",
+    "version": "26.16.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/electron-publish-26.16.0-LICENSE"
+    ]
+  },
+  {
+    "name": "electron-winstaller",
+    "version": "5.4.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/electron-winstaller-5.4.0-LICENSE"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "7.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-7.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "jsonfile",
+    "version": "4.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/jsonfile-4.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "universalify",
+    "version": "0.1.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/universalify-0.1.2-LICENSE"
+    ]
+  },
+  {
+    "name": "emoji-regex",
+    "version": "8.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/emoji-regex-8.0.0-LICENSE-MIT.txt"
     ]
   },
   {
@@ -222,6 +892,12 @@
     "notices": [
       "dependencies/env-paths-3.0.0-license"
     ]
+  },
+  {
+    "name": "err-code",
+    "version": "2.0.3",
+    "license": "MIT",
+    "notices": []
   },
   {
     "name": "es-define-property",
@@ -253,6 +929,22 @@
     "license": "MIT",
     "notices": [
       "dependencies/es-set-tostringtag-2.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "esbuild",
+    "version": "0.25.12",
+    "license": "MIT",
+    "notices": [
+      "dependencies/esbuild-0.25.12-LICENSE.md"
+    ]
+  },
+  {
+    "name": "escalade",
+    "version": "3.2.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/escalade-3.2.0-license"
     ]
   },
   {
@@ -288,11 +980,89 @@
     ]
   },
   {
-    "name": "form-data",
-    "version": "4.0.5",
+    "name": "exponential-backoff",
+    "version": "3.1.3",
+    "license": "Apache-2.0",
+    "notices": [
+      "dependencies/exponential-backoff-3.1.3-LICENSE"
+    ]
+  },
+  {
+    "name": "fast-deep-equal",
+    "version": "3.1.3",
     "license": "MIT",
     "notices": [
-      "dependencies/form-data-4.0.5-License"
+      "dependencies/fast-deep-equal-3.1.3-LICENSE"
+    ]
+  },
+  {
+    "name": "fast-uri",
+    "version": "3.1.8",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "dependencies/fast-uri-3.1.8-LICENSE"
+    ]
+  },
+  {
+    "name": "fdir",
+    "version": "6.5.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fdir-6.5.0-LICENSE"
+    ]
+  },
+  {
+    "name": "filelist",
+    "version": "1.0.6",
+    "license": "Apache-2.0",
+    "notices": []
+  },
+  {
+    "name": "balanced-match",
+    "version": "1.0.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/balanced-match-1.0.2-LICENSE.md"
+    ]
+  },
+  {
+    "name": "brace-expansion",
+    "version": "2.1.7",
+    "license": "MIT",
+    "notices": [
+      "dependencies/brace-expansion-2.1.7-LICENSE"
+    ]
+  },
+  {
+    "name": "minimatch",
+    "version": "5.1.9",
+    "license": "ISC",
+    "notices": [
+      "dependencies/minimatch-5.1.9-LICENSE"
+    ]
+  },
+  {
+    "name": "form-data",
+    "version": "4.0.6",
+    "license": "MIT",
+    "notices": [
+      "dependencies/form-data-4.0.6-License"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "10.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-10.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "fs.realpath",
+    "version": "1.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/fs.realpath-1.0.0-LICENSE"
     ]
   },
   {
@@ -301,6 +1071,14 @@
     "license": "MIT",
     "notices": [
       "dependencies/function-bind-1.1.2-LICENSE"
+    ]
+  },
+  {
+    "name": "get-caller-file",
+    "version": "2.0.5",
+    "license": "ISC",
+    "notices": [
+      "dependencies/get-caller-file-2.0.5-LICENSE.md"
     ]
   },
   {
@@ -320,6 +1098,38 @@
     ]
   },
   {
+    "name": "glob",
+    "version": "7.2.3",
+    "license": "ISC",
+    "notices": [
+      "dependencies/glob-7.2.3-LICENSE"
+    ]
+  },
+  {
+    "name": "balanced-match",
+    "version": "1.0.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/balanced-match-1.0.2-LICENSE.md"
+    ]
+  },
+  {
+    "name": "brace-expansion",
+    "version": "1.1.21",
+    "license": "MIT",
+    "notices": [
+      "dependencies/brace-expansion-1.1.21-LICENSE"
+    ]
+  },
+  {
+    "name": "minimatch",
+    "version": "3.1.5",
+    "license": "ISC",
+    "notices": [
+      "dependencies/minimatch-3.1.5-LICENSE"
+    ]
+  },
+  {
     "name": "gopd",
     "version": "1.2.0",
     "license": "MIT",
@@ -333,6 +1143,14 @@
     "license": "ISC",
     "notices": [
       "dependencies/graceful-fs-4.2.11-LICENSE"
+    ]
+  },
+  {
+    "name": "has-flag",
+    "version": "4.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/has-flag-4.0.0-license"
     ]
   },
   {
@@ -360,12 +1178,134 @@
     ]
   },
   {
+    "name": "hosted-git-info",
+    "version": "4.1.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/hosted-git-info-4.1.0-LICENSE"
+    ]
+  },
+  {
     "name": "html-encoding-sniffer",
     "version": "3.0.0",
     "license": "MIT",
     "notices": [
       "dependencies/html-encoding-sniffer-3.0.0-LICENSE.txt"
     ]
+  },
+  {
+    "name": "http-proxy-agent",
+    "version": "7.0.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/http-proxy-agent-7.0.2-LICENSE"
+    ]
+  },
+  {
+    "name": "https-proxy-agent",
+    "version": "7.0.6",
+    "license": "MIT",
+    "notices": [
+      "dependencies/https-proxy-agent-7.0.6-LICENSE"
+    ]
+  },
+  {
+    "name": "iconv-lite",
+    "version": "0.6.3",
+    "license": "MIT",
+    "notices": [
+      "dependencies/iconv-lite-0.6.3-LICENSE"
+    ]
+  },
+  {
+    "name": "inflight",
+    "version": "1.0.6",
+    "license": "ISC",
+    "notices": [
+      "dependencies/inflight-1.0.6-LICENSE"
+    ]
+  },
+  {
+    "name": "inherits",
+    "version": "2.0.4",
+    "license": "ISC",
+    "notices": [
+      "dependencies/inherits-2.0.4-LICENSE"
+    ]
+  },
+  {
+    "name": "is-fullwidth-code-point",
+    "version": "3.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/is-fullwidth-code-point-3.0.0-license"
+    ]
+  },
+  {
+    "name": "is-potential-custom-element-name",
+    "version": "1.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/is-potential-custom-element-name-1.0.1-LICENSE-MIT.txt"
+    ]
+  },
+  {
+    "name": "isarray",
+    "version": "1.0.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "isbinaryfile",
+    "version": "5.0.7",
+    "license": "MIT",
+    "notices": [
+      "dependencies/isbinaryfile-5.0.7-LICENSE.txt"
+    ]
+  },
+  {
+    "name": "isexe",
+    "version": "3.1.5",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/isexe-3.1.5-LICENSE.md"
+    ]
+  },
+  {
+    "name": "jake",
+    "version": "10.9.4",
+    "license": "Apache-2.0",
+    "notices": []
+  },
+  {
+    "name": "jiti",
+    "version": "2.7.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/jiti-2.7.0-LICENSE"
+    ]
+  },
+  {
+    "name": "js-yaml",
+    "version": "4.3.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/js-yaml-4.3.2-LICENSE"
+    ]
+  },
+  {
+    "name": "jsdom",
+    "version": "20.0.3",
+    "license": "MIT",
+    "notices": [
+      "dependencies/jsdom-20.0.3-LICENSE.txt"
+    ]
+  },
+  {
+    "name": "agent-base",
+    "version": "6.0.2",
+    "license": "MIT",
+    "notices": []
   },
   {
     "name": "http-proxy-agent",
@@ -380,27 +1320,49 @@
     "notices": []
   },
   {
-    "name": "iconv-lite",
-    "version": "0.6.3",
+    "name": "json-schema-traverse",
+    "version": "1.0.0",
     "license": "MIT",
     "notices": [
-      "dependencies/iconv-lite-0.6.3-LICENSE"
+      "dependencies/json-schema-traverse-1.0.0-LICENSE"
     ]
   },
   {
-    "name": "is-potential-custom-element-name",
-    "version": "1.0.1",
+    "name": "json5",
+    "version": "2.2.3",
     "license": "MIT",
     "notices": [
-      "dependencies/is-potential-custom-element-name-1.0.1-LICENSE-MIT.txt"
+      "dependencies/json5-2.2.3-LICENSE.md"
     ]
   },
   {
-    "name": "jsdom",
-    "version": "20.0.3",
+    "name": "jsonfile",
+    "version": "6.2.1",
     "license": "MIT",
     "notices": [
-      "dependencies/jsdom-20.0.3-LICENSE.txt"
+      "dependencies/jsonfile-6.2.1-LICENSE"
+    ]
+  },
+  {
+    "name": "lazy-val",
+    "version": "1.0.5",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "lodash",
+    "version": "4.18.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/lodash-4.18.1-LICENSE"
+    ]
+  },
+  {
+    "name": "lru-cache",
+    "version": "6.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/lru-cache-6.0.0-LICENSE"
     ]
   },
   {
@@ -409,6 +1371,14 @@
     "license": "MIT",
     "notices": [
       "dependencies/math-intrinsics-1.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "mime",
+    "version": "2.6.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/mime-2.6.0-LICENSE"
     ]
   },
   {
@@ -428,11 +1398,113 @@
     ]
   },
   {
+    "name": "minimatch",
+    "version": "10.2.6",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/minimatch-10.2.6-LICENSE.md"
+    ]
+  },
+  {
+    "name": "minimist",
+    "version": "1.2.8",
+    "license": "MIT",
+    "notices": [
+      "dependencies/minimist-1.2.8-LICENSE"
+    ]
+  },
+  {
+    "name": "minipass",
+    "version": "7.1.3",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/minipass-7.1.3-LICENSE.md"
+    ]
+  },
+  {
+    "name": "minizlib",
+    "version": "3.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/minizlib-3.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "mkdirp",
+    "version": "0.5.6",
+    "license": "MIT",
+    "notices": [
+      "dependencies/mkdirp-0.5.6-LICENSE"
+    ]
+  },
+  {
     "name": "ms",
     "version": "2.1.3",
     "license": "MIT",
     "notices": [
       "dependencies/ms-2.1.3-license.md"
+    ]
+  },
+  {
+    "name": "nanoid",
+    "version": "3.3.20",
+    "license": "MIT",
+    "notices": [
+      "dependencies/nanoid-3.3.20-LICENSE"
+    ]
+  },
+  {
+    "name": "node-abi",
+    "version": "4.38.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/node-abi-4.38.0-LICENSE"
+    ]
+  },
+  {
+    "name": "node-api-version",
+    "version": "0.2.1",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "node-gyp",
+    "version": "12.4.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/node-gyp-12.4.0-LICENSE"
+    ]
+  },
+  {
+    "name": "isexe",
+    "version": "4.0.0",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/isexe-4.0.0-LICENSE.md"
+    ]
+  },
+  {
+    "name": "which",
+    "version": "6.0.1",
+    "license": "ISC",
+    "notices": [
+      "dependencies/which-6.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "node-int64",
+    "version": "0.4.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/node-int64-0.4.0-LICENSE"
+    ]
+  },
+  {
+    "name": "nopt",
+    "version": "9.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/nopt-9.0.0-LICENSE"
     ]
   },
   {
@@ -444,6 +1516,22 @@
     ]
   },
   {
+    "name": "once",
+    "version": "1.4.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/once-1.4.0-LICENSE"
+    ]
+  },
+  {
+    "name": "p-limit",
+    "version": "3.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/p-limit-3.1.0-license"
+    ]
+  },
+  {
     "name": "parse5",
     "version": "7.3.0",
     "license": "MIT",
@@ -452,11 +1540,51 @@
     ]
   },
   {
+    "name": "path-is-absolute",
+    "version": "1.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/path-is-absolute-1.0.1-license"
+    ]
+  },
+  {
+    "name": "path-key",
+    "version": "3.1.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/path-key-3.1.1-license"
+    ]
+  },
+  {
+    "name": "pe-library",
+    "version": "0.4.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/pe-library-0.4.1-LICENSE"
+    ]
+  },
+  {
     "name": "picocolors",
     "version": "1.1.1",
     "license": "ISC",
     "notices": [
       "dependencies/picocolors-1.1.1-LICENSE"
+    ]
+  },
+  {
+    "name": "picomatch",
+    "version": "4.0.7",
+    "license": "MIT",
+    "notices": [
+      "dependencies/picomatch-4.0.7-LICENSE"
+    ]
+  },
+  {
+    "name": "pkijs",
+    "version": "3.4.1",
+    "license": "BSD-3-Clause",
+    "notices": [
+      "dependencies/pkijs-3.4.1-LICENSE"
     ]
   },
   {
@@ -478,19 +1606,51 @@
     ]
   },
   {
-    "name": "postcss",
-    "version": "8.5.6",
+    "name": "plist",
+    "version": "3.1.0",
     "license": "MIT",
     "notices": [
-      "dependencies/postcss-8.5.6-LICENSE"
+      "dependencies/plist-3.1.0-LICENSE"
     ]
   },
   {
-    "name": "nanoid",
-    "version": "3.3.11",
+    "name": "postcss",
+    "version": "8.5.31",
     "license": "MIT",
     "notices": [
-      "dependencies/nanoid-3.3.11-LICENSE"
+      "dependencies/postcss-8.5.31-LICENSE"
+    ]
+  },
+  {
+    "name": "postject",
+    "version": "1.0.0-alpha.6",
+    "license": "MIT",
+    "notices": [
+      "dependencies/postject-1.0.0-alpha.6-LICENSE"
+    ]
+  },
+  {
+    "name": "commander",
+    "version": "9.5.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/commander-9.5.0-LICENSE"
+    ]
+  },
+  {
+    "name": "proc-log",
+    "version": "6.1.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/proc-log-6.1.0-LICENSE"
+    ]
+  },
+  {
+    "name": "process-nextick-args",
+    "version": "2.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/process-nextick-args-2.0.1-license.md"
     ]
   },
   {
@@ -499,6 +1659,22 @@
     "license": "MIT",
     "notices": [
       "dependencies/progress-2.0.3-LICENSE"
+    ]
+  },
+  {
+    "name": "promise-retry",
+    "version": "2.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/promise-retry-2.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "proper-lockfile",
+    "version": "4.1.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/proper-lockfile-4.1.2-LICENSE"
     ]
   },
   {
@@ -515,6 +1691,22 @@
     "license": "MIT",
     "notices": [
       "dependencies/punycode-2.3.1-LICENSE-MIT.txt"
+    ]
+  },
+  {
+    "name": "pvtsutils",
+    "version": "1.3.6",
+    "license": "MIT",
+    "notices": [
+      "dependencies/pvtsutils-1.3.6-LICENSE"
+    ]
+  },
+  {
+    "name": "pvutils",
+    "version": "1.2.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/pvutils-1.2.0-LICENSE"
     ]
   },
   {
@@ -542,11 +1734,65 @@
     ]
   },
   {
+    "name": "read-binary-file-arch",
+    "version": "1.0.6",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "readable-stream",
+    "version": "2.3.8",
+    "license": "MIT",
+    "notices": [
+      "dependencies/readable-stream-2.3.8-LICENSE"
+    ]
+  },
+  {
+    "name": "require-directory",
+    "version": "2.1.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/require-directory-2.1.1-LICENSE"
+    ]
+  },
+  {
+    "name": "require-from-string",
+    "version": "2.0.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/require-from-string-2.0.2-license"
+    ]
+  },
+  {
     "name": "requires-port",
     "version": "1.0.0",
     "license": "MIT",
     "notices": [
       "dependencies/requires-port-1.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "resedit",
+    "version": "1.7.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/resedit-1.7.2-LICENSE"
+    ]
+  },
+  {
+    "name": "retry",
+    "version": "0.12.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/retry-0.12.0-License"
+    ]
+  },
+  {
+    "name": "rimraf",
+    "version": "2.6.3",
+    "license": "ISC",
+    "notices": [
+      "dependencies/rimraf-2.6.3-LICENSE"
     ]
   },
   {
@@ -558,11 +1804,35 @@
     ]
   },
   {
+    "name": "safe-buffer",
+    "version": "5.1.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/safe-buffer-5.1.2-LICENSE"
+    ]
+  },
+  {
     "name": "safer-buffer",
     "version": "2.1.2",
     "license": "MIT",
     "notices": [
       "dependencies/safer-buffer-2.1.2-LICENSE"
+    ]
+  },
+  {
+    "name": "sanitize-filename",
+    "version": "1.6.4",
+    "license": "WTFPL OR ISC",
+    "notices": [
+      "dependencies/sanitize-filename-1.6.4-LICENSE.md"
+    ]
+  },
+  {
+    "name": "sax",
+    "version": "1.6.1",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/sax-1.6.1-LICENSE.md"
     ]
   },
   {
@@ -588,6 +1858,38 @@
     ]
   },
   {
+    "name": "shebang-command",
+    "version": "2.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/shebang-command-2.0.0-license"
+    ]
+  },
+  {
+    "name": "shebang-regex",
+    "version": "3.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/shebang-regex-3.0.0-license"
+    ]
+  },
+  {
+    "name": "signal-exit",
+    "version": "3.0.7",
+    "license": "ISC",
+    "notices": [
+      "dependencies/signal-exit-3.0.7-LICENSE.txt"
+    ]
+  },
+  {
+    "name": "simple-update-notifier",
+    "version": "2.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/simple-update-notifier-2.0.0-LICENSE"
+    ]
+  },
+  {
     "name": "source-map",
     "version": "0.6.1",
     "license": "BSD-3-Clause",
@@ -604,11 +1906,59 @@
     ]
   },
   {
+    "name": "source-map-support",
+    "version": "0.5.21",
+    "license": "MIT",
+    "notices": [
+      "dependencies/source-map-support-0.5.21-LICENSE.md"
+    ]
+  },
+  {
+    "name": "stat-mode",
+    "version": "1.0.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/stat-mode-1.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "string-width",
+    "version": "4.2.3",
+    "license": "MIT",
+    "notices": [
+      "dependencies/string-width-4.2.3-license"
+    ]
+  },
+  {
+    "name": "string_decoder",
+    "version": "1.1.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/string_decoder-1.1.1-LICENSE"
+    ]
+  },
+  {
+    "name": "strip-ansi",
+    "version": "6.0.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/strip-ansi-6.0.1-license"
+    ]
+  },
+  {
     "name": "sumchecker",
     "version": "3.0.1",
     "license": "Apache-2.0",
     "notices": [
       "dependencies/sumchecker-3.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "supports-color",
+    "version": "7.2.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/supports-color-7.2.0-license"
     ]
   },
   {
@@ -620,6 +1970,66 @@
     ]
   },
   {
+    "name": "tar",
+    "version": "7.5.22",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/tar-7.5.22-LICENSE.md"
+    ]
+  },
+  {
+    "name": "yallist",
+    "version": "5.0.0",
+    "license": "BlueOak-1.0.0",
+    "notices": [
+      "dependencies/yallist-5.0.0-LICENSE.md"
+    ]
+  },
+  {
+    "name": "temp",
+    "version": "0.9.4",
+    "license": "MIT",
+    "notices": [
+      "dependencies/temp-0.9.4-LICENSE"
+    ]
+  },
+  {
+    "name": "temp-file",
+    "version": "3.4.0",
+    "license": "MIT",
+    "notices": []
+  },
+  {
+    "name": "tiny-async-pool",
+    "version": "1.3.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/tiny-async-pool-1.3.0-LICENSE-MIT"
+    ]
+  },
+  {
+    "name": "tinyglobby",
+    "version": "0.2.17",
+    "license": "MIT",
+    "notices": [
+      "dependencies/tinyglobby-0.2.17-LICENSE"
+    ]
+  },
+  {
+    "name": "tmp",
+    "version": "0.2.7",
+    "license": "MIT",
+    "notices": [
+      "dependencies/tmp-0.2.7-LICENSE"
+    ]
+  },
+  {
+    "name": "tmp-promise",
+    "version": "3.0.3",
+    "license": "MIT",
+    "notices": []
+  },
+  {
     "name": "tough-cookie",
     "version": "4.1.4",
     "license": "BSD-3-Clause",
@@ -628,11 +2038,33 @@
     ]
   },
   {
+    "name": "universalify",
+    "version": "0.2.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/universalify-0.2.0-LICENSE"
+    ]
+  },
+  {
     "name": "tr46",
     "version": "3.0.0",
     "license": "MIT",
     "notices": [
       "dependencies/tr46-3.0.0-LICENSE.md"
+    ]
+  },
+  {
+    "name": "truncate-utf8-bytes",
+    "version": "1.0.2",
+    "license": "WTFPL",
+    "notices": []
+  },
+  {
+    "name": "tslib",
+    "version": "2.8.1",
+    "license": "0BSD",
+    "notices": [
+      "dependencies/tslib-2.8.1-LICENSE.txt"
     ]
   },
   {
@@ -661,10 +2093,26 @@
   },
   {
     "name": "universalify",
-    "version": "0.2.0",
+    "version": "2.0.1",
     "license": "MIT",
     "notices": [
-      "dependencies/universalify-0.2.0-LICENSE"
+      "dependencies/universalify-2.0.1-LICENSE"
+    ]
+  },
+  {
+    "name": "unzipper",
+    "version": "0.12.5",
+    "license": "MIT",
+    "notices": [
+      "dependencies/unzipper-0.12.5-LICENSE"
+    ]
+  },
+  {
+    "name": "fs-extra",
+    "version": "11.3.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/fs-extra-11.3.1-LICENSE"
     ]
   },
   {
@@ -676,25 +2124,28 @@
     ]
   },
   {
-    "name": "vite",
-    "version": "5.4.21",
-    "license": "MIT",
+    "name": "utf8-byte-length",
+    "version": "1.0.5",
+    "license": "(WTFPL OR MIT)",
     "notices": [
-      "dependencies/vite-5.4.21-LICENSE.md"
+      "dependencies/utf8-byte-length-1.0.5-LICENSE.MIT.txt",
+      "dependencies/utf8-byte-length-1.0.5-LICENSE.WTFPL.txt"
     ]
   },
   {
-    "name": "@esbuild/linux-x64",
-    "version": "0.21.5",
-    "license": "MIT",
-    "notices": []
-  },
-  {
-    "name": "esbuild",
-    "version": "0.21.5",
+    "name": "util-deprecate",
+    "version": "1.0.2",
     "license": "MIT",
     "notices": [
-      "dependencies/esbuild-0.21.5-LICENSE.md"
+      "dependencies/util-deprecate-1.0.2-LICENSE"
+    ]
+  },
+  {
+    "name": "vite",
+    "version": "7.3.7",
+    "license": "MIT",
+    "notices": [
+      "dependencies/vite-7.3.7-LICENSE.md"
     ]
   },
   {
@@ -703,6 +2154,14 @@
     "license": "MIT",
     "notices": [
       "dependencies/w3c-xmlserializer-4.0.0-LICENSE.md"
+    ]
+  },
+  {
+    "name": "webcrypto-core",
+    "version": "1.9.2",
+    "license": "MIT",
+    "notices": [
+      "dependencies/webcrypto-core-1.9.2-LICENSE"
     ]
   },
   {
@@ -738,11 +2197,35 @@
     ]
   },
   {
-    "name": "ws",
-    "version": "8.19.0",
+    "name": "which",
+    "version": "5.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/which-5.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "wrap-ansi",
+    "version": "7.0.0",
     "license": "MIT",
     "notices": [
-      "dependencies/ws-8.19.0-LICENSE"
+      "dependencies/wrap-ansi-7.0.0-license"
+    ]
+  },
+  {
+    "name": "wrappy",
+    "version": "1.0.2",
+    "license": "ISC",
+    "notices": [
+      "dependencies/wrappy-1.0.2-LICENSE"
+    ]
+  },
+  {
+    "name": "ws",
+    "version": "8.22.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/ws-8.22.0-LICENSE"
     ]
   },
   {
@@ -754,11 +2237,59 @@
     ]
   },
   {
+    "name": "xmlbuilder",
+    "version": "15.1.1",
+    "license": "MIT",
+    "notices": [
+      "dependencies/xmlbuilder-15.1.1-LICENSE"
+    ]
+  },
+  {
     "name": "xmlchars",
     "version": "2.2.0",
     "license": "MIT",
     "notices": [
       "dependencies/xmlchars-2.2.0-LICENSE"
+    ]
+  },
+  {
+    "name": "y18n",
+    "version": "5.0.8",
+    "license": "ISC",
+    "notices": [
+      "dependencies/y18n-5.0.8-LICENSE"
+    ]
+  },
+  {
+    "name": "yallist",
+    "version": "4.0.0",
+    "license": "ISC",
+    "notices": [
+      "dependencies/yallist-4.0.0-LICENSE"
+    ]
+  },
+  {
+    "name": "yargs",
+    "version": "17.7.3",
+    "license": "MIT",
+    "notices": [
+      "dependencies/yargs-17.7.3-LICENSE"
+    ]
+  },
+  {
+    "name": "yargs-parser",
+    "version": "21.1.1",
+    "license": "ISC",
+    "notices": [
+      "dependencies/yargs-parser-21.1.1-LICENSE.txt"
+    ]
+  },
+  {
+    "name": "yocto-queue",
+    "version": "0.1.0",
+    "license": "MIT",
+    "notices": [
+      "dependencies/yocto-queue-0.1.0-license"
     ]
   }
 ]

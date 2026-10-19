@@ -1,6 +1,9 @@
 import { Artifacts } from "./artifacts.js";
 import { Approvals } from "./approvals.js";
 import { Lifecycle } from "./lifecycle.js";
+import { Runs } from "./runs.js";
+import { Knowledge } from "./knowledge.js";
+import { Extensions } from "./extensions.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import type {
@@ -35,6 +38,9 @@ export class Store {
   readonly lifecycle: Lifecycle;
   readonly approvals: Approvals;
   readonly artifacts: Artifacts;
+  readonly runs: Runs;
+  readonly knowledge: Knowledge;
+  readonly extensions: Extensions;
   constructor(file: string, clock: () => number = Date.now) {
     this.db = new DatabaseSync(file);
     this.db.exec(
@@ -45,7 +51,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 5) {
+      if (version.user_version > 8) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -68,13 +74,22 @@ export class Store {
     try {
       this.lifecycle.migrate();
       this.approvals = new Approvals(this.db, clock);
-      if (Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 2)
+      if (
+        Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 2
+      )
         this.approvals.migrate();
       this.artifacts = new Artifacts(this.db, clock);
-      if (Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 3)
+      if (
+        Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 3
+      )
         this.artifacts.migrate();
-      if (Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 4)
+      if (
+        Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 4
+      )
         this.approvals.migrateArtifactBinding();
+      this.runs = new Runs(this.db, clock);
+      this.knowledge = new Knowledge(this.db);
+      this.extensions = new Extensions(this.db);
     } catch (error) {
       this.db.close();
       throw error;

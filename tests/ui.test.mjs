@@ -24,6 +24,8 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
   const file = join(dir, "app.db");
   let store = new Store(file);
   let dom;
+  let rejectTask = false;
+  let snapshotGate;
   function boot() {
     dom = new JSDOM(
       '<!doctype html><html lang="pl"><body><div id="root"></div></body></html>',
@@ -42,17 +44,23 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       this.open = false;
     };
     w.agenting = {
-      snapshot: async () => ({
-        projects: store.projects(),
-        preferences: store.preferences(),
-        integrations: store.integrations(),
-      }),
+      snapshot: async () => {
+        if (snapshotGate) await snapshotGate;
+        return {
+          projects: store.projects(),
+          preferences: store.preferences(),
+          integrations: store.integrations(),
+        };
+      },
       projectData: async (id) => ({
         tasks: store.tasks(id),
         memory: store.memory(id),
       }),
       createProject: async (p) => store.createProject(p),
-      createTask: async (p) => store.createTask(p),
+      createTask: async (p) => {
+        if (rejectTask) throw Error("fixture failure");
+        return store.createTask(p);
+      },
       createMemory: async (p) => store.createMemory(p),
       deleteMemory: async (p) => store.deleteMemory(p),
       setPreferences: async (p) => store.setPreferences(p),
@@ -90,24 +98,84 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       new dom.window.Event("submit", { bubbles: true, cancelable: true }),
     );
   }
+  async function choose(label, text) {
+    dom.window.document.querySelector(`button[aria-label="${label}"]`).click();
+    await wait(() => dom.window.document.querySelector('[role="listbox"]'));
+    const option = [
+      ...dom.window.document.querySelectorAll('[role="option"]'),
+    ].find((option) => option.textContent.trim() === text);
+    assert.ok(option, `${label}: ${text}`);
+    option.click();
+    await wait(() => !dom.window.document.querySelector('[role="listbox"]'));
+  }
   async function project(name) {
     dom.window.document
       .querySelector('button[aria-label="Nowy projekt"]')
       .click();
-    await wait(() => dom.window.document.querySelector("dialog").open);
+    await wait(() => dom.window.document.querySelector(".project-dialog").open);
     field("input[name=name]", name);
     field("input[name=root]", "C:\\Projects\\" + name);
-    submit(dom.window.document.querySelector("dialog form"));
+    submit(dom.window.document.querySelector(".project-dialog form"));
     await wait(
       () => dom.window.document.querySelector("h1")?.textContent === name,
     );
   }
   try {
+    let finishLoading;
+    snapshotGate = new Promise((resolve) => {
+      finishLoading = resolve;
+    });
     boot();
+    await wait(() =>
+      dom.window.document.querySelector('.settings [aria-haspopup="listbox"]'),
+    );
+    assert.equal(
+      dom.window.document.querySelector('.settings [aria-haspopup="listbox"]')
+        .disabled,
+      true,
+    );
+    assert.equal(
+      dom.window.document.querySelector(".settings .theme-toggle").disabled,
+      true,
+    );
+    finishLoading();
+    snapshotGate = undefined;
     await wait(() => dom.window.document.querySelector(".empty"));
     await project("Project A");
     field("textarea[name=title]", "Review scoped data");
     submit(dom.window.document.querySelector(".composer form"));
+    await wait(() => dom.window.document.querySelector(".task-list h3"));
+    // Drafts survive tab and project switches, and failed saves keep the input.
+    field("textarea[name=title]", "Unfinished A");
+    button("Wspólna pamięć 0").click();
+    await wait(() => dom.window.document.querySelector(".memory-form"));
+    button("Zadania 1").click();
+    await wait(() => dom.window.document.querySelector("#task-title"));
+    assert.equal(
+      dom.window.document.querySelector("#task-title").value,
+      "Unfinished A",
+    );
+    rejectTask = true;
+    submit(dom.window.document.querySelector(".composer form"));
+    await wait(() => dom.window.document.querySelector('[role="alert"]'));
+    assert.equal(
+      dom.window.document.querySelector("#task-title").value,
+      "Unfinished A",
+    );
+    assert.equal(store.tasks(store.projects()[0].id).length, 1);
+    rejectTask = false;
+    field('input[aria-label="Szukaj zadań"]', "missing");
+    await wait(() => !dom.window.document.querySelector(".task-list h3"));
+    assert.ok(
+      dom.window.document.body.textContent.includes(
+        "Brak wyników dla tych filtrów.",
+      ),
+    );
+    button("Wyczyść filtry").click();
+    await wait(() => dom.window.document.querySelector(".task-list h3"));
+    await choose("Filtruj według statusu", "Anulowane");
+    await wait(() => !dom.window.document.querySelector(".task-list h3"));
+    button("Wyczyść filtry").click();
     await wait(() => dom.window.document.querySelector(".task-list h3"));
     button("Wspólna pamięć 0").click();
     await wait(() => dom.window.document.querySelector(".memory-form"));
@@ -121,6 +189,11 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       "<script>window.pwned=true</script>",
     );
     await project("Project B");
+    button("Zadania 0").click();
+    await wait(() => dom.window.document.querySelector("#task-title"));
+    assert.equal(dom.window.document.querySelector("#task-title").value, "");
+    button("Wspólna pamięć 0").click();
+    await wait(() => dom.window.document.querySelector(".memory-form"));
     await wait(
       () =>
         dom.window.document.querySelectorAll(".memory-content").length === 0,
@@ -131,15 +204,35 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
     submit(dom.window.document.querySelector(".memory-form"));
     await wait(() => dom.window.document.querySelector(".memory-content"));
     button("Usuń").click();
-    await wait(() => dom.window.document.querySelectorAll("dialog")[1].open);
-    button("Anuluj", dom.window.document.querySelectorAll("dialog")[1]).click();
-    await wait(() => !dom.window.document.querySelectorAll("dialog")[1].open);
+    await wait(
+      () =>
+        dom.window.document.querySelector(
+          '[aria-labelledby="delete-dialog-title"]',
+        ).open,
+    );
+    button(
+      "Anuluj",
+      dom.window.document.querySelector(
+        '[aria-labelledby="delete-dialog-title"]',
+      ),
+    ).click();
+    await wait(
+      () =>
+        !dom.window.document.querySelector(
+          '[aria-labelledby="delete-dialog-title"]',
+        ).open,
+    );
     assert.equal(
       dom.window.document.querySelectorAll(".memory-content").length,
       1,
     );
     button("Usuń").click();
-    await wait(() => dom.window.document.querySelectorAll("dialog")[1].open);
+    await wait(
+      () =>
+        dom.window.document.querySelector(
+          '[aria-labelledby="delete-dialog-title"]',
+        ).open,
+    );
     button("Usuń wpis").click();
     await wait(
       () =>
@@ -155,15 +248,15 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       dom.window.document.querySelectorAll(".integrations .badge").length,
       9,
     );
-    field(".default-master select", "claude");
+    await choose("Domyślny agent główny", "Claude Code");
     await wait(
       () =>
         store.projects().find((p) => p.name === "Project B").master ===
         "claude",
     );
-    field(".settings select", "en");
+    await choose("Język", "English");
     await wait(() => dom.window.document.documentElement.lang === "en");
-    button("Light").click();
+    dom.window.document.querySelector('[aria-label="Theme"]').click();
     await wait(
       () => dom.window.document.documentElement.dataset.theme === "light",
     );
@@ -182,6 +275,7 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       dom.window.document.querySelector(".task-list h3").textContent,
       "Review scoped data",
     );
+    assert.equal(dom.window.document.querySelector("#task-title").value, ""); // unsaved input is session-only
     assert.equal(
       store.memory(store.projects().find((p) => p.name === "Project A").id)
         .length,

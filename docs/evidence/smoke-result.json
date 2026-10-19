@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "platform": "linux",
+  "platform": "win32",
   "sandboxDisabledForHost": false,
   "checks": [
     "real Electron UI CRUD",

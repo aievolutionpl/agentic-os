@@ -12,6 +12,7 @@ Agenting OS is an open-source, local-first workbench by **AI Evolution Polska**.
 
 ## What you can do
 
+- **See your whole fleet:** the Control Center detects installed agent CLIs, local model servers and GitHub sign-in, and states honestly what is ready, what needs a login and what is unknown. Provider limits stay *unknown* until a verified official source exists.
 - **Organize work:** persistent projects, task dependencies, execution history, retries, cancellation and restart recovery.
 - **Run with a boundary:** explicit starts, managed Git worktrees, provider deadlines and a saved artifact instead of silent edits to the source checkout.
 - **Review before applying:** captured diff + SHA-256, a separate configured reviewer, expiring human approval and a second action to apply the exact approved commit.

@@ -1,0 +1,62 @@
+{
+  "at": "2026-10-19T17:31:37.025Z",
+  "language": "en",
+  "screens": [
+    {
+      "theme": "dark",
+      "width": 1440,
+      "file": "en-dark-1440.png",
+      "rescanDisabled": false,
+      "overflow": false,
+      "measurements": 131,
+      "failures": []
+    },
+    {
+      "theme": "dark",
+      "width": 1024,
+      "file": "en-dark-1024.png",
+      "rescanDisabled": false,
+      "overflow": false,
+      "measurements": 131,
+      "failures": []
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "file": "en-dark-390.png",
+      "rescanDisabled": false,
+      "overflow": false,
+      "measurements": 122,
+      "failures": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "file": "en-light-1440.png",
+      "rescanDisabled": false,
+      "overflow": false,
+      "measurements": 132,
+      "failures": []
+    },
+    {
+      "theme": "light",
+      "width": 1024,
+      "file": "en-light-1024.png",
+      "rescanDisabled": false,
+      "overflow": false,
+      "measurements": 132,
+      "failures": []
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "file": "en-light-390.png",
+      "rescanDisabled": false,
+      "overflow": false,
+      "measurements": 123,
+      "failures": []
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

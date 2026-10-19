@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { redact } from "./validate.js";
-import type { Run, RunEvent, RunState } from "../shared.js";
+import type { LocalUsage, Run, RunEvent, RunState } from "../shared.js";
 import type { Workspace } from "./git.js";
 export class Runs {
   constructor(
@@ -140,6 +140,20 @@ export class Runs {
       )
       .all()
       .map((row) => this.get(String(row.projectId), String(row.id))!);
+  }
+  /** Exact local counters of runs started by Agenting OS; not a provider quota. */
+  usage(startOfDay: number): LocalUsage[] {
+    return this.db
+      .prepare(
+        "SELECT provider, COUNT(*) AS runsTotal, SUM(createdAt>=?) AS runsToday, MAX(createdAt) AS lastRunAt FROM runs GROUP BY provider",
+      )
+      .all(startOfDay)
+      .map((row) => ({
+        provider: String(row.provider),
+        runsTotal: Number(row.runsTotal),
+        runsToday: Number(row.runsToday ?? 0),
+        lastRunAt: row.lastRunAt == null ? null : Number(row.lastRunAt),
+      }));
   }
   provider(id: string) {
     const row = this.db

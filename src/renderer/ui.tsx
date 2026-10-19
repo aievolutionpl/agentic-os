@@ -57,6 +57,15 @@ export function Icon({
       </>
     ),
     check: <path d="m5 12 4 4L19 6" />,
+    refresh: <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />,
+    grid: (
+      <>
+        <rect x="4" y="4" width="7" height="7" rx="1.5" />
+        <rect x="13" y="4" width="7" height="7" rx="1.5" />
+        <rect x="4" y="13" width="7" height="7" rx="1.5" />
+        <rect x="13" y="13" width="7" height="7" rx="1.5" />
+      </>
+    ),
     task: <rect x="5" y="5" width="14" height="14" rx="3" />,
     clock: (
       <>
@@ -305,6 +314,8 @@ export function useNarrow() {
     if (!window.matchMedia) return;
     const media = window.matchMedia("(max-width: 760px)");
     const update = () => setNarrow(media.matches);
+    // The viewport may have changed between the first render and this effect.
+    update();
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);

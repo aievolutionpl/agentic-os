@@ -24,6 +24,7 @@ const api: API = {
   runArtifact: (input) => ipcRenderer.invoke("app:runArtifact", input),
   taskAction: (input) => ipcRenderer.invoke("app:taskAction", input),
   snapshot: () => ipcRenderer.invoke("app:snapshot"),
+  connectorScan: () => ipcRenderer.invoke("app:connectorScan"),
   projectData: (id) => ipcRenderer.invoke("app:projectData", id),
   createProject: (input) => ipcRenderer.invoke("app:createProject", input),
   createTask: (input) => ipcRenderer.invoke("app:createTask", input),

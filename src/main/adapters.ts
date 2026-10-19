@@ -1,8 +1,11 @@
-import { spawn } from "node:child_process";
 import type { Integration, ProbeState, ProviderProbe } from "../shared.js";
+import {
+  defaultRunner as shimRunner,
+  resolveOnPath,
+  versionOf,
+} from "./connectors.js";
 
-const TIMEOUT_MS = 2_000;
-const MAX_CAPTURE = 16_384;
+const TIMEOUT_MS = 8_000;
 type ProbeKind = "version" | "help" | "authStatus";
 type RunResult = {
   code: number | null;
@@ -27,60 +30,21 @@ function state(result: RunResult): ProbeState {
   return result.code === 0 ? "passed" : "failed";
 }
 
-function versionOf(stdout: string): string | null {
-  const firstLine = stdout.split(/\r?\n/, 1)[0]?.trim() ?? "";
-  const match = firstLine.match(
-    /(?:^|\s)(\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?)(?:\s|$)/,
-  );
-  return match?.[1] ?? null;
-}
-
 function defaultRunner(
   executable: string,
   args: readonly string[],
   timeoutMs: number,
 ): Promise<RunResult> {
-  return new Promise((resolve) => {
-    let stdout = "";
-    let stderr = "";
-    let settled = false;
-    const finish = (result: RunResult) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve({
-        ...result,
-        stdout: stdout.slice(0, MAX_CAPTURE),
-        stderr: stderr.slice(0, MAX_CAPTURE),
-      });
-    };
-    const child = spawn(executable, [...args], {
-      shell: false,
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
+  // npm-installed CLIs are .cmd shims on Windows; resolve through PATH.
+  const path = resolveOnPath(executable);
+  if (!path)
+    return Promise.resolve({
+      code: null,
+      stdout: "",
+      stderr: "",
+      error: "not_found",
     });
-    child.stdout.setEncoding("utf8");
-    child.stderr.setEncoding("utf8");
-    child.stdout.on("data", (chunk: string) => {
-      if (stdout.length < MAX_CAPTURE) stdout += chunk;
-    });
-    child.stderr.on("data", (chunk: string) => {
-      if (stderr.length < MAX_CAPTURE) stderr += chunk;
-    });
-    child.once("error", (error: NodeJS.ErrnoException) =>
-      finish({
-        code: null,
-        stdout,
-        stderr,
-        error: error.code === "ENOENT" ? "not_found" : "spawn_failed",
-      }),
-    );
-    child.once("close", (code) => finish({ code, stdout, stderr }));
-    const timer = setTimeout(() => {
-      child.kill("SIGTERM");
-      finish({ code: null, stdout, stderr, error: "timed_out" });
-    }, timeoutMs);
-  });
+  return shimRunner(path, args, timeoutMs);
 }
 
 async function probeProvider(

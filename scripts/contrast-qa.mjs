@@ -85,9 +85,14 @@ try {
     for (const width of [320, 390, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       if (theme === "dark" && width === 320) {
-        await capture("dark-320-empty");
         await page
-          .locator(".empty")
+          .locator(".connector-card:not(.skeleton-card)")
+          .first()
+          .waitFor({ timeout: 60000 });
+        await capture("dark-320-control-center");
+        await page.getByRole("button", { name: "Projects", exact: true }).click();
+        await page
+          .locator(".projects-drawer[open]")
           .getByRole("button", { name: "New project", exact: true })
           .click();
         await page

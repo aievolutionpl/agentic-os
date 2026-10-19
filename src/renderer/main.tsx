@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
   Agent,
+  ConnectorScan,
   Memory,
   Preferences,
   ProjectData,
@@ -15,6 +16,8 @@ import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
+import { ControlCenter } from "./ControlCenter";
+import { ccWords } from "./cc-i18n";
 import "./style.css";
 
 const api = window.agenting;
@@ -33,6 +36,12 @@ function App() {
   const [tab, setTab] = useState<
     "tasks" | "memory" | "agents" | "extensions" | "browser"
   >("tasks");
+  const [view, setView] = useState<"center" | "project">(
+    api?.connectorScan ? "center" : "project",
+  );
+  const [scan, setScan] = useState<ConnectorScan | null>(null),
+    [scanning, setScanning] = useState(false),
+    [scanFailed, setScanFailed] = useState(false);
   const [error, setError] = useState(false),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
@@ -155,6 +164,22 @@ function App() {
     document.addEventListener("keydown", shortcuts);
     return () => document.removeEventListener("keydown", shortcuts);
   }, []);
+  async function runScan() {
+    if (!api?.connectorScan || scanning) return;
+    setScanning(true);
+    setScanFailed(false);
+    try {
+      setScan(await api.connectorScan());
+    } catch {
+      setScanFailed(true);
+    } finally {
+      setScanning(false);
+    }
+  }
+  useEffect(() => {
+    if (view === "center" && !scan && !scanning && !scanFailed)
+      void runScan();
+  }, [view]);
   async function refresh() {
     if (!api) return;
     try {
@@ -305,6 +330,21 @@ function App() {
             </button>
           )}
         </div>
+        {api?.connectorScan && (
+          <nav className="primary-nav" aria-label="Agenting OS">
+            <button
+              className={`nav-item ${view === "center" ? "selected" : ""}`}
+              aria-current={view === "center" ? "page" : undefined}
+              onClick={() => {
+                setProjectsExpanded(false);
+                setView("center");
+              }}
+            >
+              <Icon name="grid" />
+              <span>{ccWords[prefs.language].nav}</span>
+            </button>
+          </nav>
+        )}
         <div className="project-heading">
           <h2 id="projects-title">{w.projects}</h2>
           <button
@@ -320,11 +360,16 @@ function App() {
         <nav aria-label={w.projects}>
           {snapshot?.projects.map((item) => (
             <button
-              className={`project-link ${item.id === projectId ? "selected" : ""}`}
+              className={`project-link ${item.id === projectId && view === "project" ? "selected" : ""}`}
               key={item.id}
               disabled={busy}
-              aria-current={item.id === projectId ? "page" : undefined}
-              onClick={() => void selectProject(item.id)}
+              aria-current={
+                item.id === projectId && view === "project" ? "page" : undefined
+              }
+              onClick={() => {
+                setView("project");
+                void selectProject(item.id);
+              }}
             >
               <span className="project-avatar" aria-hidden="true">
                 {item.name
@@ -393,8 +438,10 @@ function App() {
           <div className="breadcrumb">
             <span>{w.workspace}</span>
             <Icon name="chevron" />
-            <strong title={project?.name}>
-              {project?.name ?? "Agenting OS"}
+            <strong title={view === "center" ? undefined : project?.name}>
+              {view === "center"
+                ? ccWords[prefs.language].nav
+                : (project?.name ?? "Agenting OS")}
             </strong>
           </div>
           <div className="settings">
@@ -456,7 +503,15 @@ function App() {
                 <button onClick={() => void refresh()}>{w.retry}</button>
               </div>
             )}
-            {!snapshot && !error ? (
+            {view === "center" ? (
+              <ControlCenter
+                language={prefs.language}
+                scan={scan}
+                scanning={scanning}
+                failed={scanFailed}
+                onRescan={() => void runScan()}
+              />
+            ) : !snapshot && !error ? (
               <div className="loading-workspace" aria-label={w.loading}>
                 <div className="skeleton-title" />
                 <div className="skeleton-composer" />
@@ -866,6 +921,7 @@ function App() {
               const next = await api.snapshot();
               setSnapshot(next);
               setProjectOpen(false);
+              setView("project");
               await selectProject(item.id);
             });
           }}

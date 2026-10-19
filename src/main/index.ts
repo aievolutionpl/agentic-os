@@ -13,6 +13,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
 import { trustedSender } from "./security.js";
 import { probeProviders, withProviderProbes } from "./adapters.js";
+import { scanConnectors } from "./connectors.js";
 import { Supervisor } from "./supervisor.js";
 import { CodexAdapter } from "./providers.js";
 import { exact, text } from "./validate.js";
@@ -209,6 +210,15 @@ app
           await probeProviders(),
         ),
       }),
+      connectorScan: async () => {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        return {
+          observedAt: new Date().toISOString(),
+          connectors: await scanConnectors(),
+          usage: store.runs.usage(startOfDay.getTime()),
+        };
+      },
       projectData: (id) => store.projectData(id),
       taskAction: (input) => store.taskAction(input),
       createProject: (input) => store.createProject(input),

@@ -94,6 +94,7 @@ try {
     (await page.evaluate(() => Object.keys(window.agenting))).sort(),
     [
       "snapshot",
+      "connectorScan",
       "projectData",
       "createProject",
       "createTask",

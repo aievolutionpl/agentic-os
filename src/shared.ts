@@ -98,6 +98,73 @@ export interface ProviderProbe {
     execution: false;
   };
 }
+/**
+ * Connector registry (plan v3, chapter 4). `ready` means detected, signed in
+ * and backed by an execution adapter in this build; it is not a smoke test.
+ */
+export type ConnectorState =
+  | "ready"
+  | "needs-auth"
+  | "needs-install"
+  | "experimental"
+  | "unsupported"
+  | "degraded";
+export type ConnectorReason =
+  | "ok"
+  | "not_found"
+  | "auth_missing"
+  | "auth_unknown"
+  | "bridge_required"
+  | "adapter_planned"
+  | "server_down"
+  | "probe_failed"
+  | "vault_missing"
+  | "no_verified_integration";
+export interface ConnectorStatus {
+  id: string;
+  name: string;
+  kind: "cli" | "local-server" | "api" | "service";
+  state: ConnectorState;
+  reason: ConnectorReason;
+  installed: boolean;
+  path: string | null;
+  version: string | null;
+  auth: "authenticated" | "unauthenticated" | "unknown" | "not-applicable";
+  account: string | null;
+  /** Sign-in method reported by the official CLI, e.g. "claude.ai". */
+  authMethod: string | null;
+  /** Subscription tier reported by the official CLI, if it states one. */
+  plan: string | null;
+  /** Whether this build can run tasks through the connector. */
+  adapter: "available" | "requires-bridge" | "planned" | "none";
+  models: string[];
+  installHint: string | null;
+  quota: QuotaSnapshot;
+  observedAt: string;
+}
+/** Provider-side limit. Unknown until an official source is verified (R0). */
+export interface QuotaSnapshot {
+  state: "unknown" | "known";
+  unit: "requests" | "percent" | "tokens" | "usd" | null;
+  used: number | null;
+  limit: number | null;
+  remaining: number | null;
+  resetAt: string | null;
+  confidence: "exact" | "estimated" | "unavailable";
+  source: "official-api" | "cli" | "response-headers" | null;
+  observedAt: string | null;
+}
+export interface LocalUsage {
+  provider: string;
+  runsToday: number;
+  runsTotal: number;
+  lastRunAt: number | null;
+}
+export interface ConnectorScan {
+  observedAt: string;
+  connectors: ConnectorStatus[];
+  usage: LocalUsage[];
+}
 export interface Snapshot {
   projects: Project[];
   preferences: Preferences;
@@ -203,6 +270,7 @@ export interface API {
     approvals: unknown[];
   } | null>;
   snapshot(): Promise<Snapshot>;
+  connectorScan?(): Promise<ConnectorScan>;
   taskAction(input: TaskAction): Promise<void>;
   projectData(id: string): Promise<ProjectData>;
   createProject(

@@ -15,12 +15,12 @@ test("provider probes use only the documented fixed commands and redact command 
     };
   }, () => "2026-10-19T00:00:00.000Z");
   assert.deepEqual(calls, [
-    { executable: "codex", args: ["--version"], timeoutMs: 2000 },
-    { executable: "codex", args: ["--help"], timeoutMs: 2000 },
-    { executable: "codex", args: ["login", "status"], timeoutMs: 2000 },
-    { executable: "claude", args: ["--version"], timeoutMs: 2000 },
-    { executable: "claude", args: ["--help"], timeoutMs: 2000 },
-    { executable: "claude", args: ["auth", "status"], timeoutMs: 2000 },
+    { executable: "codex", args: ["--version"], timeoutMs: 8000 },
+    { executable: "codex", args: ["--help"], timeoutMs: 8000 },
+    { executable: "codex", args: ["login", "status"], timeoutMs: 8000 },
+    { executable: "claude", args: ["--version"], timeoutMs: 8000 },
+    { executable: "claude", args: ["--help"], timeoutMs: 8000 },
+    { executable: "claude", args: ["auth", "status"], timeoutMs: 8000 },
   ]);
   assert.equal(results[0].probe.version, "9.8.7");
   assert.equal(results[0].probe.auth, "unknown");

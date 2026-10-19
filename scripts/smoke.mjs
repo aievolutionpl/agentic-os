@@ -280,6 +280,8 @@ try {
       document.documentElement.lang === "en" &&
       document.documentElement.dataset.theme === "light",
   );
+  // The app now opens on the Control Center; persisted projects stay in the sidebar.
+  await page.locator(".project-link", { hasText: "Client A" }).click();
   await page.getByRole("heading", { name: "Client A", exact: true }).waitFor();
   await page
     .getByRole("heading", { name: "Review project boundaries", exact: true })

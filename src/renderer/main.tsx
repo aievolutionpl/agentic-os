@@ -17,6 +17,7 @@ import { ProviderSetup } from "./ProviderSetup";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
+import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { ccWords } from "./cc-i18n";
 import "./style.css";
 
@@ -36,7 +37,7 @@ function App() {
   const [tab, setTab] = useState<
     "tasks" | "memory" | "agents" | "extensions" | "browser"
   >("tasks");
-  const [view, setView] = useState<"center" | "project">(
+  const [view, setView] = useState<"center" | "project" | "quota">(
     api?.connectorScan ? "center" : "project",
   );
   const [scan, setScan] = useState<ConnectorScan | null>(null),
@@ -333,6 +334,17 @@ function App() {
         {api?.connectorScan && (
           <nav className="primary-nav" aria-label="Agenting OS">
             <button
+              className={`nav-item ${view === "quota" ? "selected" : ""}`}
+              aria-current={view === "quota" ? "page" : undefined}
+              onClick={() => {
+                setProjectsExpanded(false);
+                setView("quota");
+              }}
+            >
+              <Icon name="layers" />
+              <span>{prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota"}</span>
+            </button>
+            <button
               className={`nav-item ${view === "center" ? "selected" : ""}`}
               aria-current={view === "center" ? "page" : undefined}
               onClick={() => {
@@ -441,7 +453,9 @@ function App() {
             <strong title={view === "center" ? undefined : project?.name}>
               {view === "center"
                 ? ccWords[prefs.language].nav
-                : (project?.name ?? "Agenting OS")}
+                : view === "quota"
+                  ? (prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota")
+                  : (project?.name ?? "Agenting OS")}
             </strong>
           </div>
           <div className="settings">
@@ -503,13 +517,16 @@ function App() {
                 <button onClick={() => void refresh()}>{w.retry}</button>
               </div>
             )}
-            {view === "center" ? (
+            {view === "quota" ? (
+              <OpenQuotaPanel language={prefs.language} />
+            ) : view === "center" ? (
               <ControlCenter
                 language={prefs.language}
                 scan={scan}
                 scanning={scanning}
                 failed={scanFailed}
                 onRescan={() => void runScan()}
+                onOpenQuota={() => setView("quota")}
               />
             ) : !snapshot && !error ? (
               <div className="loading-workspace" aria-label={w.loading}>

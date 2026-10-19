@@ -20,6 +20,11 @@ import { exact, text } from "./validate.js";
 import { Applications } from "./applications.js";
 import { McpTools } from "./extensions.js";
 import { ProjectBrowser } from "./browser.js";
+import {
+  scanAllQuotas,
+  saveCustomSubscription,
+  deleteCustomSubscription,
+} from "./quota.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const page = join(here, "../renderer/index.html");
 const expectedUrl = pathToFileURL(page).href;
@@ -227,6 +232,14 @@ app
       deleteMemory: (input) => store.deleteMemory(input),
       setPreferences: (input) => store.setPreferences(input),
       setMaster: (input) => store.setMaster(input),
+      quotaScan: () => scanAllQuotas(app.getPath("userData")),
+      quotaSaveCustom: (input) =>
+        saveCustomSubscription(app.getPath("userData"), input as any),
+      quotaDeleteCustom: (input) => {
+        const id = typeof input === "string" ? input : (input as any)?.id;
+        if (id) deleteCustomSubscription(app.getPath("userData"), id);
+      },
+      quotaRefresh: () => scanAllQuotas(app.getPath("userData")),
     };
     for (const [name, handler] of Object.entries(handlers))
       ipcMain.handle(`app:${name}`, async (event, input: unknown) => {

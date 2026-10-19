@@ -32,5 +32,9 @@ const api: API = {
   deleteMemory: (input) => ipcRenderer.invoke("app:deleteMemory", input),
   setPreferences: (input) => ipcRenderer.invoke("app:setPreferences", input),
   setMaster: (input) => ipcRenderer.invoke("app:setMaster", input),
+  quotaScan: () => ipcRenderer.invoke("app:quotaScan"),
+  quotaSaveCustom: (input) => ipcRenderer.invoke("app:quotaSaveCustom", input),
+  quotaDeleteCustom: (id) => ipcRenderer.invoke("app:quotaDeleteCustom", id),
+  quotaRefresh: () => ipcRenderer.invoke("app:quotaRefresh"),
 };
 contextBridge.exposeInMainWorld("agenting", api);

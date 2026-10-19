@@ -2185,3 +2185,275 @@ dd {
     animation: none;
   }
 }
+
+/* ========================================================================= */
+/* OPENQUOTA WIDGET & DASHBOARD STYLES                                       */
+/* ========================================================================= */
+.openquota-container {
+  padding: var(--s-6) 0;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.openquota-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--s-8);
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+.openquota-titles h1 {
+  font-size: var(--t-2xl);
+  font-weight: 700;
+  margin: var(--s-2) 0 var(--s-1) 0;
+}
+.openquota-subtitle {
+  color: var(--text-muted);
+  font-size: var(--t-sm);
+  margin: 0;
+}
+.openquota-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 3px 10px;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--accent);
+  border-radius: 9999px;
+  font-size: var(--t-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.openquota-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+.openquota-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.openquota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--s-6);
+}
+.openquota-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: var(--s-5) var(--s-6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.openquota-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.08);
+}
+.openquota-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-3);
+}
+.openquota-card-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.openquota-drag-handle {
+  color: var(--text-faint);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+}
+.openquota-provider-name {
+  font-size: var(--t-lg);
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.openquota-plan-tag {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.openquota-card-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.openquota-delete-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-faint);
+  cursor: pointer;
+  padding: 0 var(--s-1);
+  line-height: 1;
+}
+.openquota-delete-btn:hover {
+  color: #ef4444;
+}
+.openquota-card-account {
+  font-size: var(--t-xs);
+  color: var(--text-faint);
+  margin-bottom: var(--s-3);
+  word-break: break-all;
+}
+.openquota-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin-top: var(--s-2);
+}
+.openquota-metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.openquota-metric-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.openquota-burn-badge {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: #ef4444;
+  letter-spacing: 0.01em;
+}
+.openquota-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+.openquota-bar-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.fill-healthy {
+  background: #2563eb;
+}
+.fill-warning {
+  background: #ea580c;
+}
+.fill-exhausted {
+  background: #dc2626;
+}
+.openquota-metric-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--t-xs);
+  color: var(--text-muted);
+}
+.openquota-left-text {
+  font-weight: 500;
+  color: var(--text);
+}
+.openquota-reset-text {
+  color: var(--text-faint);
+}
+.openquota-trend-section {
+  margin-top: var(--s-5);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.openquota-trend-label {
+  font-size: var(--t-xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.openquota-sparkline {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 20px;
+  width: 140px;
+}
+.openquota-spark-bar {
+  flex: 1;
+  border-radius: 1px;
+  background: #2563eb;
+  transition: height 0.2s ease;
+}
+.openquota-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--s-4);
+}
+.openquota-modal {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: var(--s-6);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+}
+.openquota-modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-4);
+}
+.openquota-modal-head h2 {
+  font-size: var(--t-lg);
+  font-weight: 700;
+  margin: 0;
+}
+.openquota-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.openquota-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.openquota-form .form-field label {
+  font-size: var(--t-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.openquota-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+.openquota-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+

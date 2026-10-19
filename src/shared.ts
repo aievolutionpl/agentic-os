@@ -153,6 +153,45 @@ export interface QuotaSnapshot {
   confidence: "exact" | "estimated" | "unavailable";
   source: "official-api" | "cli" | "response-headers" | null;
   observedAt: string | null;
+  metrics?: QuotaMetric[];
+  burnNotice?: string | null;
+}
+export interface QuotaMetric {
+  id: string;
+  label: string;
+  usedPercent: number;
+  remainingPercent: number;
+  resetsAt: string | null;
+  resetNotice?: string | null;
+  burnNotice?: string | null;
+  periodSeconds: number;
+  format: "percent" | "tokens" | "usd";
+  usedValue: number | null;
+  limitValue: number | null;
+  unit?: string | null;
+}
+export interface ProviderQuotaCard {
+  id: string;
+  name: string;
+  plan: string;
+  account: string | null;
+  icon: string;
+  status: "active" | "warning" | "exhausted" | "offline" | "not_configured";
+  metrics: QuotaMetric[];
+  usageTrend: number[];
+  isCustom?: boolean;
+  updatedAt: string;
+}
+export interface CustomSubscriptionInput {
+  id?: string;
+  name: string;
+  provider: string;
+  plan: string;
+  tokenLimit: number;
+  tokensUsed: number;
+  period: "session" | "daily" | "weekly" | "monthly";
+  resetAt?: string | null;
+  apiKey?: string | null;
 }
 export interface LocalUsage {
   provider: string;
@@ -285,6 +324,10 @@ export interface API {
   deleteMemory(input: { projectId: string; id: string }): Promise<void>;
   setPreferences(input: Preferences): Promise<Preferences>;
   setMaster(input: { projectId: string; master: Agent }): Promise<void>;
+  quotaScan?(): Promise<ProviderQuotaCard[]>;
+  quotaSaveCustom?(input: CustomSubscriptionInput): Promise<ProviderQuotaCard>;
+  quotaDeleteCustom?(id: string): Promise<void>;
+  quotaRefresh?(): Promise<ProviderQuotaCard[]>;
 }
 export interface Extension {
   id: string;

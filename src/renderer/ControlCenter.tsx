@@ -47,12 +47,14 @@ export function ControlCenter({
   scanning,
   failed,
   onRescan,
+  onOpenQuota,
 }: {
   language: "pl" | "en";
   scan: ConnectorScan | null;
   scanning: boolean;
   failed: boolean;
   onRescan: () => void;
+  onOpenQuota?: () => void;
 }) {
   const t = ccWords[language];
   const connectors = scan?.connectors ?? [];
@@ -118,10 +120,14 @@ export function ControlCenter({
           <span className="stat-value">{scan ? runsToday : "–"}</span>
           <span className="stat-label">{t.statRuns}</span>
         </li>
-        <li>
-          <span className="stat-value">—</span>
+        <li
+          onClick={onOpenQuota}
+          style={{ cursor: onOpenQuota ? "pointer" : "default" }}
+          title={language === "pl" ? "Przejdź do panelu OpenQuota" : "Open Quota Dashboard"}
+        >
+          <span className="stat-value" style={{ color: "var(--accent)" }}>OpenQuota ⚡</span>
           <span className="stat-label">
-            {t.statSpend} · {t.statSpendNote}
+            {language === "pl" ? "Limity i tokeny live" : "Live token limits"}
           </span>
         </li>
       </ul>

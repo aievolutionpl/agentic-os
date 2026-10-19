@@ -273,11 +273,18 @@ export class Lifecycle {
     });
   }
   cancelOwned(input: unknown) {
-    const p=inputObject(input);
-    return this.transaction(()=>{const task=this.owned(p);this.end(task,"cancelled",null,task.owner!);});
+    const p = inputObject(input);
+    return this.transaction(() => {
+      const task = this.owned(p);
+      this.end(task, "cancelled", null, task.owner!);
+    });
   }
-  interrupt(projectId: string,taskId: string) {
-    return this.transaction(()=>{const task=this.row(projectId,taskId);if(task.status==="running")this.end(task,"failed","worker_error","recovery");});
+  interrupt(projectId: string, taskId: string) {
+    return this.transaction(() => {
+      const task = this.row(projectId, taskId);
+      if (task.status === "running")
+        this.end(task, "failed", "worker_error", "recovery");
+    });
   }
   recover(projectId: unknown): number {
     return this.transaction(() => {

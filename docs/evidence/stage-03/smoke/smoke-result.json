@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "platform": "win32",
+  "clipboard": {
+    "nativeAvailable": false,
+    "trustedCopyPayload": "passed",
+    "systemReadback": "unverified"
+  },
+  "sandboxDisabledForHost": false,
+  "checks": [
+    "real Electron UI CRUD",
+    "restart persistence",
+    "project isolation",
+    "memory deletion cancel/confirm",
+    "script text inert",
+    "role selection",
+    "PL/EN and light/dark persistence",
+    "seven unprobed integrations and two honest probe-dependent statuses; unknown auth/quota, execution disabled",
+    "renderer Node unavailable",
+    "sandbox/context isolation settings",
+    "1440/1280/390 screenshots",
+    "no horizontal overflow at 390",
+    "keyboard focus",
+    "task search, status filters and clear filters",
+    "per-project unsaved drafts across tabs and project switches",
+    "compact project navigation and keyboard focus return",
+    "no horizontal overflow at 320/390/768/1280/1440",
+    "long project/task names reflow with expanded task details",
+    "custom listbox Home/End/Escape and focus return",
+    "slash search and Ctrl+Enter save",
+    "trusted copy event contains the persisted project folder path; system readback reported separately",
+    "focus returns to language control after asynchronous preference save",
+    "cancel confirmation can be abandoned without mutation",
+    "confirmed cancellation persists and updates the detail panel",
+    "empty-state CTA focuses composer; empty draft save disabled",
+    "dismissed lifecycle callout survives reload",
+    "no renderer exceptions"
+  ]
+}

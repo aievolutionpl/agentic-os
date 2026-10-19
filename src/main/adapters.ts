@@ -106,7 +106,8 @@ async function probeProvider(
         : "unknown";
   const probe: ProviderProbe = {
     installation,
-    version: states.version === "passed" ? versionOf(commands.version.stdout) : null,
+    version:
+      states.version === "passed" ? versionOf(commands.version.stdout) : null,
     auth: "unknown",
     provenance: "local-command",
     observedAt,
@@ -114,8 +115,7 @@ async function probeProvider(
     capabilities: {
       version: states.version === "passed",
       help: states.help === "passed",
-      authStatus:
-        states.authStatus === "passed",
+      authStatus: states.authStatus === "passed",
       execution: false,
     },
   };

@@ -1412,34 +1412,153 @@ dd {
 .standalone {
   padding: var(--s-12);
 }
-.run-panel,.provider-setup { margin-top:var(--s-8);padding-top:var(--s-6);border-top:1px solid var(--border); }
-.run-panel h3 { font-size:var(--t-lg);margin:0; }
-.run-panel .section-heading { gap:var(--s-3);align-items:flex-start;flex-wrap:wrap; }
-.run-panel .select-field { margin-bottom:var(--s-4); }
-.run-state.state-running,.run-state.state-reviewing { color:var(--accent); }
-.run-state.state-awaiting_review,.run-state.state-interrupted,.run-state.state-apply_uncertain {color:var(--warning);}
-.run-state.state-failed,.run-state.state-rejected {color:var(--danger);}
-.run-state.state-applied,.run-state.state-completed {color:var(--success);}
-.run-path {display:block;font:var(--t-xs)/1.6 ui-monospace,Consolas,monospace;overflow-wrap:anywhere;margin-top:var(--s-1);color:var(--text-muted);}
-.run-panel pre {white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font:var(--t-xs)/1.6 ui-monospace,Consolas,monospace;color:var(--text);margin:var(--s-3) 0;}
-.run-output {background:var(--surface);border:1px solid var(--border);border-radius:var(--r-control);padding:var(--s-3);margin:var(--s-4) 0;max-height:320px;overflow:auto;}
-.run-panel details {margin-top:var(--s-4);}
-.run-panel summary {font-size:var(--t-sm);padding:var(--s-2) 0;cursor:pointer;}
-.artifact-preview pre {max-height:480px;overflow:auto;background:var(--bg-subtle);padding:var(--s-3);border:1px solid var(--border);border-radius:var(--r-control);}
-.run-events ol {list-style:none;padding:0;}
-.run-events li {display:flex;gap:var(--s-3);align-items:baseline;padding:var(--s-2) 0;border-bottom:1px solid var(--border);font-size:var(--t-xs);overflow-wrap:anywhere;}
-.run-events time {font-family:ui-monospace,Consolas,monospace;color:var(--text-faint);flex-shrink:0;}
-.run-events span {min-width:0;}
-.consent {margin:var(--s-4) 0;align-items:flex-start;}
-.dependency-choice small {display:block;color:var(--text-faint);font-size:var(--t-xs);margin-top:var(--s-1);}
-.provider-setup form {max-width:720px;display:grid;gap:var(--s-4);}
-.provider-setup form label input:not([type=checkbox]) {width:100%;margin-top:var(--s-2);}
-.path-input {display:flex;gap:var(--s-2);align-items:center;}
-.path-input input {flex:1;min-width:0;}
-.field-label {font-size:var(--t-sm);margin-bottom:var(--s-2);color:var(--text-muted);}
-.inline-error {font-size:var(--t-sm);color:var(--danger);}
-.steer-form {display:grid;gap:var(--s-2);margin:var(--s-4) 0;}
-.steer-form button {justify-self:start;}
+.run-panel,
+.provider-setup {
+  margin-top: var(--s-8);
+  padding-top: var(--s-6);
+  border-top: 1px solid var(--border);
+}
+.run-panel h3 {
+  font-size: var(--t-lg);
+  margin: 0;
+}
+.run-panel .section-heading {
+  gap: var(--s-3);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.run-panel .select-field {
+  margin-bottom: var(--s-4);
+}
+.run-state.state-running,
+.run-state.state-reviewing {
+  color: var(--accent);
+}
+.run-state.state-awaiting_review,
+.run-state.state-interrupted,
+.run-state.state-apply_uncertain {
+  color: var(--warning);
+}
+.run-state.state-failed,
+.run-state.state-rejected {
+  color: var(--danger);
+}
+.run-state.state-applied,
+.run-state.state-completed {
+  color: var(--success);
+}
+.run-path {
+  display: block;
+  font:
+    var(--t-xs) / 1.6 ui-monospace,
+    Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+  margin-top: var(--s-1);
+  color: var(--text-muted);
+}
+.run-panel pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font:
+    var(--t-xs) / 1.6 ui-monospace,
+    Consolas,
+    monospace;
+  color: var(--text);
+  margin: var(--s-3) 0;
+}
+.run-output {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+  padding: var(--s-3);
+  margin: var(--s-4) 0;
+  max-height: 320px;
+  overflow: auto;
+}
+.run-panel details {
+  margin-top: var(--s-4);
+}
+.run-panel summary {
+  font-size: var(--t-sm);
+  padding: var(--s-2) 0;
+  cursor: pointer;
+}
+.artifact-preview pre {
+  max-height: 480px;
+  overflow: auto;
+  background: var(--bg-subtle);
+  padding: var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-control);
+}
+.run-events ol {
+  list-style: none;
+  padding: 0;
+}
+.run-events li {
+  display: flex;
+  gap: var(--s-3);
+  align-items: baseline;
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--t-xs);
+  overflow-wrap: anywhere;
+}
+.run-events time {
+  font-family: ui-monospace, Consolas, monospace;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.run-events span {
+  min-width: 0;
+}
+.consent {
+  margin: var(--s-4) 0;
+  align-items: flex-start;
+}
+.dependency-choice small {
+  display: block;
+  color: var(--text-faint);
+  font-size: var(--t-xs);
+  margin-top: var(--s-1);
+}
+.provider-setup form {
+  max-width: 720px;
+  display: grid;
+  gap: var(--s-4);
+}
+.provider-setup form label input:not([type="checkbox"]) {
+  width: 100%;
+  margin-top: var(--s-2);
+}
+.path-input {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+.path-input input {
+  flex: 1;
+  min-width: 0;
+}
+.field-label {
+  font-size: var(--t-sm);
+  margin-bottom: var(--s-2);
+  color: var(--text-muted);
+}
+.inline-error {
+  font-size: var(--t-sm);
+  color: var(--danger);
+}
+.steer-form {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-4) 0;
+}
+.steer-form button {
+  justify-self: start;
+}
 @media (max-width: 1100px) {
   .task-columns,
   .task-list > ul > li {

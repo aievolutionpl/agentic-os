@@ -44,6 +44,11 @@ function App() {
   const [query, setQuery] = useState(""),
     [taskQuery, setTaskQuery] = useState(""),
     [taskFilter, setTaskFilter] = useState("all");
+  const [memoryResults, setMemoryResults] = useState<{
+    projectId: string;
+    query: string;
+    rows: Memory[];
+  } | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({}),
     [projectsExpanded, setProjectsExpanded] = useState(false);
   const selection = useRef(""),
@@ -56,12 +61,34 @@ function App() {
   const project = snapshot?.projects.find(
     (project) => project.id === projectId,
   );
-  const visibleMemory = data.memory.filter((memory) =>
-    (memory.content + " " + memory.source)
-      .toLocaleLowerCase(prefs.language)
-      .includes(query.toLocaleLowerCase(prefs.language)),
-  );
+  const visibleMemory =
+    memoryResults?.projectId === projectId && memoryResults.query === query
+      ? memoryResults.rows
+      : data.memory.filter((memory) =>
+          (memory.content + " " + memory.source)
+            .toLocaleLowerCase(prefs.language)
+            .includes(query.toLocaleLowerCase(prefs.language)),
+        );
   const draft = drafts[projectId] ?? "";
+  useEffect(() => {
+    setMemoryResults(null);
+    if (tab !== "memory" || !query.trim() || !api?.memorySearch) return;
+    let active = true;
+    const timer = setTimeout(() => {
+      void api
+        .memorySearch({ projectId, query })
+        .then((rows) => {
+          if (active) setMemoryResults({ projectId, query, rows });
+        })
+        .catch(() => {
+          if (active) setError(true);
+        });
+    }, 180);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [projectId, query, tab, data.memory]);
   useEffect(() => {
     if (project) setImplementer(project.master);
   }, [projectId, project?.master]);
@@ -600,7 +627,11 @@ function App() {
                         void mutate(() => reloadProject(projectId))
                       }
                       onAction={taskAction}
-                      onRunChanged={()=>void reloadProject(projectId).catch(()=>setError(true))}
+                      onRunChanged={() =>
+                        void reloadProject(projectId).catch(() =>
+                          setError(true),
+                        )
+                      }
                     />
                   </>
                 )}
@@ -780,7 +811,7 @@ function App() {
                         </article>
                       ))}
                     </div>
-                    <ProviderSetup language={prefs.language}/>
+                    <ProviderSetup language={prefs.language} />
                   </section>
                 )}
               </>
@@ -828,6 +859,28 @@ function App() {
             <input name="root" maxLength={4096} disabled={busy} />
           </label>
           <p className="helper">{w.projectHint}</p>
+          {api.chooseRepository && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() => {
+                void api
+                  .chooseRepository()
+                  .then((path) => {
+                    const field = document.querySelector<HTMLInputElement>(
+                      '.project-dialog input[name="root"]',
+                    );
+                    if (path && field) field.value = path;
+                  })
+                  .catch(() => setError(true));
+              }}
+            >
+              {prefs.language === "pl"
+                ? "Wybierz repozytorium Git"
+                : "Browse Git repository"}
+            </button>
+          )}
           <label className="field-label" id="master-label">
             {w.editRoles}
           </label>

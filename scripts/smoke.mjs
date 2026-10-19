@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 const profile = mkdtempSync(join(tmpdir(), "agenting-smoke-"));
-const evidence = resolve("docs/evidence/ui-polish/smoke");
+const evidence = resolve(process.env.AGENTING_QA_OUTPUT || "docs/evidence/release-04/smoke");
 mkdirSync(evidence, { recursive: true });
 rmSync(join(evidence, "smoke-failure.png"), { force: true });
 writeFileSync(
@@ -102,7 +102,19 @@ try {
       "deleteMemory",
       "setPreferences",
       "setMaster",
-      "runtimeView", "runtimeStart", "runtimeAction", "runtimeReview", "configureProvider", "providerSettings", "chooseExecutable", "chooseRepository", "providerLogin", "runArtifact",
+      "runtimeView",
+      "runtimeStart",
+      "runtimeAction",
+      "runtimeReview",
+      "configureProvider",
+      "providerSettings",
+      "chooseExecutable",
+      "chooseRepository",
+      "providerLogin",
+      "runArtifact",
+      "runDecision",
+      "memorySearch",
+      "contextPreview",
     ].sort(),
   );
   const settings = await desktop.evaluate(({ BrowserWindow }) => {

@@ -1,3 +1,9 @@
+# Stage 0.3 — collaboration and context — 2026-10-19
+
+Implemented scoped FTS5 retrieval, provenance-backed bounded context snapshots/preview, four workflow profiles, ACP v1 integration, independent review checks and explicit exact-artifact approval/application. Read-only recovery inspects committed state without replaying operations. Native Windows: typecheck/build PASS, **40/40 tests PASS**, real Electron smoke PASS with the host clipboard availability limitation reported separately. See [stage evidence](evidence/stage-03/README.md). Stage 0.4 follows: MCP/skills, browser, open-source documentation and distribution.
+
+---
+
 # Stage 0.2 — supervised execution — 2026-10-19
 
 Implemented managed worktrees, Codex app-server, durable runs, streaming summary/activity, real process cancellation, explicit recovery, artifact capture and a task execution/review panel. Existing source repositories remain unchanged until the later apply step. Native Windows: build/typecheck PASS, full 33/33 suite PASS, runtime cancellation/dead-PID checks PASS, real Electron smoke PASS and installed app-server handshake/account-read PASS without inference. See [stage evidence](evidence/stage-02/README.md).

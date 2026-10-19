@@ -1,4 +1,12 @@
-import { app, BrowserWindow, ipcMain, Menu, session, dialog, shell } from "electron";
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  Menu,
+  session,
+  dialog,
+  shell,
+} from "electron";
 import { join, dirname } from "node:path";
 import { mkdirSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -8,6 +16,7 @@ import { probeProviders, withProviderProbes } from "./adapters.js";
 import { Supervisor } from "./supervisor.js";
 import { CodexAdapter } from "./providers.js";
 import { exact, text } from "./validate.js";
+import { Applications } from "./applications.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const page = join(here, "../renderer/index.html");
 const expectedUrl = pathToFileURL(page).href;
@@ -18,8 +27,8 @@ app.setName("Agenting OS");
 let store: Store;
 let supervisor: Supervisor;
 let login: CodexAdapter | undefined;
-const primaryInstance=app.requestSingleInstanceLock();
-if(!primaryInstance)app.quit();
+const primaryInstance = app.requestSingleInstanceLock();
+if (!primaryInstance) app.quit();
 let window: BrowserWindow | null = null;
 function openWindow() {
   window = new BrowserWindow({
@@ -49,12 +58,14 @@ function openWindow() {
 }
 app
   .whenReady()
-  .then(() => {
-    if(!primaryInstance)return;
+  .then(async () => {
+    if (!primaryInstance) return;
     Menu.setApplicationMenu(null);
     mkdirSync(app.getPath("userData"), { recursive: true });
     store = new Store(join(app.getPath("userData"), "agenting.sqlite"));
-    supervisor = new Supervisor(store,app.getPath("userData"));
+    supervisor = new Supervisor(store, app.getPath("userData"));
+    const applications = new Applications(store, supervisor.worktrees);
+    await applications.reconcile();
     session.defaultSession.setPermissionRequestHandler(
       (_wc, _permission, callback) => callback(false),
     );
@@ -67,41 +78,99 @@ app
       }),
     );
     const handlers: Record<string, (input: unknown) => unknown> = {
-      runtimeView: input=>supervisor.view(input),
-      runtimeStart: input=>supervisor.start(input),
-      runtimeAction: input=>supervisor.action(input),
-      runtimeReview: input=>supervisor.review(input),
-      configureProvider: input=>supervisor.configure(input),
-      providerSettings: ()=>supervisor.settings(),
-      chooseExecutable: async()=>{
-        const result=await dialog.showOpenDialog(window!,{title:"Choose a trusted agent executable",properties:["openFile"]});
-        return result.canceled?null:result.filePaths[0]??null;
+      runDecision: (input) => applications.decide(input),
+      memorySearch: (input) => {
+        const p = exact(input, ["projectId", "query"]);
+        return store.knowledge.search(
+          text(p.projectId),
+          text(p.query, 1000, true),
+        );
       },
-      chooseRepository: async()=>{
-        const result=await dialog.showOpenDialog(window!,{title:"Choose project Git repository",properties:["openDirectory"]});
-        return result.canceled?null:result.filePaths[0]??null;
+      contextPreview: (input) => {
+        const p = exact(input, [
+          "projectId",
+          "contextIds",
+          "workflow",
+          "skillIds",
+        ]);
+        if (p.skillIds && (!Array.isArray(p.skillIds) || p.skillIds.length))
+          throw Error("SKILLS_NOT_CONFIGURED");
+        return store.knowledge.build(
+          text(p.projectId),
+          p.contextIds,
+          p.workflow,
+        );
       },
-      providerLogin: async()=>{
-        const config=store.runs.provider("codex");
-        if(!config?.consent)throw Error("PROVIDER_NOT_CONFIGURED");
+      runtimeView: (input) => supervisor.view(input),
+      runtimeStart: (input) => supervisor.start(input),
+      runtimeAction: (input) => supervisor.action(input),
+      runtimeReview: (input) => supervisor.review(input),
+      configureProvider: (input) => supervisor.configure(input),
+      providerSettings: () => supervisor.settings(),
+      chooseExecutable: async () => {
+        const result = await dialog.showOpenDialog(window!, {
+          title: "Choose a trusted agent executable",
+          properties: ["openFile"],
+        });
+        return result.canceled ? null : (result.filePaths[0] ?? null);
+      },
+      chooseRepository: async () => {
+        const result = await dialog.showOpenDialog(window!, {
+          title: "Choose project Git repository",
+          properties: ["openDirectory"],
+        });
+        return result.canceled ? null : (result.filePaths[0] ?? null);
+      },
+      providerLogin: async () => {
+        const config = store.runs.provider("codex");
+        if (!config?.consent) throw Error("PROVIDER_NOT_CONFIGURED");
         login?.close();
-        const home=join(app.getPath("userData"),"providers","codex");mkdirSync(home,{recursive:true});
-        const client=login=new CodexAdapter({command:config.command,args:[...config.args,"app-server","--listen","stdio://"],cwd:app.getPath("userData"),env:{CODEX_HOME:home}});
-        try{
+        const home = join(app.getPath("userData"), "providers", "codex");
+        mkdirSync(home, { recursive: true });
+        const client = (login = new CodexAdapter({
+          command: config.command,
+          args: [...config.args, "app-server", "--listen", "stdio://"],
+          cwd: app.getPath("userData"),
+          env: { CODEX_HOME: home },
+        }));
+        try {
           await client.initialize();
-          const result=await client.login();
-          const url=new URL(text(result.authUrl,12000));
-          if(url.protocol!=="https:"||!["auth.openai.com","chatgpt.com"].includes(url.hostname)||url.username||url.password)throw Error("INVALID_LOGIN_URL");
-          client.rpc.on("notification",message=>{if(message.method==="account/login/completed")client.close();});
-          const timer=setTimeout(()=>client.close(),5*60*1000);timer.unref();
+          const result = await client.login();
+          const url = new URL(text(result.authUrl, 12000));
+          if (
+            url.protocol !== "https:" ||
+            !["auth.openai.com", "chatgpt.com"].includes(url.hostname) ||
+            url.username ||
+            url.password
+          )
+            throw Error("INVALID_LOGIN_URL");
+          client.rpc.on("notification", (message) => {
+            if (message.method === "account/login/completed") client.close();
+          });
+          const timer = setTimeout(() => client.close(), 5 * 60 * 1000);
+          timer.unref();
           await shell.openExternal(url.href);
-        }catch{client.close();throw Error("SIGN_IN_FAILED");}
+        } catch {
+          client.close();
+          throw Error("SIGN_IN_FAILED");
+        }
       },
-      runArtifact: input=>{
-        const p=exact(input,["projectId","runId"]),projectId=text(p.projectId),run=store.runs.get(projectId,text(p.runId));
-        if(!run)throw Error("RUN_NOT_FOUND");
-        const artifact=run.artifactId?store.artifacts.get(projectId,run.taskId,run.artifactId):null;
-        return artifact?{id:artifact.id,diffHash:artifact.diffHash,diff:artifact.diff.toString("utf8"),approvals:store.approvals.list(projectId,run.taskId)}:null;
+      runArtifact: (input) => {
+        const p = exact(input, ["projectId", "runId"]),
+          projectId = text(p.projectId),
+          run = store.runs.get(projectId, text(p.runId));
+        if (!run) throw Error("RUN_NOT_FOUND");
+        const artifact = run.artifactId
+          ? store.artifacts.get(projectId, run.taskId, run.artifactId)
+          : null;
+        return artifact
+          ? {
+              id: artifact.id,
+              diffHash: artifact.diffHash,
+              diff: artifact.diff.toString("utf8"),
+              approvals: store.approvals.list(projectId, run.taskId),
+            }
+          : null;
       },
       snapshot: async () => ({
         projects: store.projects(),
@@ -152,10 +221,18 @@ app
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
-app.on("second-instance",()=>{window?.show();window?.focus();});
-let shuttingDown=false;
-app.on("before-quit",event=>{
-  if(shuttingDown)return;
-  event.preventDefault();shuttingDown=true;
-  void Promise.resolve(supervisor?.close()).finally(()=>{login?.close();store?.close();app.quit();});
+app.on("second-instance", () => {
+  window?.show();
+  window?.focus();
+});
+let shuttingDown = false;
+app.on("before-quit", (event) => {
+  if (shuttingDown) return;
+  event.preventDefault();
+  shuttingDown = true;
+  void Promise.resolve(supervisor?.close()).finally(() => {
+    login?.close();
+    store?.close();
+    app.quit();
+  });
 });

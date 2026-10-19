@@ -12,8 +12,8 @@ import {
 } from "./ui";
 
 type Props = {
-  memory?:Memory[];
-  onRunChanged?:()=>void;
+  memory?: Memory[];
+  onRunChanged?: () => void;
   tasks: Task[];
   events: TaskEvent[];
   language: "pl" | "en";
@@ -498,7 +498,12 @@ export function TaskBoard(props: Props) {
                 </button>
               ))}
             </div>
-            <RunPanel task={selected} memory={props.memory} language={language} onChanged={props.onRunChanged??props.onRefresh}/>
+            <RunPanel
+              task={selected}
+              memory={props.memory}
+              language={language}
+              onChanged={props.onRunChanged ?? props.onRefresh}
+            />
           </>
         )}
       </Modal>

@@ -1743,6 +1743,29 @@ dd {
   padding: 0;
   margin: 1rem 0;
 }
+.skill-library-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.skill-library-search > input {
+  flex: 1;
+  min-width: 0;
+}
+.skill-library-search > .helper {
+  white-space: nowrap;
+}
+.skill-name {
+  display: inline-flex;
+  margin-right: 8px;
+  align-items: center;
+  gap: 10px;
+}
+.skill-name > .icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
 .extension-list > li {
   display: flex;
   align-items: start;

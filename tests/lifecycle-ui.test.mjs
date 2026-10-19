@@ -71,8 +71,18 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     [...dom.window.document.querySelectorAll(".task-list > ul > li")].find(
       (x) => x.querySelector("h3")?.textContent === title,
     );
+  async function selectFixtureProject() {
+    // Projects can share the same millisecond on fast hosts; UUID order is not creation order.
+    const target = () =>
+      [...dom.window.document.querySelectorAll(".project-link")].find(
+        (button) => button.textContent.includes(p.name),
+      );
+    await wait(target);
+    target().click();
+  }
   try {
     boot();
+    await selectFixtureProject();
     await wait(() => row("Child"));
     row("Child").querySelector("h3 button").click();
     await wait(() => dom.window.document.querySelector(".task-panel").open);
@@ -143,6 +153,7 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     s.close();
     s = new Store(file);
     boot();
+    await selectFixtureProject();
     await wait(() =>
       row("Child")?.textContent.includes("Waiting for dependencies"),
     );

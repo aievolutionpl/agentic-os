@@ -142,9 +142,18 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
     snapshotGate = undefined;
     await wait(() => dom.window.document.querySelector(".empty"));
     await project("Project A");
+    await choose("Niezależny recenzent", "OpenCode / OpenRouter");
     field("textarea[name=title]", "Review scoped data");
     submit(dom.window.document.querySelector(".composer form"));
     await wait(() => dom.window.document.querySelector(".task-list h3"));
+    assert.equal(store.tasks(store.projects()[0].id)[0].reviewer, "opencode");
+    await choose("Wykonawca / agent główny", "OpenCode / OpenRouter");
+    assert.match(
+      dom.window.document.querySelector(
+        'button[aria-label="Niezależny recenzent"]',
+      ).textContent,
+      /Codex/,
+    );
     // Drafts survive tab and project switches, and failed saves keep the input.
     field("textarea[name=title]", "Unfinished A");
     button("Wspólna pamięć 0").click();

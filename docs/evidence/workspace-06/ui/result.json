@@ -17,6 +17,16 @@
       "contrastFailures": []
     },
     {
+      "file": "team-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
       "file": "center-dark-390.png",
       "overflow": false,
       "contrastFailures": []
@@ -28,6 +38,16 @@
     },
     {
       "file": "connections-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "team-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-dark-390.png",
       "overflow": false,
       "contrastFailures": []
     },
@@ -47,6 +67,16 @@
       "contrastFailures": []
     },
     {
+      "file": "team-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
       "file": "center-light-390.png",
       "overflow": false,
       "contrastFailures": []
@@ -58,6 +88,16 @@
     },
     {
       "file": "connections-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "team-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-light-390.png",
       "overflow": false,
       "contrastFailures": []
     }

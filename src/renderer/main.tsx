@@ -57,6 +57,7 @@ function App() {
   const [projectOpen, setProjectOpen] = useState(false),
     [deleting, setDeleting] = useState<Memory | null>(null);
   const [implementer, setImplementer] = useState<Agent>("codex"),
+    [reviewer, setReviewer] = useState<Agent>("claude"),
     [projectMaster, setProjectMaster] = useState<Agent>("codex");
   const [query, setQuery] = useState(""),
     [taskQuery, setTaskQuery] = useState(""),
@@ -669,8 +670,7 @@ function App() {
                               projectId: id,
                               title,
                               implementer,
-                              reviewer:
-                                implementer === "codex" ? "claude" : "codex",
+                              reviewer,
                             });
                             setDrafts((current) => ({ ...current, [id]: "" }));
                             await reloadProject(id);
@@ -714,21 +714,31 @@ function App() {
                               label={w.implementer}
                               value={implementer}
                               options={agentChoices}
-                              onChange={(value) =>
-                                setImplementer(value as Agent)
-                              }
+                              onChange={(value) => {
+                                setImplementer(value as Agent);
+                                if (reviewer === value)
+                                  setReviewer(
+                                    value === "codex" ? "claude" : "codex",
+                                  );
+                              }}
                               disabled={busy}
                               prefix={w.implementerShort}
                             />
                           </div>
                           <Icon name="swap" className="role-arrow" />
-                          <div className="reviewer-role">
-                            <span>{w.reviewerShort}</span>
-                            <strong>
-                              {agentName(
-                                implementer === "codex" ? "claude" : "codex",
+                          <div className="role-select reviewer-select">
+                            <SelectField
+                              label={w.reviewer}
+                              value={reviewer}
+                              options={agentChoices.filter(
+                                (option) =>
+                                  option.value !== implementer &&
+                                  option.value !== "antigravity",
                               )}
-                            </strong>
+                              onChange={(value) => setReviewer(value as Agent)}
+                              disabled={busy}
+                              prefix={w.reviewerShort}
+                            />
                           </div>
                           <div className="composer-submit">
                             <kbd title={w.saveShortcut} aria-hidden="true">

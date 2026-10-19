@@ -11,6 +11,9 @@ export function Icon({
 }) {
   const paths: Record<string, React.ReactNode> = {
     layers: <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />,
+    spark: (
+      <path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z" />
+    ),
     connections: (
       <>
         <rect x="2" y="3" width="6" height="6" rx="2" />

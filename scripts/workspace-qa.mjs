@@ -61,7 +61,9 @@ try {
     timeout: 30000,
   });
   const page = await app.firstWindow();
-  await page.locator(".project-link", { hasText: a.name }).waitFor({ timeout: 90000 });
+  await page
+    .locator(".project-link", { hasText: a.name })
+    .waitFor({ timeout: 90000 });
   page.on("pageerror", (error) => result.errors.push(error.message));
   await page
     .locator(".connector-card:not(.skeleton-card)")
@@ -94,11 +96,9 @@ try {
   await page
     .getByRole("heading", { name: "Budżet demonstracyjny QA" })
     .waitFor();
-  const manual = page
-    .locator(".budget-card")
-    .filter({
-      has: page.getByRole("heading", { name: "Budżet demonstracyjny QA" }),
-    });
+  const manual = page.locator(".budget-card").filter({
+    has: page.getByRole("heading", { name: "Budżet demonstracyjny QA" }),
+  });
   assert.match(await manual.innerText(), /75%/);
   assert.match(await manual.innerText(), /Wpis ręczny/);
   await manual.getByRole("button", { name: "Edytuj" }).click();
@@ -193,12 +193,34 @@ try {
     }
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 });
+      await page.waitForFunction(expected => Boolean(document.querySelector(".projects-toggle")) === expected, width <= 760);
       for (const [label, name] of [
         ["center", "Centrum dowodzenia"],
         ["quota", "Limity i tokeny"],
         ["connections", "Połączenia i modele"],
+        ["team", "Zadania"],
+        ["skills", "Rozszerzenia"],
       ]) {
-        await nav(name);
+        if (label === "team" || label === "skills") {
+          if (await page.locator(".projects-toggle").isVisible())
+            await page.locator(".projects-toggle").click();
+          await page.locator(".project-link", { hasText: a.name }).click();
+          await page
+            .locator(".tabs")
+            .getByRole("button", { name: new RegExp(`^${name}`) })
+            .click();
+          if (label === "skills") {
+            await page.getByText("Frontend design", { exact: true }).waitFor();
+            assert.equal(await page.locator(".extension-list > li").count(), 6);
+            await page
+              .getByRole("searchbox", { name: "Szukaj skilla lub narzędzia" })
+              .fill("memory curator");
+            assert.equal(await page.locator(".extension-list > li").count(), 1);
+            await page
+              .getByRole("searchbox", { name: "Szukaj skilla lub narzędzia" })
+              .fill("");
+          }
+        } else await nav(name);
         if (label === "quota")
           await page.locator(".budget-card").first().waitFor();
         if (label === "connections")

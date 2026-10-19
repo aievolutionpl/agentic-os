@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-19T20:20:52.681Z",
+  "scope": "Real read-only inference on one temporary README using existing Codex/Claude subscriptions. No production project, API key, model transcript or account identifiers.",
+  "providers": {
+    "codex": {
+      "status": "passed",
+      "readExistingFile": true,
+      "sourceUnchanged": true
+    },
+    "claude": {
+      "status": "passed",
+      "readExistingFile": true,
+      "sourceUnchanged": true
+    }
+  }
+}

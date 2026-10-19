@@ -62,8 +62,8 @@ Use `/` to focus task search and `Ctrl+Enter` / `⌘Enter` to save a draft. Unsa
 
 | Connection | Implemented | Validation / limitations |
 | --- | --- | --- |
-| Codex app-server | Threads, streaming, steering, cancellation, browser sign-in, existing/isolated profiles, official rate-limit windows | Local CLI/account probe and protocol fixtures; no paid inference in QA. Exact token allowances are not inferred from percentages. |
-| Claude Code native CLI | Streaming JSON, CLI-owned login, resume, file reading/editing and read-only reviews | Local auth status plus protocol fixtures. Requires a CLI supporting `--safe-mode`; shell tools and ambient MCP are disabled. Automatic quota reading is unavailable. |
+| Codex app-server | Threads, streaming, steering, cancellation, browser sign-in, existing/isolated profiles, official rate-limit windows | Real subscription read-only file task, local CLI/account probe and protocol fixtures pass. Exact token allowances are not inferred from percentages. |
+| Claude Code native CLI | Streaming JSON, CLI-owned login, resume, file reading/editing and read-only reviews | Real subscription read-only file task, auth status and protocol fixtures pass. Requires a CLI supporting `--safe-mode`; shell tools and ambient MCP are disabled. Automatic quota reading is unavailable. |
 | Claude / ACP v1 | Compatible ACP bridge, sessions, cancellation, read-only review mode | Legacy configurable bridge retained; fixture-tested. An ordinary `claude` executable is not an ACP server. |
 | OpenCode / OpenRouter | Existing ACP agent loop, model selection, encrypted API key, public model catalog, per-key budget | ACP/vault fixtures and public catalog probe. OpenCode and an API key are required for real inference; no authenticated OpenRouter inference was performed. |
 | Antigravity CLI | Official `agy` streaming input/output, CLI-owned login, cancellation | Experimental and fixture-tested. CLI was not installed on the verification machine. Read-only/reviewer and resume roles are rejected. Automatic quotas are unavailable. |
@@ -75,7 +75,7 @@ Read-only installation probes are separate from these execution connections. Aut
 
 Memory defaults to its project. An explicitly shared entry is searchable and selectable across the workspace; project-private entries cannot be selected from another project. Only selected entries are included in a run. The frozen context retains source, date and scope, is reused for review, and is limited to 24,000 characters. This is a single local workspace database, not cloud synchronization between computers.
 
-Four workflows are included: implementation, bug fix, research and UI audit. Research/audit request read-only execution. Three original text skills cover evidence-based review, accessible UI and AI Evolution Polska team handoff. Individual runs choose skills explicitly; the queue includes the team handoff skill automatically.
+Four workflows are included: implementation, bug fix, research and UI audit. Research/audit request read-only execution. Six original text skills cover frontend design, source-grounded research, workspace memory curation, evidence-based review, accessible UI and AI Evolution Polska team handoff. The library is searchable. Individual runs choose skills explicitly; the queue includes the team handoff skill automatically. Each task can select a distinct implementer and supported reviewer.
 
 Import versioned JSON manifests from **Extensions**. Skills contain instructions, not executable scripts:
 
@@ -144,7 +144,7 @@ npm audit --audit-level=moderate
 
 The automated tests cover real Git/SQLite behavior, explicit shared memory, migrations, process cancellation, restart recovery, artifact approval/application, bounded orchestration and provider protocol fixtures. Electron checks cover UI, browser isolation, responsive layouts, text contrast and OS-backed credential persistence. On Linux, use Xvfb for graphical checks; CI explicitly disables Chromium's OS sandbox in that environment, so those checks do not certify sandbox enforcement.
 
-Current evidence and practical limits: [workspace audit](docs/WORKSPACE_AUDIT.md) and [research](docs/research/agent-workspace-2026-10-19.md). Historical evidence: [0.2 execution](docs/evidence/stage-02/README.md), [0.3 collaboration](docs/evidence/stage-03/README.md), [0.4 distribution](docs/evidence/release-04/README.md). Tests make no paid model calls and do not certify third-party providers or servers.
+Current evidence and practical limits: [workspace audit](docs/WORKSPACE_AUDIT.md) and [research](docs/research/agent-workspace-2026-10-19.md). Historical evidence: [0.2 execution](docs/evidence/stage-02/README.md), [0.3 collaboration](docs/evidence/stage-03/README.md), [0.4 distribution](docs/evidence/release-04/README.md). Automated tests make no model calls. A separate opt-in `scripts/live-agent-smoke.mjs` consumes a small amount of existing CLI subscription allowance to verify real read-only file access; its [latest result](docs/evidence/workspace-06/live-inference.json) covers Codex and Claude. This does not certify all model/tool operations or third-party servers.
 
 ## Open-source foundations and direction
 

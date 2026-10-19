@@ -1,3 +1,11 @@
+# Product UI polish — 2026-10-19
+
+Implemented the owner's presentation-only brief. Full-height 256px sidebar, fixed 56px top bar, shared theme/spacing/type tokens, custom listboxes, compact composer and task rows, native modal task drawer, cancellation confirmation, feedback toasts, timeline, mobile navigation, keyboard shortcuts and copy-path action. No backend, data-model, IPC or dependency changes in this increment. Existing provider execution remains disabled.
+
+Native Windows: typecheck/build PASS, 30/30 tests PASS, actual Electron smoke PASS, 2533 rendered text measurements over 75 screens PASS with no horizontal overflow. Both themes captured before/after at 1440/1024/390. Evidence, exact files and limitations: [UI polish](evidence/ui-polish/README.md). Independent review, screen-reader certification, installer and release QA remain pending.
+
+---
+
 # Workspace UI continuation — 2026-10-19
 
 Owner resumed development after the handoff. Implemented the handoff's first recommendation: local Inter typography, neutral dark/light workspace, quieter project sidebar/composer, expandable technical details/journal, task title search/status filters with reset, per-project session input across tab/project switches, named dialogs and compact navigation/focus return. Fixed a startup preference/snapshot race found by real Electron QA.

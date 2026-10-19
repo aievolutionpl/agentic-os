@@ -6,46 +6,61 @@ import type {
   Preferences,
   ProjectData,
   Snapshot,
+  Task,
+  TaskAction,
 } from "../shared";
 import { words } from "./i18n";
+import { agentName, Icon, Modal, SelectField, useNarrow } from "./ui";
+import { TaskBoard } from "./TaskBoard";
 import "./style.css";
+
 const api = window.agenting;
+const agentChoices = [
+  { value: "codex", label: "Codex" },
+  { value: "claude", label: "Claude Code" },
+];
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null),
-    [projectId, setProjectId] = useState(""),
-    [data, setData] = useState<ProjectData>({
-      tasks: [],
-      memory: [],
-      events: [],
-    });
-  const [tab, setTab] = useState<"tasks" | "memory" | "agents">("tasks"),
-    [error, setError] = useState(false),
+    [projectId, setProjectId] = useState("");
+  const [data, setData] = useState<ProjectData>({
+    tasks: [],
+    memory: [],
+    events: [],
+  });
+  const [tab, setTab] = useState<"tasks" | "memory" | "agents">("tasks");
+  const [error, setError] = useState(false),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
-    [notice, setNotice] = useState(false);
+    [saved, setSaved] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    error?: boolean;
+  } | null>(null);
   const [projectOpen, setProjectOpen] = useState(false),
-    [deleting, setDeleting] = useState<Memory | null>(null),
-    [implementer, setImplementer] = useState<Agent>("codex"),
-    [query, setQuery] = useState("");
-  const [taskQuery, setTaskQuery] = useState("");
-  const [taskFilter, setTaskFilter] = useState("all");
-  const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [projectsExpanded, setProjectsExpanded] = useState(false);
-  const projectsToggle = useRef<HTMLButtonElement>(null);
-  const projectDialog = useRef<HTMLDialogElement>(null),
-    deleteDialog = useRef<HTMLDialogElement>(null),
-    selection = useRef("");
+    [deleting, setDeleting] = useState<Memory | null>(null);
+  const [implementer, setImplementer] = useState<Agent>("codex"),
+    [projectMaster, setProjectMaster] = useState<Agent>("codex");
+  const [query, setQuery] = useState(""),
+    [taskQuery, setTaskQuery] = useState(""),
+    [taskFilter, setTaskFilter] = useState("all");
+  const [drafts, setDrafts] = useState<Record<string, string>>({}),
+    [projectsExpanded, setProjectsExpanded] = useState(false);
+  const selection = useRef(""),
+    projectsToggle = useRef<HTMLButtonElement>(null),
+    composer = useRef<HTMLTextAreaElement>(null),
+    pendingFocus = useRef<HTMLElement | null>(null);
+  const narrow = useNarrow();
   const prefs = snapshot?.preferences ?? { language: "pl", theme: "dark" },
     w = words[prefs.language];
-  const project = snapshot?.projects.find((p) => p.id === projectId);
-  const visibleTasks = data.tasks.filter((task) =>
-    (taskFilter === "all" || task.status === taskFilter) &&
-    task.title.toLocaleLowerCase(prefs.language).includes(taskQuery.toLocaleLowerCase(prefs.language)),
+  const project = snapshot?.projects.find(
+    (project) => project.id === projectId,
   );
   const visibleMemory = data.memory.filter((memory) =>
-    (memory.content + " " + memory.source).toLocaleLowerCase(prefs.language)
+    (memory.content + " " + memory.source)
+      .toLocaleLowerCase(prefs.language)
       .includes(query.toLocaleLowerCase(prefs.language)),
   );
+  const draft = drafts[projectId] ?? "";
   useEffect(() => {
     if (project) setImplementer(project.master);
   }, [projectId, project?.master]);
@@ -53,6 +68,61 @@ function App() {
     document.documentElement.lang = prefs.language;
     document.documentElement.dataset.theme = prefs.theme;
   }, [prefs.language, prefs.theme]);
+  useEffect(() => {
+    if (!toast) return;
+    const timer = window.setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+  useEffect(() => {
+    if (busy) return;
+    const target = pendingFocus.current;
+    pendingFocus.current = null;
+    // Disabling a focused control during an async save moves focus to body.
+    // Restore it only if the user has not already focused something else.
+    if (
+      target?.isConnected &&
+      !target.matches(":disabled") &&
+      document.activeElement === document.body
+    ) {
+      target.focus();
+    }
+  }, [busy]);
+  useEffect(() => {
+    if (!narrow) setProjectsExpanded(false);
+  }, [narrow]);
+  useEffect(() => {
+    if (composer.current) {
+      composer.current.style.height = "auto";
+      composer.current.style.height = `${composer.current.scrollHeight}px`;
+    }
+  }, [draft, tab, projectId]);
+  useEffect(() => {
+    const shortcuts = (event: KeyboardEvent) => {
+      if (
+        event.key !== "/" ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.altKey ||
+        event.defaultPrevented ||
+        document.querySelector("dialog[open]")
+      )
+        return;
+      const target = event.target as HTMLElement;
+      if (
+        target.closest(
+          "input,textarea,select,[contenteditable=true],[role=listbox]",
+        )
+      )
+        return;
+      const input = document.getElementById("task-search");
+      if (input) {
+        event.preventDefault();
+        input.focus();
+      }
+    };
+    document.addEventListener("keydown", shortcuts);
+    return () => document.removeEventListener("keydown", shortcuts);
+  }, []);
   async function refresh() {
     if (!api) return;
     try {
@@ -61,7 +131,7 @@ function App() {
       setSnapshot(next);
       setError(false);
       const chosen =
-        next.projects.find((p) => p.id === selection.current) ??
+        next.projects.find((project) => project.id === selection.current) ??
         next.projects[0];
       if (chosen) await selectProject(chosen.id);
     } catch {
@@ -88,24 +158,30 @@ function App() {
     setError(false);
     try {
       const next = await api!.projectData(id);
-      if (selection.current === id) {
-        setData(next);
-      }
+      if (selection.current === id) setData(next);
     } catch {
       if (selection.current === id) setError(true);
     } finally {
       if (selection.current === id) setLoading(false);
     }
   }
-  async function mutate(action: () => Promise<unknown>) {
+  async function mutate(action: () => Promise<unknown>, message = w.saved) {
+    const active = document.activeElement as HTMLElement | null;
+    pendingFocus.current =
+      active
+        ?.closest(".select-field")
+        ?.querySelector<HTMLButtonElement>(".select-trigger") ?? active;
     setBusy(true);
     setError(false);
-    setNotice(false);
+    setToast(null);
     try {
       await action();
-      setNotice(true);
+      setSaved(true);
+      setToast({ message });
+      return true;
     } catch {
       setError(true);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -117,17 +193,131 @@ function App() {
   async function preferences(patch: Partial<Preferences>) {
     await mutate(async () => {
       const next = await api!.setPreferences({ ...prefs, ...patch });
-      setSnapshot((s) => (s ? { ...s, preferences: next } : s));
+      setSnapshot((current) =>
+        current ? { ...current, preferences: next } : current,
+      );
     });
   }
-  useEffect(() => {
-    if (projectOpen) projectDialog.current?.showModal();
-    else projectDialog.current?.close();
-  }, [projectOpen]);
-  useEffect(() => {
-    if (deleting) deleteDialog.current?.showModal();
-    else deleteDialog.current?.close();
-  }, [deleting]);
+  async function taskAction(
+    task: Task,
+    action: TaskAction["action"],
+    dependencyIds?: string[],
+  ) {
+    const messages = {
+      queue: w.queuedTask,
+      cancel: w.cancelledTask,
+      retry: w.retriedTask,
+      dependencies: w.savedDependencies,
+    };
+    return mutate(async () => {
+      await api!.taskAction({
+        projectId: task.projectId,
+        id: task.id,
+        action,
+        ...(dependencyIds ? { dependencyIds } : {}),
+      });
+      await reloadProject(task.projectId);
+    }, messages[action]);
+  }
+  function copyPath() {
+    if (!project?.root) return;
+    try {
+      // The hardened session denies asynchronous clipboard permissions.
+      // Keep this copy within the user's click gesture without changing IPC.
+      const focused = document.activeElement as HTMLElement | null;
+      const buffer = document.createElement("textarea");
+      buffer.value = project.root;
+      buffer.className = "clipboard-buffer";
+      buffer.readOnly = true;
+      document.body.append(buffer);
+      buffer.focus({ preventScroll: true });
+      buffer.select();
+      buffer.setSelectionRange(0, buffer.value.length);
+      const setCopyText = (event: ClipboardEvent) => {
+        event.clipboardData?.setData("text/plain", buffer.value);
+        event.preventDefault();
+      };
+      document.addEventListener("copy", setCopyText);
+      try {
+        if (!document.execCommand("copy")) throw Error("COPY_FAILED");
+      } finally {
+        document.removeEventListener("copy", setCopyText);
+        buffer.remove();
+        focused?.focus();
+      }
+      setToast({ message: w.pathCopied });
+    } catch {
+      setToast({ message: w.copyError, error: true });
+    }
+  }
+  function openProject() {
+    setProjectsExpanded(false);
+    setProjectOpen(true);
+  }
+  function sidebar() {
+    return (
+      <>
+        <div className="brand">
+          <span className="brand-mark">
+            <Icon name="layers" />
+          </span>
+          <strong>Agenting OS</strong>
+          {narrow && (
+            <button
+              className="icon-button drawer-close"
+              title={w.close}
+              aria-label={w.close}
+              onClick={() => setProjectsExpanded(false)}
+            >
+              <Icon name="close" />
+            </button>
+          )}
+        </div>
+        <div className="project-heading">
+          <h2 id="projects-title">{w.projects}</h2>
+          <button
+            className="icon-button"
+            disabled={busy}
+            aria-label={w.newProject}
+            title={w.newProject}
+            onClick={openProject}
+          >
+            <Icon name="plus" />
+          </button>
+        </div>
+        <nav aria-label={w.projects}>
+          {snapshot?.projects.map((item) => (
+            <button
+              className={`project-link ${item.id === projectId ? "selected" : ""}`}
+              key={item.id}
+              disabled={busy}
+              aria-current={item.id === projectId ? "page" : undefined}
+              onClick={() => void selectProject(item.id)}
+            >
+              <span className="project-avatar" aria-hidden="true">
+                {item.name
+                  .trim()
+                  .split(/\s+/)
+                  .filter(
+                    (_, index, parts) =>
+                      index === 0 || index === parts.length - 1,
+                  )
+                  .map((part) => part.slice(0, 1))
+                  .join("")
+                  .toLocaleUpperCase(prefs.language)}
+              </span>
+              <span>{item.name}</span>
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-bottom">
+          <span className="local-indicator" aria-hidden="true" />
+          {w.local}
+          <p>{w.footer}</p>
+        </div>
+      </>
+    );
+  }
   if (!api)
     return (
       <main className="standalone">
@@ -137,586 +327,476 @@ function App() {
     );
   return (
     <div className="shell">
-      <aside id="project-navigation" className="project-sidebar" data-expanded={projectsExpanded}>
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />
-            </svg>
-          </span>
-          <strong>Agenting OS</strong>
-        </div>
-        <div className="project-heading">
-          <h2>{w.projects}</h2>
-          <button
-            className="small"
-            disabled={busy}
-            aria-label={w.newProject}
-            onClick={() => setProjectOpen(true)}
-          >
-            +
-          </button>
-        </div>
-        <nav aria-label={w.projects}>
-          {snapshot?.projects.map((p, index) => (
-            <button
-              key={p.id}
-              disabled={busy}
-              className={`project-link ${p.id === projectId ? "selected" : ""}`}
-              aria-current={p.id === projectId ? "page" : undefined}
-              onClick={() => void selectProject(p.id)}
-            >
-              <span className="project-symbol" aria-hidden="true">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <span>{p.name}</span>
-            </button>
-          ))}
-        </nav>
-        <button
-          className="new-project"
-          disabled={busy}
-          onClick={() => setProjectOpen(true)}
+      {narrow ? (
+        <Modal
+          open={projectsExpanded}
+          onClose={() => setProjectsExpanded(false)}
+          titleId="projects-title"
+          className="projects-drawer"
         >
-          <span aria-hidden="true">+ </span>{w.newProject}
-        </button>
-        <div className="sidebar-bottom">
-          <span className="local-indicator" aria-hidden="true" />
-          {w.local}
-          <p>{w.footer}</p>
-        </div>
-      </aside>
+          <div id="project-navigation" className="project-sidebar">
+            {sidebar()}
+          </div>
+        </Modal>
+      ) : (
+        <aside id="project-navigation" className="project-sidebar">
+          {sidebar()}
+        </aside>
+      )}
       <div className="body">
-        <header>
-          <button
-            ref={projectsToggle}
-            className="projects-toggle"
-            aria-label={w.projects}
-            aria-controls="project-navigation"
-            aria-expanded={projectsExpanded}
-            onClick={() => setProjectsExpanded((open) => !open)}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-              <rect x="3" y="4" width="18" height="16" rx="3" /><path d="M9 4v16" />
-            </svg>
-          </button>
+        <header className="top-bar">
+          {narrow && (
+            <button
+              ref={projectsToggle}
+              className="projects-toggle icon-button"
+              title={w.projects}
+              aria-label={w.projects}
+              aria-controls="project-navigation"
+              aria-expanded={projectsExpanded}
+              onClick={() => setProjectsExpanded(true)}
+            >
+              <Icon name="menu" />
+            </button>
+          )}
           <div className="breadcrumb">
-            {w.workspace}
-            <span aria-hidden="true"> / </span>
-            <strong>{project?.name ?? "Agenting OS"}</strong>
+            <span>{w.workspace}</span>
+            <Icon name="chevron" />
+            <strong title={project?.name}>
+              {project?.name ?? "Agenting OS"}
+            </strong>
           </div>
           <div className="settings">
-            <label>
-              <span className="sr-only">{w.language}</span>
-              <select
-                aria-label={w.language}
-                value={prefs.language}
-                disabled={busy || loading || !snapshot}
-                onChange={(e) =>
-                  void preferences({
-                    language: e.target.value as Preferences["language"],
-                  })
-                }
-              >
-                <option value="pl">Polski</option>
-                <option value="en">English</option>
-              </select>
-            </label>
+            <span
+              className={`save-status ${error ? "is-error" : ""}`}
+              title={error ? w.error : w.saveHint}
+            >
+              <span
+                className={`status-dot ${busy || loading ? "is-pending" : ""}`}
+                aria-hidden="true"
+              />
+              {error
+                ? w.saveFailed
+                : busy
+                  ? w.saving
+                  : loading
+                    ? w.loading
+                    : draft
+                      ? w.unsaved
+                      : saved
+                        ? w.saved
+                        : w.local}
+            </span>
+            <SelectField
+              label={w.language}
+              value={prefs.language}
+              options={[
+                { value: "en", label: "English" },
+                { value: "pl", label: "Polski" },
+              ]}
+              disabled={busy || loading || !snapshot}
+              onChange={(value) =>
+                void preferences({ language: value as Preferences["language"] })
+              }
+              icon="globe"
+              className="language-select"
+            />
             <button
+              className="icon-button theme-toggle"
               disabled={busy || loading || !snapshot}
               aria-label={w.theme}
+              title={prefs.theme === "dark" ? w.light : w.dark}
               onClick={() =>
                 void preferences({
                   theme: prefs.theme === "dark" ? "light" : "dark",
                 })
               }
             >
-              {prefs.theme === "dark" ? w.light : w.dark}
+              <Icon name={prefs.theme === "dark" ? "sun" : "moon"} />
             </button>
           </div>
         </header>
         <main aria-busy={busy || loading}>
-          {error && (
-            <div className="error" role="alert">
-              {w.error}{" "}
-              <button onClick={() => void refresh()}>{w.retry}</button>
-            </div>
-          )}
-          <p className="save-status" role="status">
-            {busy ? w.loading : notice ? w.saved : loading ? w.loading : ""}
-          </p>
-          {!snapshot && !error ? (
-            <p>{w.loading}</p>
-          ) : !project ? (
-            <section className="empty">
-              <div className="empty-mark" aria-hidden="true">
-                ◇
+          <div className="workspace-content">
+            {error && (
+              <div className="error" role="alert">
+                <Icon name="info" />
+                <span>{w.error}</span>
+                <button onClick={() => void refresh()}>{w.retry}</button>
               </div>
-              <h1>{w.empty}</h1>
-              <p>{w.intro}</p>
-              <button className="primary" onClick={() => setProjectOpen(true)}>
-                {w.newProject}
-              </button>
-            </section>
-          ) : (
-            <>
-              <div className="page-title">
-                <div>
-                  <p className="eyebrow">{w.work}</p>
-                  <h1>{project.name}</h1>
-                  <p>{project.root || w.scope}</p>
+            )}
+            {!snapshot && !error ? (
+              <div className="loading-workspace" aria-label={w.loading}>
+                <div className="skeleton-title" />
+                <div className="skeleton-composer" />
+              </div>
+            ) : !project ? (
+              <section className="empty">
+                <Icon name="layers" />
+                <h1>{w.empty}</h1>
+                <p>{w.intro}</p>
+                <button className="primary" onClick={openProject}>
+                  {w.newProject}
+                </button>
+              </section>
+            ) : (
+              <>
+                <div className="page-title">
+                  <div>
+                    <h1>{project.name}</h1>
+                    {project.root ? (
+                      <div className="path-chip">
+                        <Icon name="folder" />
+                        <code>{project.root}</code>
+                        <button
+                          className="icon-button copy-path"
+                          aria-label={w.copyPath}
+                          title={w.copyPath}
+                          onClick={() => void copyPath()}
+                        >
+                          <Icon name="copy" />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="project-scope">
+                        <Icon name="folder" />
+                        {w.scope}
+                      </p>
+                    )}
+                  </div>
+                  <span className="policy badge">
+                    <Icon name="shield" />
+                    {w.safety}
+                  </span>
                 </div>
-                <span className="policy">{w.safety}</span>
-              </div>
-              <nav className="tabs" aria-label={w.work}>
-                {(["tasks", "memory", "agents"] as const).map((t) => (
-                  <button
-                    key={t}
-                    aria-current={tab === t ? "page" : undefined}
-                    className={tab === t ? "active" : ""}
-                    onClick={() => setTab(t)}
-                  >
-                    {w[t]} {t === "tasks" && <span>{data.tasks.length}</span>}
-                    {t === "memory" && <span>{data.memory.length}</span>}
-                  </button>
-                ))}
-              </nav>
-              {tab === "tasks" && (
-                <>
-                  <section className="composer">
-                    <h2>{w.title}</h2>
-                    <p>{w.subtitle}</p>
+                <nav className="tabs" aria-label={w.work}>
+                  {(["tasks", "memory", "agents"] as const).map((item) => (
+                    <button
+                      key={item}
+                      className={tab === item ? "active" : ""}
+                      aria-current={tab === item ? "page" : undefined}
+                      onClick={() => setTab(item)}
+                    >
+                      {w[item]}{" "}
+                      {item !== "agents" && (
+                        <span className="count">
+                          {item === "tasks"
+                            ? data.tasks.length
+                            : data.memory.length}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </nav>
+                {tab === "tasks" && (
+                  <>
+                    <section className="composer">
+                      <h2>{w.title}</h2>
+                      <p className="composer-subtitle">{w.subtitle}</p>
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          const id = projectId;
+                          const title = draft;
+                          void mutate(async () => {
+                            await api.createTask({
+                              projectId: id,
+                              title,
+                              implementer,
+                              reviewer:
+                                implementer === "codex" ? "claude" : "codex",
+                            });
+                            setDrafts((current) => ({ ...current, [id]: "" }));
+                            await reloadProject(id);
+                          }, w.savedDraft);
+                        }}
+                      >
+                        <label className="sr-only" htmlFor="task-title">
+                          {w.taskTitle}
+                        </label>
+                        <textarea
+                          ref={composer}
+                          id="task-title"
+                          name="title"
+                          rows={3}
+                          required
+                          maxLength={4000}
+                          placeholder={w.taskPlaceholder}
+                          disabled={busy}
+                          value={draft}
+                          onChange={(event) => {
+                            const title = event.target.value;
+                            setDrafts((current) => ({
+                              ...current,
+                              [projectId]: title,
+                            }));
+                          }}
+                          onKeyDown={(event) => {
+                            if (
+                              event.key === "Enter" &&
+                              (event.ctrlKey || event.metaKey)
+                            ) {
+                              event.preventDefault();
+                              if (draft.trim() && !busy && !loading)
+                                event.currentTarget.form?.requestSubmit();
+                            }
+                          }}
+                        />
+                        <div className="role-bar">
+                          <div className="role-select">
+                            <SelectField
+                              label={w.implementer}
+                              value={implementer}
+                              options={agentChoices}
+                              onChange={(value) =>
+                                setImplementer(value as Agent)
+                              }
+                              disabled={busy}
+                              prefix={w.implementerShort}
+                            />
+                          </div>
+                          <Icon name="swap" className="role-arrow" />
+                          <div className="reviewer-role">
+                            <span>{w.reviewerShort}</span>
+                            <strong>
+                              {agentName(
+                                implementer === "codex" ? "claude" : "codex",
+                              )}
+                            </strong>
+                          </div>
+                          <div className="composer-submit">
+                            <kbd title={w.saveShortcut} aria-hidden="true">
+                              Ctrl ↵
+                            </kbd>
+                            <button
+                              className="primary"
+                              title={w.saveShortcut}
+                              disabled={busy || loading || !draft.trim()}
+                            >
+                              {w.draft}
+                            </button>
+                          </div>
+                        </div>
+                        <p className="role-hint" title={w.roleNote}>
+                          <Icon name="info" />
+                          {w.roleHint}
+                        </p>
+                      </form>
+                    </section>
+                    <TaskBoard
+                      key={projectId}
+                      tasks={data.tasks}
+                      events={data.events ?? []}
+                      language={prefs.language}
+                      busy={busy}
+                      loading={loading}
+                      query={taskQuery}
+                      filter={taskFilter}
+                      onQuery={setTaskQuery}
+                      onFilter={setTaskFilter}
+                      onCompose={() => composer.current?.focus()}
+                      onRefresh={() =>
+                        void mutate(() => reloadProject(projectId))
+                      }
+                      onAction={taskAction}
+                    />
+                  </>
+                )}
+                {tab === "memory" && (
+                  <section>
+                    <div className="section-heading">
+                      <div>
+                        <h2>{w.knowledge}</h2>
+                        <p>{w.scope}</p>
+                      </div>
+                      <label className="search-field">
+                        <Icon name="search" />
+                        <input
+                          type="search"
+                          aria-label={w.search}
+                          placeholder={w.search}
+                          value={query}
+                          onChange={(event) => setQuery(event.target.value)}
+                        />
+                      </label>
+                    </div>
                     <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        const form = e.currentTarget,
+                      className="memory-form"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const form = event.currentTarget,
                           fd = new FormData(form),
                           id = projectId;
                         void mutate(async () => {
-                          await api.createTask({
+                          await api.createMemory({
                             projectId: id,
-                            title: String(fd.get("title")),
-                            implementer,
-                            reviewer:
-                              implementer === "codex" ? "claude" : "codex",
+                            content: String(fd.get("content")),
+                            source: String(fd.get("source")),
                           });
-                          setDrafts((current) => ({ ...current, [id]: "" }));
                           form.reset();
                           await reloadProject(id);
                         });
                       }}
                     >
-                      <label htmlFor="task-title" className="sr-only">
-                        {w.taskTitle}
+                      <label>
+                        {w.content}
+                        <textarea
+                          name="content"
+                          required
+                          maxLength={20000}
+                          disabled={busy}
+                        />
                       </label>
-                      <textarea
-                        id="task-title"
-                        name="title"
-                        required
-                        maxLength={4000}
-                        placeholder={w.taskTitle}
-                        disabled={busy}
-                        value={drafts[projectId] ?? ""}
-                        onChange={(e) => {
-                          const title = e.target.value;
-                          setDrafts((current) => ({ ...current, [projectId]: title }));
-                        }}
-                      />
-                      <div className="role-bar">
-                        <label>
-                          {w.implementer}
-                          <select
-                            aria-label={w.implementer}
-                            value={implementer}
-                            disabled={busy}
-                            onChange={(e) =>
-                              setImplementer(e.target.value as Agent)
-                            }
-                          >
-                            <option value="codex">Codex</option>
-                            <option value="claude">Claude Code</option>
-                          </select>
-                        </label>
-                        <span className="role-arrow" aria-hidden="true">
-                          ↔
-                        </span>
-                        <div>
-                          <span>{w.reviewer}</span>
-                          <strong>
-                            {implementer === "codex" ? "Claude Code" : "Codex"}
-                          </strong>
-                        </div>
+                      <label>
+                        {w.source}
+                        <input
+                          name="source"
+                          required
+                          maxLength={1000}
+                          disabled={busy}
+                        />
+                      </label>
+                      <div className="form-footer">
+                        <span className="helper">{w.noSecrets}</span>
                         <button className="primary" disabled={busy || loading}>
-                          {w.draft}
+                          {w.saveMemory}
                         </button>
                       </div>
-                      <p className="helper">{w.roleNote}</p>
                     </form>
-                  </section>
-                  <section className="task-list" aria-labelledby="tasks-heading">
-                    <div className="section-heading task-heading">
-                      <h2 id="tasks-heading">{w.tasks} <span className="count">{data.tasks.length}</span></h2>
-                      <div className="task-tools">
-                        <input type="search" aria-label={w.searchTasks} placeholder={w.searchTasks}
-                          value={taskQuery} onChange={(e) => setTaskQuery(e.target.value)} />
-                        <select aria-label={w.filterTasks} value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)}>
-                          <option value="all">{w.allTasks}</option>
-                          {Object.entries(w.statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    {!data.tasks.length ? (
-                      <p className="empty-list">{w.noTasks}</p>
+                    {!visibleMemory.length ? (
+                      <p className="empty-list">
+                        {data.memory.length ? w.noMatches : w.noMemory}
+                      </p>
                     ) : (
-                      <ul>
-                        {visibleTasks.map((t) => (
-                          <li key={t.id} data-status={t.status}>
-                            <span className="draft-icon" aria-hidden="true">
-                              □
-                            </span>
-                            <div className="task-description">
-                              <h3>{t.title}</h3>
-                              <p>
-                                {t.implementer === "codex"
-                                  ? "Codex"
-                                  : "Claude Code"}{" "}
-                                /{" "}
-                                {t.reviewer === "codex"
-                                  ? "Codex"
-                                  : "Claude Code"}
-                              </p>
-                              <span className="badge">{w.statuses[t.status]}</span>
-                              {t.status === "queued" && <p>{t.ready ? w.ready : w.blocked}</p>}
-                              {t.failure && <p>{w.failures[t.failure]}</p>}
-                            </div>
-                            <div className="task-lifecycle">
-                              <details className="task-details">
-                                <summary>{w.taskDetails}</summary>
-                                <div className="task-detail-content">
-                              <p>
-                                {w.attempt}: {t.attempt}/3
-                              </p>
-                              {!!t.dependencies.length && (
-                                <p>
-                                  {w.dependencies}:{" "}
-                                  {t.dependencies
-                                    .map(
-                                      (id) =>
-                                        data.tasks.find(
-                                          (task) => task.id === id,
-                                        )?.title ?? id,
-                                    )
-                                    .join(", ")}
-                                </p>
-                              )}
-                              {t.owner && (
-                                <p>
-                                  {w.lease}: {t.owner} ·{" "}
-                                  {new Date(t.expiresAt!).toLocaleString(
-                                    prefs.language,
-                                  )}
-                                </p>
-                              )}
-                              {t.status === "draft" && (
-                                <label>
-                                  {w.dependencies}
-                                  <select
-                                    multiple
-                                    aria-label={`${w.dependencies}: ${t.title}`}
-                                    disabled={busy || loading}
-                                    value={t.dependencies}
-                                    onChange={(e) => {
-                                      const dependencyIds = Array.from(
-                                        e.currentTarget.selectedOptions,
-                                        (o) => o.value,
-                                      );
-                                      void mutate(async () => {
-                                        await api.taskAction({
-                                          projectId,
-                                          id: t.id,
-                                          action: "dependencies",
-                                          dependencyIds,
-                                        });
-                                        await reloadProject(projectId);
-                                      });
-                                    }}
-                                  >
-                                    {data.tasks
-                                      .filter((task) => task.id !== t.id)
-                                      .map((task) => (
-                                        <option key={task.id} value={task.id}>
-                                          {task.title}
-                                        </option>
-                                      ))}
-                                  </select>
-                                </label>
-                              )}
-                                </div>
-                              </details>
-                              <div className="task-actions">
-                              {[
-                                ...(t.status === "draft"
-                                  ? ["queue" as const]
-                                  : []),
-                                ...(t.status === "failed" && t.attempt < 3
-                                  ? ["retry" as const]
-                                  : []),
-                                ...(["draft", "queued", "failed"].includes(
-                                  t.status,
-                                )
-                                  ? ["cancel" as const]
-                                  : []),
-                              ].map((action) => (
-                                <button
-                                  key={action}
-                                  disabled={busy || loading}
-                                  onClick={() =>
-                                    void mutate(async () => {
-                                      await api.taskAction({
-                                        projectId,
-                                        id: t.id,
-                                        action,
-                                      });
-                                      await reloadProject(projectId);
-                                    })
-                                  }
-                                >
-                                  {w.actions[action]}
-                                </button>
-                              ))}
-                              </div>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {!!data.tasks.length && !visibleTasks.length && (
-                      <div className="empty-list" role="status">
-                        <p>{w.noMatches}</p>
-                        <button onClick={() => { setTaskQuery(""); setTaskFilter("all"); }}>{w.clearFilters}</button>
-                      </div>
-                    )}
-                    <p className="helper">{w.lifecycleNote}</p>
-                    <details className="journal">
-                      <summary>{w.journal} <span className="count">{data.events?.length ?? 0}</span></summary>
-                    <button
-                      disabled={busy || loading}
-                      onClick={() =>
-                        void mutate(() => reloadProject(projectId))
-                      }
-                    >
-                      {w.refreshEvents}
-                    </button>
-                    {!data.events?.length && <p className="empty-list">{w.noEvents}</p>}
-                    <ol className="event-journal">
-                      {(data.events ?? []).map((event) => (
-                        <li key={event.seq}>
-                          <time dateTime={event.at}>
-                            {new Date(event.at).toLocaleString(prefs.language)}
-                          </time>
-                          {" · "}
-                          {data.tasks.find((task) => task.id === event.taskId)
-                            ?.title ?? event.taskId}
-                          {" · "}
-                          {w.events[event.kind]} · {w.attempt} {event.attempt} ·{" "}
-                          {event.actor}
-                          {event.failure && ` · ${w.failures[event.failure]}`}
-                        </li>
-                      ))}
-                    </ol>
-                    </details>
-                  </section>
-                </>
-              )}
-              {tab === "memory" && (
-                <section>
-                  <div className="section-heading">
-                    <div>
-                      <h2>{w.knowledge}</h2>
-                      <p>{w.scope}</p>
-                    </div>
-                    <label>
-                      <span className="sr-only">{w.search}</span>
-                      <input
-                        aria-label={w.search}
-                        placeholder={w.search}
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                      />
-                    </label>
-                  </div>
-                  <form
-                    className="memory-form"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const form = e.currentTarget,
-                        fd = new FormData(form),
-                        id = projectId;
-                      void mutate(async () => {
-                        await api.createMemory({
-                          projectId: id,
-                          content: String(fd.get("content")),
-                          source: String(fd.get("source")),
-                        });
-                        form.reset();
-                        await reloadProject(id);
-                      });
-                    }}
-                  >
-                    <label>
-                      {w.content}
-                      <textarea
-                        name="content"
-                        required
-                        maxLength={20000}
-                        disabled={busy}
-                      />
-                    </label>
-                    <label>
-                      {w.source}
-                      <input
-                        name="source"
-                        required
-                        maxLength={1000}
-                        disabled={busy}
-                      />
-                    </label>
-                    <div className="form-footer">
-                      <span className="helper">{w.noSecrets}</span>
-                      <button className="primary" disabled={busy || loading}>
-                        {w.saveMemory}
-                      </button>
-                    </div>
-                  </form>
-                  {!visibleMemory.length ? (
-                    <p className="empty-list">{data.memory.length ? w.noMatches : w.noMemory}</p>
-                  ) : (
-                    <ul className="memories">
-                      {visibleMemory
-                        .map((m) => (
-                          <li key={m.id}>
-                            <p className="memory-content">{m.content}</p>
+                      <ul className="memories">
+                        {visibleMemory.map((memory) => (
+                          <li key={memory.id}>
+                            <p className="memory-content">{memory.content}</p>
                             <div className="memory-meta">
                               <span>
-                                {w.source}: {m.source}
-                                <br />
-                                <time dateTime={m.createdAt}>
-                                  {new Date(m.createdAt).toLocaleString(
-                                    prefs.language,
-                                  )}
-                                </time>
+                                {memory.source} ·{" "}
+                                {new Date(memory.createdAt).toLocaleDateString(
+                                  prefs.language,
+                                )}
                               </span>
                               <button
+                                className="cancel-action"
                                 disabled={busy}
-                                onClick={() => setDeleting(m)}
+                                onClick={() => setDeleting(memory)}
                               >
                                 {w.remove}
                               </button>
                             </div>
                           </li>
                         ))}
-                    </ul>
-                  )}
-                </section>
-              )}
-              {tab === "agents" && (
-                <section>
-                  <h2>{w.agents}</h2>
-                  <p className="integration-note">{w.integrationNote}</p>
-                  <label className="default-master">
-                    {w.editRoles}
-                    <select
-                      aria-label={w.editRoles}
-                      value={project.master}
-                      disabled={busy}
-                      onChange={(e) => {
-                        const master = e.target.value as Agent;
-                        void mutate(async () => {
-                          await api.setMaster({ projectId, master });
-                          const next = await api.snapshot();
-                          setSnapshot(next);
-                          setImplementer(master);
-                        });
-                      }}
-                    >
-                      <option value="codex">Codex</option>
-                      <option value="claude">Claude Code</option>
-                    </select>
-                  </label>
-                  <div className="integrations">
-                    {snapshot?.integrations.map((i) => (
-                      <article key={i.id}>
-                        <div className="integration-title">
-                          <h3>{i.name}</h3>
-                          <span className="badge">
-                            {i.probe?.installation === "installed"
-                              ? w.detected
-                              : i.probe?.installation === "not_found"
-                                ? w.notDetected
-                                : w.notConfigured}
-                          </span>
-                        </div>
-                        {i.probe && (
+                      </ul>
+                    )}
+                  </section>
+                )}
+                {tab === "agents" && (
+                  <section>
+                    <div className="section-heading">
+                      <div>
+                        <h2>{w.agents}</h2>
+                        <p className="integration-note">{w.integrationNote}</p>
+                      </div>
+                    </div>
+                    <div className="default-master">
+                      <span>{w.editRoles}</span>
+                      <SelectField
+                        label={w.editRoles}
+                        value={project.master}
+                        options={agentChoices}
+                        disabled={busy}
+                        onChange={(value) => {
+                          const master = value as Agent;
+                          void mutate(async () => {
+                            await api.setMaster({ projectId, master });
+                            const next = await api.snapshot();
+                            setSnapshot(next);
+                            setImplementer(master);
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className="integrations">
+                      {snapshot?.integrations.map((integration) => (
+                        <article key={integration.id}>
+                          <div className="integration-title">
+                            <h3>{integration.name}</h3>
+                            <span className="badge integration-badge">
+                              {integration.probe?.installation === "installed"
+                                ? w.detected
+                                : integration.probe?.installation ===
+                                    "not_found"
+                                  ? w.notDetected
+                                  : w.notConfigured}
+                            </span>
+                          </div>
+                          {integration.probe && (
+                            <dl>
+                              <div>
+                                <dt>{w.probeVersion}</dt>
+                                <dd>
+                                  {integration.probe.version ?? w.unknown}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt>{w.authStatus}</dt>
+                                <dd>{w.unknown}</dd>
+                              </div>
+                              <div>
+                                <dt>{w.capabilityStatus}</dt>
+                                <dd>
+                                  {integration.probe.capabilities.version &&
+                                  integration.probe.capabilities.help &&
+                                  integration.probe.capabilities.authStatus
+                                    ? w.probePassed
+                                    : w.probeUnknown}
+                                </dd>
+                              </div>
+                            </dl>
+                          )}
                           <dl>
                             <div>
-                              <dt>{w.probeVersion}</dt>
-                              <dd>{i.probe.version ?? w.unknown}</dd>
-                            </div>
-                            <div>
-                              <dt>{w.authStatus}</dt>
+                              <dt>{w.quota}</dt>
                               <dd>{w.unknown}</dd>
                             </div>
                             <div>
-                              <dt>{w.capabilityStatus}</dt>
-                              <dd>
-                                {i.probe.capabilities.version &&
-                                i.probe.capabilities.help &&
-                                i.probe.capabilities.authStatus
-                                  ? w.probePassed
-                                  : w.probeUnknown}
-                              </dd>
+                              <dt>{w.provenance}</dt>
+                              <dd>{w.none}</dd>
+                            </div>
+                            <div>
+                              <dt>{w.observed}</dt>
+                              <dd>{w.never}</dd>
+                            </div>
+                            <div>
+                              <dt>{w.reset}</dt>
+                              <dd>{w.unknown}</dd>
                             </div>
                           </dl>
-                        )}
-                        <dl>
-                          <div>
-                            <dt>{w.quota}</dt>
-                            <dd>{w.unknown}</dd>
-                          </div>
-                          <div>
-                            <dt>{w.provenance}</dt>
-                            <dd>{w.none}</dd>
-                          </div>
-                          <div>
-                            <dt>{w.observed}</dt>
-                            <dd>{w.never}</dd>
-                          </div>
-                          <div>
-                            <dt>{w.reset}</dt>
-                            <dd>{w.unknown}</dd>
-                          </div>
-                        </dl>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </>
+            )}
+          </div>
         </main>
       </div>
-      <dialog
-        ref={projectDialog}
-        aria-labelledby="project-dialog-title"
-        onCancel={() => setProjectOpen(false)}
+      <Modal
+        open={projectOpen}
         onClose={() => setProjectOpen(false)}
+        titleId="project-dialog-title"
+        className="project-dialog"
       >
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const fd = new FormData(e.currentTarget);
+          onSubmit={(event) => {
+            event.preventDefault();
+            const form = event.currentTarget,
+              fd = new FormData(form);
             void mutate(async () => {
-              const p = await api.createProject({
+              const item = await api.createProject({
                 name: String(fd.get("name")),
                 root: String(fd.get("root")),
                 master: fd.get("master") as Agent,
@@ -724,7 +804,7 @@ function App() {
               const next = await api.snapshot();
               setSnapshot(next);
               setProjectOpen(false);
-              await selectProject(p.id);
+              await selectProject(item.id);
             });
           }}
         >
@@ -744,13 +824,17 @@ function App() {
             <input name="root" maxLength={4096} disabled={busy} />
           </label>
           <p className="helper">{w.projectHint}</p>
-          <label>
+          <label className="field-label" id="master-label">
             {w.editRoles}
-            <select name="master" aria-label={w.editRoles} disabled={busy}>
-              <option value="codex">Codex</option>
-              <option value="claude">Claude Code</option>
-            </select>
           </label>
+          <SelectField
+            label={w.editRoles}
+            name="master"
+            value={projectMaster}
+            options={agentChoices}
+            disabled={busy}
+            onChange={(value) => setProjectMaster(value as Agent)}
+          />
           {error && <p role="alert">{w.error}</p>}
           <div className="dialog-actions">
             <button
@@ -765,12 +849,12 @@ function App() {
             </button>
           </div>
         </form>
-      </dialog>
-      <dialog
-        ref={deleteDialog}
-        aria-labelledby="delete-dialog-title"
-        onCancel={() => setDeleting(null)}
+      </Modal>
+      <Modal
+        open={!!deleting}
         onClose={() => setDeleting(null)}
+        titleId="delete-dialog-title"
+        className="confirm-dialog"
       >
         <h2 id="delete-dialog-title">{w.deleteAsk}</h2>
         <p>{deleting?.content.slice(0, 150)}</p>
@@ -783,18 +867,38 @@ function App() {
             disabled={busy}
             onClick={() => {
               if (!deleting) return;
-              const m = deleting;
+              const memory = deleting;
               void mutate(async () => {
-                await api.deleteMemory({ projectId: m.projectId, id: m.id });
+                await api.deleteMemory({
+                  projectId: memory.projectId,
+                  id: memory.id,
+                });
                 setDeleting(null);
-                await reloadProject(m.projectId);
+                await reloadProject(memory.projectId);
               });
             }}
           >
             {w.confirm}
           </button>
         </div>
-      </dialog>
+      </Modal>
+      {toast && (
+        <div
+          className={`toast ${toast.error ? "toast-error" : ""}`}
+          role="status"
+        >
+          <Icon name={toast.error ? "info" : "check"} />
+          <span>{toast.message}</span>
+          <button
+            className="icon-button"
+            aria-label={w.dismiss}
+            title={w.dismiss}
+            onClick={() => setToast(null)}
+          >
+            <Icon name="close" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

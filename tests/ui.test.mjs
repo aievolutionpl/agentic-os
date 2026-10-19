@@ -98,25 +98,46 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       new dom.window.Event("submit", { bubbles: true, cancelable: true }),
     );
   }
+  async function choose(label, text) {
+    dom.window.document.querySelector(`button[aria-label="${label}"]`).click();
+    await wait(() => dom.window.document.querySelector('[role="listbox"]'));
+    const option = [
+      ...dom.window.document.querySelectorAll('[role="option"]'),
+    ].find((option) => option.textContent.trim() === text);
+    assert.ok(option, `${label}: ${text}`);
+    option.click();
+    await wait(() => !dom.window.document.querySelector('[role="listbox"]'));
+  }
   async function project(name) {
     dom.window.document
       .querySelector('button[aria-label="Nowy projekt"]')
       .click();
-    await wait(() => dom.window.document.querySelector("dialog").open);
+    await wait(() => dom.window.document.querySelector(".project-dialog").open);
     field("input[name=name]", name);
     field("input[name=root]", "C:\\Projects\\" + name);
-    submit(dom.window.document.querySelector("dialog form"));
+    submit(dom.window.document.querySelector(".project-dialog form"));
     await wait(
       () => dom.window.document.querySelector("h1")?.textContent === name,
     );
   }
   try {
     let finishLoading;
-    snapshotGate = new Promise((resolve) => { finishLoading = resolve; });
+    snapshotGate = new Promise((resolve) => {
+      finishLoading = resolve;
+    });
     boot();
-    await wait(() => dom.window.document.querySelector(".settings select"));
-    assert.equal(dom.window.document.querySelector(".settings select").disabled, true);
-    assert.equal(dom.window.document.querySelector(".settings button").disabled, true);
+    await wait(() =>
+      dom.window.document.querySelector('.settings [aria-haspopup="listbox"]'),
+    );
+    assert.equal(
+      dom.window.document.querySelector('.settings [aria-haspopup="listbox"]')
+        .disabled,
+      true,
+    );
+    assert.equal(
+      dom.window.document.querySelector(".settings .theme-toggle").disabled,
+      true,
+    );
     finishLoading();
     snapshotGate = undefined;
     await wait(() => dom.window.document.querySelector(".empty"));
@@ -130,19 +151,29 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
     await wait(() => dom.window.document.querySelector(".memory-form"));
     button("Zadania 1").click();
     await wait(() => dom.window.document.querySelector("#task-title"));
-    assert.equal(dom.window.document.querySelector("#task-title").value, "Unfinished A");
+    assert.equal(
+      dom.window.document.querySelector("#task-title").value,
+      "Unfinished A",
+    );
     rejectTask = true;
     submit(dom.window.document.querySelector(".composer form"));
     await wait(() => dom.window.document.querySelector('[role="alert"]'));
-    assert.equal(dom.window.document.querySelector("#task-title").value, "Unfinished A");
+    assert.equal(
+      dom.window.document.querySelector("#task-title").value,
+      "Unfinished A",
+    );
     assert.equal(store.tasks(store.projects()[0].id).length, 1);
     rejectTask = false;
     field('input[aria-label="Szukaj zadań"]', "missing");
     await wait(() => !dom.window.document.querySelector(".task-list h3"));
-    assert.ok(dom.window.document.body.textContent.includes("Brak wyników dla tych filtrów."));
+    assert.ok(
+      dom.window.document.body.textContent.includes(
+        "Brak wyników dla tych filtrów.",
+      ),
+    );
     button("Wyczyść filtry").click();
     await wait(() => dom.window.document.querySelector(".task-list h3"));
-    field('select[aria-label="Filtruj według statusu"]', "cancelled");
+    await choose("Filtruj według statusu", "Anulowane");
     await wait(() => !dom.window.document.querySelector(".task-list h3"));
     button("Wyczyść filtry").click();
     await wait(() => dom.window.document.querySelector(".task-list h3"));
@@ -173,15 +204,35 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
     submit(dom.window.document.querySelector(".memory-form"));
     await wait(() => dom.window.document.querySelector(".memory-content"));
     button("Usuń").click();
-    await wait(() => dom.window.document.querySelectorAll("dialog")[1].open);
-    button("Anuluj", dom.window.document.querySelectorAll("dialog")[1]).click();
-    await wait(() => !dom.window.document.querySelectorAll("dialog")[1].open);
+    await wait(
+      () =>
+        dom.window.document.querySelector(
+          '[aria-labelledby="delete-dialog-title"]',
+        ).open,
+    );
+    button(
+      "Anuluj",
+      dom.window.document.querySelector(
+        '[aria-labelledby="delete-dialog-title"]',
+      ),
+    ).click();
+    await wait(
+      () =>
+        !dom.window.document.querySelector(
+          '[aria-labelledby="delete-dialog-title"]',
+        ).open,
+    );
     assert.equal(
       dom.window.document.querySelectorAll(".memory-content").length,
       1,
     );
     button("Usuń").click();
-    await wait(() => dom.window.document.querySelectorAll("dialog")[1].open);
+    await wait(
+      () =>
+        dom.window.document.querySelector(
+          '[aria-labelledby="delete-dialog-title"]',
+        ).open,
+    );
     button("Usuń wpis").click();
     await wait(
       () =>
@@ -197,15 +248,15 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       dom.window.document.querySelectorAll(".integrations .badge").length,
       9,
     );
-    field(".default-master select", "claude");
+    await choose("Domyślny agent główny", "Claude Code");
     await wait(
       () =>
         store.projects().find((p) => p.name === "Project B").master ===
         "claude",
     );
-    field(".settings select", "en");
+    await choose("Język", "English");
     await wait(() => dom.window.document.documentElement.lang === "en");
-    button("Light").click();
+    dom.window.document.querySelector('[aria-label="Theme"]').click();
     await wait(
       () => dom.window.document.documentElement.dataset.theme === "light",
     );

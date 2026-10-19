@@ -1,4 +1,14 @@
-# Current continuation — workspace UI and Windows (2026-10-19)
+# Current continuation — product UI polish (2026-10-19)
+
+- Done: presentation-only product polish, reusable listbox/modal/icon primitives, responsive task details panel, timeline, confirmations, toasts, composer shortcuts and copy path.
+- Verified on native Windows: typecheck, build, 30/30 tests, Electron CRUD/restart/keyboard/copy/cancel smoke, 2533 text measurements on 75 screens without failures or horizontal overflow.
+- Delivered: before/after dark/light at 1440/1024/390 and [changed-file list](evidence/ui-polish/README.md).
+- Preserved: backend, schema, IPC, dependency versions and existing honest integration statuses. Execution and patch application remain disabled.
+- Pending: owner visual feedback, independent review, screen readers, installer and release QA. Next functional increment remains supervised isolated execution and review.
+
+---
+
+# Previous continuation — workspace UI and Windows (2026-10-19)
 
 - Done: implemented workspace visual refresh, local Inter, both themes and compact navigation.
 - Done: task search/status filters/reset, per-project session input, expandable task details/journal and named native dialogs.

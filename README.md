@@ -1,10 +1,10 @@
 # Agenting OS
 
-> **Work in progress — development resumed for the workspace UI and native Windows checks.** Start with [HANDOFF_PL.md](HANDOFF_PL.md): completed features, gaps and next steps. [Original Google Drive plan](docs/original-plan/Agenting_OS_Master_Plan_v2.1.md) · [Logo concepts (not approved)](docs/logo-concepts/).
+> **Work in progress — workspace UI polish verified on native Windows.** Start with [HANDOFF_PL.md](HANDOFF_PL.md): completed features, gaps and next steps. [Original Google Drive plan](docs/original-plan/Agenting_OS_Master_Plan_v2.1.md) · [Logo concepts (not approved)](docs/logo-concepts/).
 >
-> Latest continuation check: typecheck, production build, **30/30 tests**, real Electron smoke and rendered text contrast passed on **native Windows**. See [workspace refresh evidence](docs/evidence/workspace-refresh/README.md). Installer, updates and production release QA remain pending. Earlier Linux/WSL results are historical evidence.
+> Latest check: typecheck, production build, **30/30 tests**, real Electron smoke and **2533 text contrast measurements across 75 screens** passed on **native Windows**. See [UI evidence and before/after screenshots](docs/evidence/ui-polish/README.md). Installer, updates and production release QA remain pending. Earlier results are historical evidence.
 
-Local-first desktop workbench by AI Evolution Polska. Projects, task lifecycle/journal and project-scoped knowledge persist in SQLite. PL/EN and dark/light preferences persist. The workspace has task search/status filters, expandable technical details and compact project navigation in narrow windows. Unsaved task text survives tab/project switches during the current session; **Save draft** stores it durably. Codex/Claude role preferences are available; provider execution is not connected.
+Local-first desktop workbench by AI Evolution Polska. Projects, task lifecycle/journal and project-scoped knowledge persist in SQLite. PL/EN and dark/light preferences persist. The workspace has compact task rows, a details drawer, custom keyboard-accessible filters, a timeline and mobile project navigation. Use `/` for task search and `Ctrl+Enter` / `⌘Enter` to save a draft. Unsaved task text survives tab/project switches during the current session; **Save draft** stores it durably. Codex/Claude role preferences are available; provider execution is not connected.
 
 Requires Node 22.16+ and npm. From this directory:
 

@@ -1,0 +1,58 @@
+{
+  "phase": "before",
+  "platform": "win32",
+  "at": "2026-10-19T15:01:14.160Z",
+  "fixture": "Temporary local SQLite data; no agents executed.",
+  "screens": [
+    {
+      "theme": "dark",
+      "width": 1440,
+      "screenshot": "dark-1440.png",
+      "overflow": false,
+      "measurements": 53,
+      "failures": []
+    },
+    {
+      "theme": "dark",
+      "width": 1024,
+      "screenshot": "dark-1024.png",
+      "overflow": false,
+      "measurements": 52,
+      "failures": []
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "screenshot": "dark-390.png",
+      "overflow": false,
+      "measurements": 44,
+      "failures": []
+    },
+    {
+      "theme": "light",
+      "width": 1440,
+      "screenshot": "light-1440.png",
+      "overflow": false,
+      "measurements": 54,
+      "failures": []
+    },
+    {
+      "theme": "light",
+      "width": 1024,
+      "screenshot": "light-1024.png",
+      "overflow": false,
+      "measurements": 53,
+      "failures": []
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "screenshot": "light-390.png",
+      "overflow": false,
+      "measurements": 45,
+      "failures": []
+    }
+  ],
+  "errors": [],
+  "status": "passed"
+}

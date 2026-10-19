@@ -1,6 +1,10 @@
 # Agenting OS — przekazanie projektu
 
 ## Status: wznowiono rozwój na polecenie właściciela (2026-10-19)
+Drugi etap kontynuacji wdrożył brief UI właściciela: pełny sidebar ze stopką, top bar ze statusem zapisu, tokeny obu motywów, własne dropdowny, zwarty composer, wiersze zadań z panelem szczegółów, potwierdzenie anulowania, toasty i timeline. Zachowano model, backend, IPC i zależności. Nie dodano fikcyjnych statusów, Undo ani wykonywania agentów.
+
+Aktualna weryfikacja: typecheck, build, 30/30 testów i rozszerzony Electron smoke PASS na Windows. 2533 pomiary tekstu na 75 ekranach: zero błędów w badanym zakresie. Ekrany przed/po: 1440, 1024 i 390 px, dark/light. [Dowody, lista plików i ograniczenia](docs/evidence/ui-polish/README.md).
+
 Zrealizowano pierwszy etap kontynuacji: odświeżenie interfejsu i weryfikację na natywnym Windows. Nowa typografia Inter, spokojniejszy sidebar i kompozytor, wyszukiwanie/filtrowanie zadań, rozwijane szczegóły/dziennik oraz nawigacja w małych oknach. Niezapisany tekst zadania pozostaje osobny dla każdego projektu w bieżącej sesji; trwały zapis wymaga „Zapisz szkic”. Nie wybrano finalnego logo.
 
 Naprawiono brakującą zależność w lockfile, porównywanie ścieżek DOS 8.3 przy przechwytywaniu artefaktów oraz kolejność zamykania baz w testach. Typecheck, build, 30/30 testów i rzeczywisty Electron smoke przeszły na Windows. Kontrola tekstu: 1986 pomiarów na 41 ekranach, bez błędów w badanym zakresie. [Dowody i ograniczenia](docs/evidence/workspace-refresh/README.md).

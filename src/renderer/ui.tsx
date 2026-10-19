@@ -32,6 +32,7 @@ export function Icon({
         <path d="M4 20V10m5 10V4m6 16v-7m5 7V7" />
       </>
     ),
+    play: <path d="m7 4 13 8-13 8V4Z" />,
     plus: <path d="M12 5v14M5 12h14" />,
     chevron: <path d="m9 5 7 7-7 7" />,
     down: <path d="m6 9 6 6 6-6" />,
@@ -349,6 +350,9 @@ export const agentName = (agent: Agent) =>
     codex: "Codex",
     claude: "Claude Code",
     opencode: "OpenCode",
+    gemini: "Gemini CLI",
+    hermes: "Hermes",
+    local: "Lokalny LLM",
     antigravity: "Antigravity",
   })[agent];
 export function AgentAvatar({ agent }: { agent: Agent }) {

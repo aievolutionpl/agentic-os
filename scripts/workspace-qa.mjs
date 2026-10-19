@@ -12,7 +12,9 @@ import { join, resolve } from "node:path";
 import { Store } from "../dist/main/store.js";
 import { collectContrast } from "./contrast-dom.mjs";
 import { measure, threshold } from "./contrast-math.mjs";
-const output = resolve("docs/evidence/workspace-06/ui");
+const output = resolve(
+  process.env.AGENTING_QA_OUTPUT || "docs/evidence/workspace-06/ui",
+);
 mkdirSync(output, { recursive: true });
 const profile = mkdtempSync(join(tmpdir(), "agenting-workspace-ui-"));
 const store = new Store(join(profile, "agenting.sqlite"));
@@ -111,7 +113,7 @@ try {
   );
   result.checks.push("manual-budget-create-edit-persisted");
   await nav("Połączenia i modele");
-  assert.equal(await page.locator(".provider-picker > button").count(), 4);
+  assert.equal(await page.locator(".provider-picker > button").count(), 7);
   await page
     .locator(".provider-picker")
     .getByRole("button", { name: /Claude Code/ })
@@ -124,7 +126,44 @@ try {
     await page.locator('.router-setup input[type="password"]').count(),
     1,
   );
-  result.checks.push("four-provider-setup-and-masked-api-key");
+  result.checks.push("seven-provider-setup-and-masked-api-key");
+  const local = page.locator(".local-model-setup");
+  await local
+    .getByRole("textbox", { name: "Identyfikator modelu", exact: true })
+    .fill("qa-fixture-local");
+  await local
+    .getByRole("button", { name: "Zapisz lokalny model", exact: true })
+    .click();
+  await local
+    .getByText("Zapisano. Połącz profil Lokalny LLM z OpenCode powyżej.", {
+      exact: true,
+    })
+    .waitFor();
+  assert.equal(
+    (await page.evaluate(() => window.agenting.localModelSettings())).model,
+    "qa-fixture-local",
+  );
+  const invalidLocal = await page.evaluate(() =>
+    window.agenting
+      .localModelSave({ baseURL: "https://example.com/v1", model: "bad" })
+      .then(
+        () => false,
+        () => true,
+      ),
+  );
+  assert.equal(invalidLocal, true);
+  await local
+    .getByRole("button", { name: "Usuń konfigurację", exact: true })
+    .click();
+  await local.getByText("Usunięto konfigurację.", { exact: true }).waitFor();
+  assert.equal(
+    (await page.evaluate(() => window.agenting.localModelSettings()))
+      .configured,
+    false,
+  );
+  result.checks.push(
+    "local-model-settings-native-ipc-save-remove-and-loopback-validation",
+  );
   const vault = await page.evaluate(() => window.agenting.openRouterSettings());
   if (vault.encryptionAvailable) {
     const dummy = "sk-or-qa-not-a-real-key-123456789";
@@ -193,15 +232,20 @@ try {
     }
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 });
-      await page.waitForFunction(expected => Boolean(document.querySelector(".projects-toggle")) === expected, width <= 760);
+      await page.waitForFunction(
+        (expected) =>
+          Boolean(document.querySelector(".projects-toggle")) === expected,
+        width <= 760,
+      );
       for (const [label, name] of [
         ["center", "Centrum dowodzenia"],
         ["quota", "Limity i tokeny"],
         ["connections", "Połączenia i modele"],
         ["team", "Zadania"],
+        ["master", "Master Agent"],
         ["skills", "Rozszerzenia"],
       ]) {
-        if (label === "team" || label === "skills") {
+        if (["team", "skills", "master"].includes(label)) {
           if (await page.locator(".projects-toggle").isVisible())
             await page.locator(".projects-toggle").click();
           await page.locator(".project-link", { hasText: a.name }).click();

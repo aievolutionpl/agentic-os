@@ -1,5 +1,67 @@
-export const AGENTS = ["codex", "claude", "opencode", "antigravity"] as const;
+export const AGENTS = [
+  "codex",
+  "claude",
+  "gemini",
+  "hermes",
+  "opencode",
+  "local",
+  "antigravity",
+] as const;
 export type Agent = (typeof AGENTS)[number];
+export const READ_ONLY_AGENTS: readonly Agent[] = [
+  "codex",
+  "claude",
+  "gemini",
+  "opencode",
+  "local",
+];
+export interface LocalModelSetting {
+  configured: boolean;
+  baseURL: string;
+  model: string;
+}
+export interface MissionStep {
+  key: string;
+  title: string;
+  acceptance: string;
+  implementer: Agent;
+  reviewer: Agent;
+  dependsOn: string[];
+  workflow: "implementation" | "research";
+  taskId: string | null;
+}
+export interface Mission {
+  id: string;
+  projectId: string;
+  goal: string;
+  master: Agent;
+  workers: Agent[];
+  status:
+    | "planning"
+    | "ready"
+    | "running"
+    | "evaluating"
+    | "blocked"
+    | "completed"
+    | "needs_changes"
+    | "failed"
+    | "stopped"
+    | "interrupted";
+  summary: string;
+  steps: MissionStep[];
+  contextIds: string[];
+  skillIds: string[];
+  runId: string | null;
+  reason: string | null;
+  evaluation: {
+    verdict: "complete" | "needs_changes";
+    summary: string;
+    nextSteps: string;
+  } | null;
+  events: { at: number; message: string }[];
+  createdAt: number;
+  updatedAt: number;
+}
 export interface Project {
   id: string;
   name: string;
@@ -238,6 +300,33 @@ export interface ProjectData {
   events: TaskEvent[];
 }
 export interface API {
+  missionPlan?(input: {
+    projectId: string;
+    goal: string;
+    master: Agent;
+    workers: Agent[];
+    contextIds: string[];
+    skillIds: string[];
+    consent: true;
+  }): Promise<Mission>;
+  missionList?(input: { projectId: string }): Promise<Mission[]>;
+  missionAction?(input: {
+    projectId: string;
+    id: string;
+    action: "execute" | "stop";
+    consent: true;
+  }): Promise<Mission>;
+  missionRemember?(input: {
+    projectId: string;
+    id: string;
+    scope: "project" | "workspace";
+  }): Promise<Memory>;
+  localModelSettings?(): Promise<LocalModelSetting>;
+  localModelSave?(input: {
+    baseURL: string;
+    model: string;
+  }): Promise<LocalModelSetting>;
+  localModelRemove?(): Promise<void>;
   orchestrationStart?(input: {
     projectId: string;
     taskIds: string[];

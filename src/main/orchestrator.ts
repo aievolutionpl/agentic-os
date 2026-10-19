@@ -34,6 +34,12 @@ export class Orchestrator {
     if (this.batches.get(projectId)?.status === "running")
       throw Error("BATCH_ALREADY_RUNNING");
     if (
+      this.store.missions
+        .list(projectId)
+        .some((m) => ["planning", "running", "evaluating"].includes(m.status))
+    )
+      throw Error("MISSION_ALREADY_ACTIVE");
+    if (
       !Array.isArray(p.taskIds) ||
       !p.taskIds.length ||
       p.taskIds.length > 10 ||

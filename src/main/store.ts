@@ -5,6 +5,7 @@ import { Runs } from "./runs.js";
 import { Knowledge } from "./knowledge.js";
 import { Extensions } from "./extensions.js";
 import { migrateWorkspace } from "./workspace-migration.js";
+import { Missions } from "./missions.js";
 import { AGENTS } from "../shared.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
@@ -43,6 +44,7 @@ export class Store {
   readonly runs: Runs;
   readonly knowledge: Knowledge;
   readonly extensions: Extensions;
+  readonly missions: Missions;
   constructor(file: string, clock: () => number = Date.now) {
     this.db = new DatabaseSync(file);
     this.db.exec(
@@ -53,7 +55,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 9) {
+      if (version.user_version > 10) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -93,6 +95,7 @@ export class Store {
       this.knowledge = new Knowledge(this.db);
       this.extensions = new Extensions(this.db);
       migrateWorkspace(this.db);
+      this.missions = new Missions(this.db);
     } catch (error) {
       this.db.close();
       throw error;
@@ -170,7 +173,7 @@ export class Store {
     };
     if (result.implementer === result.reviewer)
       throw Error("INDEPENDENT_REVIEW_REQUIRED");
-    if (result.reviewer === "antigravity")
+    if (result.reviewer === "antigravity" || result.reviewer === "hermes")
       throw Error("ANTIGRAVITY_READ_ONLY_UNSUPPORTED");
     this.lifecycle.transaction(() => {
       this.db

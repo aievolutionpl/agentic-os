@@ -1,5 +1,7 @@
 # Audyt aktualizacji workspace — 19 października 2026
 
+**Uzupełnienie:** warstwa wybieranego Master Agenta, migracja v10, Gemini/Hermes/local LLM i aktualne dowody są w [audycie Mastera](MASTER_AGENT_AUDIT.md). Poniższa macierz dotyczy wcześniejszego, zweryfikowanego etapu workspace-06.
+
 ## Wynik i zakres
 
 Rozbudowano istniejący desktopowy Agenting OS od AI Evolution Polska. Zachowano Electron, React, SQLite, lokalne projekty, lifecycle zadań, Git worktree, artefakty oraz ręczne zatwierdzanie i stosowanie zmian. Nie skopiowano aplikacji referencyjnej ani nie dołączono drugiej bazy/servera.

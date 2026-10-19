@@ -162,7 +162,7 @@ export const SPECS: readonly Spec[] = [
     name: "Gemini CLI",
     bin: "gemini",
     versionArgs: ["--version"],
-    adapter: "planned",
+    adapter: "available",
     installHint: "npm install -g @google/gemini-cli",
   },
   {
@@ -171,7 +171,7 @@ export const SPECS: readonly Spec[] = [
     name: "Hermes",
     bin: "hermes",
     versionArgs: ["--version"],
-    adapter: "planned",
+    adapter: "available",
     installHint: "https://github.com/NousResearch/hermes-agent",
   },
   {

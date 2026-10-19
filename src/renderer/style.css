@@ -4,6 +4,422 @@
   font-weight: 100 900;
   font-display: swap;
 }
+/* Master workspace: the goal leads; topology explains the execution model. */
+.master-panel {
+  padding: 28px 0 44px;
+  max-width: 1140px;
+}
+.master-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.master-heading h2 {
+  font-family: Bahnschrift, Inter, sans-serif;
+  font-size: clamp(26px, 3vw, 38px);
+  letter-spacing: -0.035em;
+  margin: 6px 0 10px;
+  line-height: 1.15;
+}
+.master-heading .helper {
+  max-width: 680px;
+}
+.master-topology {
+  margin: 28px 0 32px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  border-radius: 14px;
+}
+.master-lead {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  padding-bottom: 22px;
+}
+.master-lead > .provider-glyph {
+  width: 52px;
+  height: 52px;
+}
+.master-lead div {
+  display: grid;
+  gap: 2px;
+}
+.master-lead span:not(.provider-glyph) {
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+.master-lead strong {
+  font-size: 21px;
+}
+.master-lead small,
+.master-workers small,
+.master-foundation small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.master-workers {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--border-strong);
+  padding-top: 22px;
+  gap: 8px;
+}
+.master-workers::before {
+  content: "";
+  position: absolute;
+  height: 22px;
+  width: 1px;
+  background: var(--border-strong);
+  left: 50%;
+  top: -22px;
+}
+.master-workers > span {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+  gap: 8px;
+  padding: 8px 2px;
+  color: var(--text-muted);
+  border-radius: 8px;
+}
+.master-workers > span.assigned {
+  color: var(--text);
+  background: var(--surface);
+}
+.master-workers > span::before {
+  content: "";
+  height: 12px;
+  width: 1px;
+  position: absolute;
+  top: -22px;
+  background: var(--border);
+}
+.master-workers strong {
+  font-size: 12px;
+}
+.master-workers .provider-glyph {
+  width: 32px;
+  height: 32px;
+}
+.master-foundation {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+.master-foundation > span,
+.master-foundation > button {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.master-foundation > button {
+  padding: 8px 12px;
+}
+.master-foundation small {
+  display: block;
+}
+.mission-composer,
+.mission-result {
+  max-width: 920px;
+  margin: 0 auto;
+}
+.mission-composer > label:first-child {
+  display: grid;
+  gap: 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.mission-composer textarea {
+  width: 100%;
+  min-height: 125px;
+  resize: vertical;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.7;
+}
+.mission-roles {
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  margin: 22px 0;
+}
+.mission-roles > :first-child {
+  flex: 1;
+}
+.mission-roster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  border: 0;
+  margin: 24px 0 12px;
+  padding: 0;
+}
+.mission-roster legend {
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+.mission-roster .dependency-choice {
+  margin: 0;
+  font-size: 13px;
+}
+.mission-context {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+  margin: 24px 0;
+}
+.mission-context summary,
+.mission-journal summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 3px 0;
+}
+.mission-context fieldset {
+  border: 0;
+  margin: 16px 0;
+  padding: 0;
+}
+.mission-context .dependency-choice {
+  max-width: 800px;
+}
+.mission-actions {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.mission-actions > button {
+  min-height: 40px;
+}
+.mission-state {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 13px;
+  margin: 22px 0 14px;
+}
+.mission-state > span:last-child {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.mission-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+.mission-dot.state-running,
+.mission-dot.state-planning,
+.mission-dot.state-evaluating,
+.mission-dot.state-completed {
+  background: var(--success);
+}
+.mission-dot.state-failed,
+.mission-dot.state-blocked,
+.mission-dot.state-needs_changes {
+  background: var(--warning);
+}
+.mission-result > h3 {
+  font-size: 22px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.mission-summary {
+  color: var(--text-muted);
+  line-height: 1.75;
+}
+.master-alert {
+  border-left: 3px solid var(--warning);
+  padding: 12px 16px;
+  background: var(--warning-bg);
+  overflow-wrap: anywhere;
+}
+.mission-steps {
+  list-style: none;
+  padding: 0;
+  margin: 28px 0;
+}
+.mission-steps > li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 18px;
+  padding: 22px 0;
+  border-top: 1px solid var(--border);
+}
+.step-number {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-size: 12px;
+}
+.step-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 12px;
+}
+.step-title h4 {
+  margin: 0;
+  flex: 1;
+  font-size: 16px;
+  line-height: 1.5;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+}
+.mission-steps p {
+  color: var(--text-muted);
+  margin: 10px 0 14px;
+  overflow-wrap: anywhere;
+}
+.mission-steps small {
+  color: var(--text-muted);
+}
+.step-assignment {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.step-assignment .provider-glyph {
+  width: 24px;
+  height: 24px;
+}
+.step-assignment button {
+  margin-left: auto;
+}
+.mission-evaluation {
+  border-top: 1px solid var(--border);
+  padding: 24px 0;
+  margin-top: 28px;
+}
+.mission-evaluation h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.mission-evaluation p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.mission-journal {
+  border-top: 1px solid var(--border);
+  padding: 20px 0;
+  margin-top: 28px;
+}
+.mission-journal ol {
+  padding: 0;
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.mission-journal li {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.mission-journal time {
+  color: var(--text-muted);
+}
+.mission-journal span {
+  overflow-wrap: anywhere;
+}
+.local-model-setup {
+  border-top: 1px solid var(--border);
+  padding-top: 28px;
+  margin-top: 32px;
+}
+.local-model-setup h3 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.local-model-setup form {
+  display: grid;
+  gap: 14px;
+}
+.local-model-setup label {
+  display: grid;
+  gap: 8px;
+}
+@media (max-width: 1100px) {
+  .master-workers {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .master-workers > span::before {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .master-panel {
+    padding-top: 18px;
+  }
+  .master-topology {
+    padding: 18px 10px;
+  }
+  .master-heading,
+  .mission-roles {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .master-workers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .master-workers strong {
+    font-size: 11px;
+  }
+  .master-workers small {
+    font-size: 10px;
+  }
+  .master-foundation {
+    gap: 12px;
+    flex-direction: column;
+  }
+  .mission-state > span:last-child {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .mission-steps > li {
+    gap: 10px;
+    grid-template-columns: 26px minmax(0, 1fr);
+  }
+  .step-assignment button {
+    margin-left: 0;
+  }
+  .mission-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
 :root {
   font-family: Inter, "Segoe UI", system-ui, sans-serif;
   font-size: 14px;

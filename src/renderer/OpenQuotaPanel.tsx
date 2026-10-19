@@ -8,6 +8,18 @@ import { Icon, Modal } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 
 const details: Record<string, [string, string]> = {
+  GEMINI_USE_OFFICIAL_USAGE: [
+    "Sprawdź limity w swoim koncie Google. Adapter nie udostępnia zweryfikowanego licznika subskrypcji.",
+    "Check your Google account limits. This adapter has no verified subscription counter.",
+  ],
+  PROVIDER_USAGE_UNAVAILABLE: [
+    "Limity zależą od dostawcy wybranego w Hermesie. Brak wspólnego zweryfikowanego odczytu.",
+    "Limits depend on the provider selected in Hermes. No unified verified reading is available.",
+  ],
+  LOCAL_MODEL_NO_SUBSCRIPTION_QUOTA: [
+    "Dla lokalnej inferencji nie ma limitu subskrypcji do odczytania. Wydajność zależy od modelu i urządzenia.",
+    "Local inference has no subscription quota to read. Performance depends on the model and device.",
+  ],
   CONFIGURE_CODEX: [
     "Podłącz Codex w Połączeniach. Odczyt użyje wybranego profilu CLI.",
     "Connect Codex in Connections. Reads use the selected CLI profile.",

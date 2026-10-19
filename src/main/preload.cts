@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  missionPlan: (input) => ipcRenderer.invoke("app:missionPlan", input),
+  missionList: (input) => ipcRenderer.invoke("app:missionList", input),
+  missionAction: (input) => ipcRenderer.invoke("app:missionAction", input),
+  missionRemember: (input) => ipcRenderer.invoke("app:missionRemember", input),
+  localModelSettings: () => ipcRenderer.invoke("app:localModelSettings"),
+  localModelSave: (input) => ipcRenderer.invoke("app:localModelSave", input),
+  localModelRemove: () => ipcRenderer.invoke("app:localModelRemove"),
   orchestrationStart: (input) =>
     ipcRenderer.invoke("app:orchestrationStart", input),
   orchestrationState: (input) =>

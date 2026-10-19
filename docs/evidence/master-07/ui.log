@@ -1,0 +1,29 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 qa:workspace
+> node scripts/workspace-qa.mjs
+
+center dark 1440: overflow=false, contrast=0
+quota dark 1440: overflow=false, contrast=0
+connections dark 1440: overflow=false, contrast=0
+team dark 1440: overflow=false, contrast=0
+master dark 1440: overflow=false, contrast=0
+skills dark 1440: overflow=false, contrast=0
+center dark 390: overflow=false, contrast=0
+quota dark 390: overflow=false, contrast=0
+connections dark 390: overflow=false, contrast=0
+team dark 390: overflow=false, contrast=0
+master dark 390: overflow=false, contrast=0
+skills dark 390: overflow=false, contrast=0
+center light 1440: overflow=false, contrast=0
+quota light 1440: overflow=false, contrast=0
+connections light 1440: overflow=false, contrast=0
+team light 1440: overflow=false, contrast=0
+master light 1440: overflow=false, contrast=0
+skills light 1440: overflow=false, contrast=0
+center light 390: overflow=false, contrast=0
+quota light 390: overflow=false, contrast=0
+connections light 390: overflow=false, contrast=0
+team light 390: overflow=false, contrast=0
+master light 390: overflow=false, contrast=0
+skills light 390: overflow=false, contrast=0

@@ -335,6 +335,9 @@ export async function scanAllQuotas(
   return [
     codex ?? unavailable("codex", "Codex", "CONFIGURE_CODEX"),
     unavailable("claude", "Claude Code", "CLAUDE_USE_OFFICIAL_USAGE"),
+    unavailable("gemini", "Gemini CLI", "GEMINI_USE_OFFICIAL_USAGE"),
+    unavailable("hermes", "Hermes", "PROVIDER_USAGE_UNAVAILABLE"),
+    unavailable("local", "Local LLM", "LOCAL_MODEL_NO_SUBSCRIPTION_QUOTA"),
     router ?? unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
     unavailable("antigravity", "Antigravity", "ANTIGRAVITY_USE_OFFICIAL_USAGE"),
     ...loadCustomSubscriptions(directory).map(mapCustomToCard),

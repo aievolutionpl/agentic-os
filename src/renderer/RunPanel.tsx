@@ -464,7 +464,7 @@ export function RunPanel({
               )}
             </details>
           )}
-          {run.state === "awaiting_review" && (
+          {["awaiting_review", "completed"].includes(run.state) && (
             <>
               <p className="helper">{w.reviewHint}</p>
               <button

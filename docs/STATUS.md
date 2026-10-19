@@ -1,3 +1,9 @@
+# Selectable Master Agent — 2026-10-19
+
+Added model-driven goal planning, validated six-step DAGs, persistent mission/context journals (schema v10), atomic task binding, sequential delegation, quota checks, independent reviews including no-change research, human Git application gates, final Master evaluation and explicit memory writeback. The new project tab visualizes the architecture supplied by the user. Added Gemini/Hermes ACP and separate local OpenCode model profiles; live compatibility is stated separately from configuration.
+
+Codex supervised threads preserve sign-in while overriding inherited external tools and checking MCP runtime status before inference. The live integration probe exposed and drove fixes for ambient MCP writes and missing research review. See [Master audit](MASTER_AGENT_AUDIT.md) and [research](research/master-agent-2026-10-19.md). Earlier sections below describe previous checkpoints.
+
 # Agent workspace upgrade — 2026-10-19
 
 Implemented a redesigned AI Evolution Polska Control Center, four execution provider configurations, native Claude/Antigravity adapters, optional OpenCode/OpenRouter integration, OS-encrypted API-key persistence, authoritative-or-unknown quota displays, explicitly shared FTS5 memory, a team skill and a finite supervised queue. Local Git projects work without a GitHub remote. Schema v9 preserves v1–v8 data and defaults old memory to private project scope.

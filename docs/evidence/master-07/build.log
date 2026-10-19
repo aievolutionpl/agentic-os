@@ -1,0 +1,15 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 42 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                           0.66 kB │ gzip:   0.38 kB
+dist/renderer/assets/InterVariable-H_M6nIbt.ttf  862.94 kB
+dist/renderer/assets/index-BA1o2hn-.css           54.36 kB │ gzip:  11.21 kB
+dist/renderer/assets/index-Cq6lqvFS.js           320.85 kB │ gzip: 100.21 kB
+✓ built in 949ms

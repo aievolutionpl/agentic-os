@@ -3,6 +3,17 @@ import React from "react";
 /** Original pictograms, not official provider trademarks. */
 export function ProviderIcon({ provider }: { provider: string }) {
   const paths: Record<string, React.ReactNode> = {
+    local: (
+      <>
+        <rect x="4" y="4" width="16" height="12" rx="2" />
+        <path d="M8 20h8m-4-4v4M8 9h8m-8 3h5" />
+      </>
+    ),
+    hermes: (
+      <>
+        <path d="m3 5 9 4 9-4-5 8-4 7-4-7-5-8Zm9 4v11M3 5v6l5 2m13-8v6l-5 2" />
+      </>
+    ),
     codex: (
       <>
         <path d="m9 6-6 6 6 6m6-12 6 6-6 6M14 4l-4 16" />

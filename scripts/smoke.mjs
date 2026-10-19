@@ -66,6 +66,7 @@ async function create(name) {
     .getByRole("button", { name: "Utwórz projekt", exact: true })
     .click();
   await page.getByRole("heading", { name, exact: true }).waitFor();
+  await page.locator(".tabs").getByRole("button", { name: /^Zadania/ }).click();
 }
 async function choose(label, option, scope = page) {
   await scope.getByRole("button", { name: label, exact: true }).click();
@@ -96,6 +97,7 @@ try {
       "snapshot",
       "connectorScan",
       "orchestrationStart", "orchestrationState", "orchestrationStop",
+      "missionPlan", "missionList", "missionAction", "missionRemember", "localModelSettings", "localModelSave", "localModelRemove",
       "providerDetect", "openRouterSettings", "openRouterSave", "openRouterRemove", "openRouterModels",
       "quotaScan", "quotaSaveCustom", "quotaDeleteCustom", "quotaRefresh",
       "projectData",
@@ -167,7 +169,7 @@ try {
     .getByLabel("Opisz zadanie", { exact: true })
     .fill("Unsaved A input");
   await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
-  await page.locator(".tabs button").nth(0).click();
+  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
   assert.equal(
     await page.locator("#task-title").inputValue(),
     "Unsaved A input",
@@ -187,7 +189,7 @@ try {
   await memory("<script>window.pwned=true</script> Client A secret-free fact");
   assert.equal(await page.evaluate(() => window.pwned), undefined);
   await create("Client B");
-  await page.locator(".tabs button").nth(0).click();
+  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
   assert.equal(await page.locator("#task-title").inputValue(), "");
   await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
   assert.equal(
@@ -220,7 +222,7 @@ try {
     })
     .waitFor();
   await page.getByRole("button", { name: /Client A/, exact: false }).click();
-  await page.locator(".tabs button").nth(0).click();
+  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
   assert.equal(
     await page.locator("#task-title").inputValue(),
     "Unsaved A input",
@@ -270,7 +272,7 @@ try {
     () => document.documentElement.dataset.theme === "light",
   );
   await page.setViewportSize({ width: 1440, height: 940 });
-  await page.locator(".tabs button").nth(0).click();
+  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
   await page.screenshot({
     path: join(evidence, "desktop-light-1440.png"),
     fullPage: true,
@@ -285,6 +287,7 @@ try {
   );
   // The app now opens on the Control Center; persisted projects stay in the sidebar.
   await page.locator(".project-link", { hasText: "Client A" }).click();
+  await page.locator(".tabs").getByRole("button", { name: /^Tasks/ }).click();
   await page.getByRole("heading", { name: "Client A", exact: true }).waitFor();
   await page
     .getByRole("heading", { name: "Review project boundaries", exact: true })
@@ -455,6 +458,7 @@ try {
     .getByRole("button", { name: "Create project", exact: true })
     .click();
   await page.locator("main[aria-busy=false]").waitFor();
+  await page.locator(".tabs").getByRole("button", { name: /^Tasks/ }).click();
   await page.locator("#task-title").fill("Long_task_".repeat(300));
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.locator(".task-list h3").waitFor();

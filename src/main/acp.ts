@@ -1,7 +1,47 @@
 import { randomUUID } from "node:crypto";
+import { existsSync, realpathSync, statSync } from "node:fs";
+import { resolve, relative, dirname, isAbsolute } from "node:path";
 import { RpcProcess, type ProcessSpec } from "./rpc.js";
 import type { AgentAdapter, AgentInput, AgentResult } from "./providers.js";
 import { text, redact } from "./validate.js";
+export function workspaceEdit(cwd: string, locations: unknown): boolean {
+  if (!Array.isArray(locations) || !locations.length || locations.length > 100)
+    return false;
+  try {
+    const root = realpathSync.native(cwd);
+    return locations.every((location) => {
+      if (
+        typeof location?.path !== "string" ||
+        !location.path ||
+        location.path.includes("\0")
+      )
+        return false;
+      const target = resolve(root, location.path),
+        rel = relative(root, target);
+      if (
+        !rel ||
+        isAbsolute(rel) ||
+        rel
+          .split(/[\\/]/)
+          .some((p) => p === ".." || p.toLowerCase() === ".git") ||
+        (process.platform === "win32" && rel.includes(":"))
+      )
+        return false;
+      let ancestor = target;
+      while (!existsSync(ancestor) && ancestor !== dirname(ancestor))
+        ancestor = dirname(ancestor);
+      const physical = relative(root, realpathSync.native(ancestor));
+      if (isAbsolute(physical) || physical.split(/[\\/]/).includes(".."))
+        return false;
+      return (
+        !existsSync(target) ||
+        (statSync(target).isFile() && statSync(target).nlink === 1)
+      );
+    });
+  } catch {
+    return false;
+  }
+}
 // ACP v1. The selected executable is trusted local code and must enforce its own OS sandbox.
 export class AcpAdapter implements AgentAdapter {
   readonly rpc: RpcProcess;
@@ -30,9 +70,17 @@ export class AcpAdapter implements AgentAdapter {
     };
     const request = (message: any) => {
       if (message.method === "session/request_permission") {
-        const option = message.params?.options?.find(
-          (option: any) =>
-            option.kind === "reject_once" || option.kind === "reject_always",
+        const call = message.params?.toolCall;
+        const allowEdit =
+          !!sessionId &&
+          message.params?.sessionId === sessionId &&
+          !input.readOnly &&
+          call?.kind === "edit" &&
+          workspaceEdit(input.cwd, call.locations);
+        const option = message.params?.options?.find((option: any) =>
+          allowEdit
+            ? option.kind === "allow_once"
+            : option.kind === "reject_once" || option.kind === "reject_always",
         );
         this.rpc.respond(message.id, {
           outcome: option
@@ -42,7 +90,7 @@ export class AcpAdapter implements AgentAdapter {
       } else this.rpc.reject(message.id);
       input.activity(
         "policy",
-        "ACP permission request declined. Host file and terminal capabilities are disabled.",
+        "ACP permission request checked. Only located file edits inside the worktree may be allowed; host file and terminal capabilities are disabled.",
       );
     };
     const abort = () => {

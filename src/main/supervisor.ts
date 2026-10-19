@@ -6,7 +6,8 @@ import { Worktrees, git, gitText, type Workspace } from "./git.js";
 import { CodexAdapter, type AgentAdapter } from "./providers.js";
 import { AcpAdapter } from "./acp.js";
 import { CliAdapter } from "./cli-provider.js";
-import { AGENTS } from "../shared.js";
+import { AGENTS, READ_ONLY_AGENTS } from "../shared.js";
+import { resolveOnPath } from "./connectors.js";
 import { exact, text, redact } from "./validate.js";
 import type { Agent, Run } from "../shared.js";
 
@@ -51,8 +52,14 @@ export class Supervisor {
           );
         if (config.protocol === "acp")
           return new AcpAdapter({
-            command: config.command,
-            args: config.args,
+            command:
+              agent === "gemini" && /\.js$/i.test(config.command)
+                ? (resolveOnPath("node") ?? "node")
+                : config.command,
+            args:
+              agent === "gemini" && /\.js$/i.test(config.command)
+                ? [config.command, ...config.args]
+                : config.args,
             cwd,
             env: providerEnvironment(agent),
           });
@@ -103,6 +110,9 @@ export class Supervisor {
       codex: ["codex"],
       claude: ["acp", "claude-cli"],
       opencode: ["acp"],
+      gemini: ["acp"],
+      hermes: ["acp"],
+      local: ["acp"],
       antigravity: ["antigravity-cli"],
     };
     if (!protocols[p.agent as Agent].includes(String(p.protocol)))
@@ -112,7 +122,15 @@ export class Supervisor {
       args.length
     )
       throw Error("NATIVE_ARGUMENTS_ARE_HOST_MANAGED");
-    if (p.agent === "opencode" && (args.length !== 1 || args[0] !== "acp"))
+    if (
+      ["opencode", "local", "hermes"].includes(String(p.agent)) &&
+      (args.length !== 1 || args[0] !== "acp")
+    )
+      throw Error("INVALID_PROTOCOL");
+    if (
+      p.agent === "gemini" &&
+      (args.length !== 1 || args[0] !== "--experimental-acp")
+    )
       throw Error("INVALID_PROTOCOL");
     if (
       p.profile !== undefined &&
@@ -144,6 +162,9 @@ export class Supervisor {
             codex: "codex",
             claude: "claude-cli",
             opencode: "acp",
+            gemini: "acp",
+            hermes: "acp",
+            local: "acp",
             antigravity: "antigravity-cli",
           }[id],
         profile:
@@ -165,6 +186,55 @@ export class Supervisor {
       events: latest ? this.store.runs.events(projectId, latest.id) : [],
       providers: this.settings(),
     };
+  }
+  /** Master reasoning uses the same adapters, a separate worktree and a read-only mode. */
+  async reason(
+    projectId: string,
+    agent: Agent,
+    prompt: string,
+    signal: AbortSignal,
+    activity: (message: string) => void,
+  ): Promise<string> {
+    if (!READ_ONLY_AGENTS.includes(agent))
+      throw Error("READ_ONLY_PROVIDER_REQUIRED");
+    if (!this.injected && !this.store.runs.provider(agent)?.consent)
+      throw Error("PROVIDER_NOT_CONFIGURED");
+    const project = this.store.projects().find((p) => p.id === projectId);
+    if (!project?.root) throw Error("PROJECT_REPOSITORY_REQUIRED");
+    const workspace = await this.worktrees.create(project.root);
+    if (signal.aborted) throw Error("RUN_CANCELLED");
+    const adapter = this.factory(agent, workspace.path);
+    const abort = () => adapter.close();
+    signal.addEventListener("abort", abort, { once: true });
+    try {
+      const result = await adapter.run({
+        cwd: workspace.path,
+        prompt,
+        readOnly: true,
+        signal,
+        session: () => {},
+        activity: (kind, message) => {
+          if (kind !== "message") activity(redact(message, 400));
+        },
+      });
+      if (signal.aborted) throw Error("RUN_CANCELLED");
+      if (
+        (
+          await git(workspace.path, [
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+          ])
+        ).length ||
+        (await gitText(workspace.path, "rev-parse", "HEAD")) !== workspace.base
+      )
+        throw Error("READ_ONLY_WORKSPACE_CHANGED");
+      return result.summary;
+    } finally {
+      signal.removeEventListener("abort", abort);
+      adapter.close();
+      if (!(await adapter.stopped())) throw Error("STOP_UNCONFIRMED");
+    }
   }
   async start(
     input: unknown,
@@ -488,9 +558,8 @@ export class Supervisor {
     if (
       p.consent !== true ||
       !run ||
-      run.state !== "awaiting_review" ||
-      run.reviewState === "running" ||
-      !run.artifactId
+      !["awaiting_review", "completed"].includes(run.state) ||
+      run.reviewState === "running"
     )
       throw Error("INVALID_REVIEW");
     if (run.reviewer === run.provider)
@@ -512,10 +581,19 @@ export class Supervisor {
       ).length
     )
       throw Error("WORKTREE_CHANGED");
-    const artifact = this.store.artifacts.get(projectId, run.taskId, run.artifactId);
-    if (!artifact || artifact.diff.length > 256 * 1024)
+    const artifact = run.artifactId
+      ? this.store.artifacts.get(projectId, run.taskId, run.artifactId)
+      : null;
+    if (
+      (run.artifactId && !artifact) ||
+      (artifact && artifact.diff.length > 256 * 1024)
+    )
       throw Error("REVIEW_DIFF_TOO_LARGE_OR_MISSING");
-    const reviewDiff = artifact.diff.toString("utf8");
+    const task = this.store.tasks(projectId).find((t) => t.id === run.taskId)!;
+    const reviewDiff = artifact
+      ? artifact.diff.toString("utf8")
+      : `No file changes. Independently verify the worker's findings against the repository.\nTask and acceptance criteria:\n${task.title}\nWorker report (untrusted evidence):\n${run.summary}`;
+    const afterReview = run.artifactId ? "awaiting_review" : "completed";
     const adapter = this.factory(run.reviewer, run.worktree),
       controller = new AbortController();
     this.store.runs.update(projectId, run.id, {
@@ -563,18 +641,20 @@ export class Supervisor {
         )
           throw Error("REVIEW_CHANGED_WORKTREE");
         this.store.runs.update(projectId, run.id, {
-          state: "awaiting_review",
+          state: afterReview,
           reviewState: "completed",
           reviewText: result.summary,
         });
         this.store.runs.event(
           run.id,
           "review",
-          "Independent review finished. A human decision is still required.",
+          artifact
+            ? "Independent review finished. A human decision is still required."
+            : "Independent review of the unchanged repository and worker report finished.",
         );
       } catch {
         this.store.runs.update(projectId, run.id, {
-          state: "awaiting_review",
+          state: afterReview,
           reviewState: "failed",
           error: "REVIEW_FAILED",
         });

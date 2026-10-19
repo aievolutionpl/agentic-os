@@ -13,6 +13,9 @@ const defaults = {
   codex: "codex",
   claude: "claude-cli",
   opencode: "acp",
+  gemini: "acp",
+  hermes: "acp",
+  local: "acp",
   antigravity: "antigravity-cli",
 } as const;
 export function ProviderSetup({ language }: { language: "pl" | "en" }) {
@@ -47,9 +50,11 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
       JSON.stringify(
         config?.args?.length
           ? config.args
-          : agent === "opencode"
+          : ["opencode", "local", "hermes"].includes(agent)
             ? ["acp"]
-            : [],
+            : agent === "gemini"
+              ? ["--experimental-acp"]
+              : [],
       ),
     );
     setProfile(
@@ -218,21 +223,33 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
         )}
         <p className="connection-note">
           <Icon name="info" />
-          {agent === "codex"
+          {agent === "local"
             ? pl
-              ? "Limity będą odczytywane z tego samego profilu, który wykonuje zadania."
-              : "Limits are read from the same profile that runs tasks."
-            : agent === "claude"
+              ? "Wybierz plik wykonywalny OpenCode. Lokalny model i adres Ollamy lub LM Studio ustaw poniżej. Ten profil nie korzysta z klucza OpenRouter."
+              : "Select the OpenCode executable. Configure your Ollama or LM Studio model below. This profile does not use the OpenRouter key."
+            : agent === "gemini"
               ? pl
-                ? "Zaloguj CLI poleceniem claude auth login. Tryb natywny udostępnia odczyt i edycję plików; polecenia powłoki są wyłączone."
-                : "Sign in using claude auth login. Native mode exposes file reading and editing; shell commands are disabled."
-              : agent === "opencode"
+                ? "Gemini CLI działa przez eksperymentalny ACP. Na Windows wybierz dist/index.js z instalacji @google/gemini-cli (wymaga Node.js w PATH). Master i recenzent wymagają trybu plan w wersji CLI."
+                : "Gemini CLI uses experimental ACP. On Windows select dist/index.js from @google/gemini-cli (requires Node.js on PATH). Master and review require CLI plan mode."
+              : agent === "hermes"
                 ? pl
-                  ? "OpenCode uruchamia się przez ACP. Wybierz model OpenRouter poniżej lub użyj konfiguracji własnego OpenCode."
-                  : "OpenCode runs through ACP. Select an OpenRouter model below or use your own OpenCode configuration."
-                : pl
-                  ? "Wymaga CLI agy i jego logowania. Adapter wykonawczy jest eksperymentalny; przeglądy tylko do odczytu i wznowienia są niedostępne."
-                  : "Requires agy CLI and its sign-in. Execution is experimental; read-only reviews and resume are unavailable."}
+                  ? "Wybierz hermes z zainstalowanym dodatkiem ACP i skonfigurowanym modelem. Uruchamiamy hermes acp. Obecnie dostępny jako wykonawca; nie deklarujemy trybu tylko do odczytu."
+                  : "Select hermes with the ACP extra and model configured. Launches hermes acp. Available as a worker; read-only mode is not claimed."
+                : agent === "codex"
+                  ? pl
+                    ? "Limity będą odczytywane z tego samego profilu, który wykonuje zadania."
+                    : "Limits are read from the same profile that runs tasks."
+                  : agent === "claude"
+                    ? pl
+                      ? "Zaloguj CLI poleceniem claude auth login. Tryb natywny udostępnia odczyt i edycję plików; polecenia powłoki są wyłączone."
+                      : "Sign in using claude auth login. Native mode exposes file reading and editing; shell commands are disabled."
+                    : agent === "opencode"
+                      ? pl
+                        ? "OpenCode uruchamia się przez ACP. Wybierz model OpenRouter poniżej lub użyj konfiguracji własnego OpenCode."
+                        : "OpenCode runs through ACP. Select an OpenRouter model below or use your own OpenCode configuration."
+                      : pl
+                        ? "Wymaga CLI agy i jego logowania. Adapter wykonawczy jest eksperymentalny; przeglądy tylko do odczytu i wznowienia są niedostępne."
+                        : "Requires agy CLI and its sign-in. Execution is experimental; read-only reviews and resume are unavailable."}
         </p>
         <label className="dependency-choice consent">
           <input
@@ -284,6 +301,123 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
         )}
       </form>
       <OpenRouterSetup language={language} />
+      <LocalModelSetup language={language} />
+    </section>
+  );
+}
+
+function LocalModelSetup({ language }: { language: "pl" | "en" }) {
+  const api = window.agenting!,
+    pl = language === "pl";
+  const [baseURL, setBaseURL] = useState("http://127.0.0.1:11434/v1"),
+    [model, setModel] = useState("");
+  const [busy, setBusy] = useState(false),
+    [message, setMessage] = useState("");
+  useEffect(() => {
+    void api
+      .localModelSettings?.()
+      .then((s) => {
+        setBaseURL(s.baseURL);
+        setModel(s.model);
+      })
+      .catch(() =>
+        setMessage(
+          pl
+            ? "Nie udało się odczytać konfiguracji."
+            : "Could not read configuration.",
+        ),
+      );
+  }, []);
+  if (!api.localModelSave) return null;
+  return (
+    <section className="local-model-setup">
+      <h3>
+        <ProviderIcon provider="local" />
+        {pl
+          ? "Lokalne modele · Ollama / LM Studio"
+          : "Local models · Ollama / LM Studio"}
+      </h3>
+      <p className="helper">
+        {pl
+          ? "Włącz serwer zgodny z OpenAI i podaj dokładny identyfikator zainstalowanego modelu. Narzędzia agenta obsługuje OpenCode przez ACP. Serwer i model muszą działać na tym komputerze."
+          : "Start an OpenAI-compatible server and enter the exact installed model ID. OpenCode provides agent tools over ACP. The server and model must run on this computer."}
+      </p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          setBusy(true);
+          setMessage("");
+          void api.localModelSave!({ baseURL, model })
+            .then(() =>
+              setMessage(
+                pl
+                  ? "Zapisano. Połącz profil Lokalny LLM z OpenCode powyżej."
+                  : "Saved. Connect the Local LLM profile to OpenCode above.",
+              ),
+            )
+            .catch(() =>
+              setMessage(
+                pl
+                  ? "Wymagany adres http://localhost:port/v1 i prawidłowy identyfikator modelu."
+                  : "Use http://localhost:port/v1 and a valid model ID.",
+              ),
+            )
+            .finally(() => setBusy(false));
+        }}
+      >
+        <label>
+          {pl ? "Adres lokalnego API" : "Local API URL"}
+          <input
+            type="url"
+            required
+            value={baseURL}
+            onChange={(e) => setBaseURL(e.target.value)}
+            disabled={busy}
+          />
+        </label>
+        <label>
+          {pl ? "Identyfikator modelu" : "Model ID"}
+          <input
+            required
+            maxLength={200}
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder="qwen3.5"
+            disabled={busy}
+          />
+        </label>
+        <div className="mission-actions">
+          <button disabled={busy || !model.trim()}>
+            {pl ? "Zapisz lokalny model" : "Save local model"}
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              void api.localModelRemove!()
+                .then(() => {
+                  setModel("");
+                  setMessage(
+                    pl ? "Usunięto konfigurację." : "Configuration removed.",
+                  );
+                })
+                .catch(() =>
+                  setMessage(
+                    pl
+                      ? "Nie udało się usunąć konfiguracji."
+                      : "Could not remove configuration.",
+                  ),
+                )
+                .finally(() => setBusy(false));
+            }}
+          >
+            {pl ? "Usuń konfigurację" : "Remove configuration"}
+          </button>
+        </div>
+        <p role="status">{message}</p>
+      </form>
     </section>
   );
 }

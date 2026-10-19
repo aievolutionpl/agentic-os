@@ -24,6 +24,8 @@ import { ProjectBrowser } from "./browser.js";
 import { OpenRouterConnection } from "./openrouter.js";
 import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
+import { MasterAgent } from "./master-agent.js";
+import { LocalModelConnection } from "./local-model.js";
 import {
   scanAllQuotas,
   saveCustomSubscription,
@@ -42,6 +44,7 @@ app.setName("Agenting OS");
 let store: Store;
 let supervisor: Supervisor;
 let orchestrator: Orchestrator | undefined;
+let masterAgent: MasterAgent | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
 let browser: ProjectBrowser | undefined;
@@ -90,11 +93,17 @@ app
       encrypt: (value) => safeStorage.encryptString(value),
       decrypt: (value) => safeStorage.decryptString(value),
     });
+    const localModel = new LocalModelConnection(app.getPath("userData"));
     supervisor = new Supervisor(
       store,
       app.getPath("userData"),
       undefined,
-      (agent) => (agent === "opencode" ? router.environment() : {}),
+      (agent) =>
+        agent === "local"
+          ? localModel.environment()
+          : agent === "opencode"
+            ? router.environment()
+            : {},
     );
     orchestrator = new Orchestrator(store, supervisor);
     const quotas = () =>
@@ -131,6 +140,16 @@ app
             ? openRouterQuota(await router.quota())
             : unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
       });
+    masterAgent = new MasterAgent(
+      store,
+      supervisor,
+      quotas,
+      (agent) =>
+        agent === "opencode" && router.settings().configured
+          ? "openrouter"
+          : agent,
+      (projectId) => orchestrator!.state({ projectId }).status === "running",
+    );
     mcp = new McpTools(store.extensions, app.getPath("userData"));
     browser = new ProjectBrowser(store, () => window);
     const applications = new Applications(store, supervisor.worktrees);
@@ -147,6 +166,13 @@ app
       }),
     );
     const handlers: Record<string, (input: unknown) => unknown> = {
+      missionPlan: (input) => masterAgent!.plan(input),
+      missionList: (input) => masterAgent!.list(input),
+      missionAction: (input) => masterAgent!.action(input),
+      missionRemember: (input) => masterAgent!.remember(input),
+      localModelSettings: () => localModel.settings(),
+      localModelSave: (input) => localModel.save(input),
+      localModelRemove: () => localModel.remove(),
       orchestrationStart: (input) => orchestrator!.start(input),
       orchestrationState: (input) => orchestrator!.state(input),
       orchestrationStop: (input) => orchestrator!.stop(input),
@@ -322,7 +348,24 @@ app
           throw Error("FORBIDDEN");
         try {
           return await handler(input);
-        } catch {
+        } catch (error) {
+          const code = error instanceof Error ? error.message : "";
+          if (
+            name.startsWith("mission") &&
+            [
+              "PROVIDER_NOT_CONFIGURED",
+              "SELECT_TWO_WORKERS",
+              "READ_ONLY_PROVIDER_REQUIRED",
+              "STOP_PREVIOUS_MISSION",
+              "MISSION_ALREADY_ACTIVE",
+              "INVALID_CONTEXT",
+              "CONTEXT_BUDGET_EXCEEDED",
+              "MISSION_NOT_FOUND",
+              "INVALID_TRANSITION",
+              "MISSION_NOT_EVALUATED",
+            ].includes(code)
+          )
+            throw Error(code);
           throw Error("REQUEST_REJECTED");
         }
       });
@@ -350,7 +393,11 @@ app.on("before-quit", (event) => {
   event.preventDefault();
   shuttingDown = true;
   orchestrator?.close();
-  void Promise.all([supervisor?.close(), mcp?.close()]).finally(() => {
+  void Promise.all([
+    masterAgent?.close(),
+    supervisor?.close(),
+    mcp?.close(),
+  ]).finally(() => {
     browser?.close();
     login?.close();
     store?.close();

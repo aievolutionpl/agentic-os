@@ -19,6 +19,8 @@ import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
 import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { OrchestrationPanel } from "./OrchestrationPanel";
+import { MasterPanel } from "./MasterPanel";
+import { READ_ONLY_AGENTS } from "../shared";
 import { ccWords } from "./cc-i18n";
 import "./style.css";
 
@@ -27,6 +29,9 @@ const agentChoices = [
   { value: "codex", label: "Codex" },
   { value: "claude", label: "Claude Code" },
   { value: "opencode", label: "OpenCode / OpenRouter" },
+  { value: "gemini", label: "Gemini CLI" },
+  { value: "hermes", label: "Hermes" },
+  { value: "local", label: "Lokalny LLM" },
   { value: "antigravity", label: "Antigravity" },
 ];
 function App() {
@@ -38,8 +43,8 @@ function App() {
     events: [],
   });
   const [tab, setTab] = useState<
-    "tasks" | "memory" | "agents" | "extensions" | "browser"
-  >("tasks");
+    "master" | "tasks" | "memory" | "agents" | "extensions" | "browser"
+  >(api?.missionPlan ? "master" : "tasks");
   const [view, setView] = useState<
     "center" | "project" | "quota" | "connections"
   >(api?.connectorScan ? "center" : "project");
@@ -616,30 +621,48 @@ function App() {
                 <nav className="tabs" aria-label={w.work}>
                   {(
                     [
+                      "master",
                       "tasks",
                       "memory",
                       "agents",
                       "extensions",
                       "browser",
                     ] as const
-                  ).map((item) => (
-                    <button
-                      key={item}
-                      className={tab === item ? "active" : ""}
-                      aria-current={tab === item ? "page" : undefined}
-                      onClick={() => setTab(item)}
-                    >
-                      {w[item]}{" "}
-                      {(item === "tasks" || item === "memory") && (
-                        <span className="count">
-                          {item === "tasks"
-                            ? data.tasks.length
-                            : data.memory.length}
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                  )
+                    .filter((item) => item !== "master" || !!api.missionPlan)
+                    .map((item) => (
+                      <button
+                        key={item}
+                        className={tab === item ? "active" : ""}
+                        aria-current={tab === item ? "page" : undefined}
+                        onClick={() => setTab(item)}
+                      >
+                        {item === "master" ? "Master Agent" : w[item]}{" "}
+                        {(item === "tasks" || item === "memory") && (
+                          <span className="count">
+                            {item === "tasks"
+                              ? data.tasks.length
+                              : data.memory.length}
+                          </span>
+                        )}
+                      </button>
+                    ))}
                 </nav>
+                {tab === "master" && (
+                  <MasterPanel
+                    key={`master-${projectId}`}
+                    project={project}
+                    memory={data.memory}
+                    tasks={data.tasks}
+                    language={prefs.language}
+                    onChanged={() => {
+                      void reloadProject(projectId).catch(() => setError(true));
+                    }}
+                    onTasks={() => setTab("tasks")}
+                    onConnections={() => setView("connections")}
+                    onQuota={() => setView("quota")}
+                  />
+                )}
                 {tab === "extensions" && (
                   <ExtensionsPanel
                     key={projectId}
@@ -733,7 +756,9 @@ function App() {
                               options={agentChoices.filter(
                                 (option) =>
                                   option.value !== implementer &&
-                                  option.value !== "antigravity",
+                                  READ_ONLY_AGENTS.includes(
+                                    option.value as Agent,
+                                  ),
                               )}
                               onChange={(value) => setReviewer(value as Agent)}
                               disabled={busy}
@@ -922,7 +947,9 @@ function App() {
                       <SelectField
                         label={w.editRoles}
                         value={project.master}
-                        options={agentChoices}
+                        options={agentChoices.filter((option) =>
+                          READ_ONLY_AGENTS.includes(option.value as Agent),
+                        )}
                         disabled={busy}
                         onChange={(value) => {
                           const master = value as Agent;
@@ -1072,7 +1099,9 @@ function App() {
             label={w.editRoles}
             name="master"
             value={projectMaster}
-            options={agentChoices}
+            options={agentChoices.filter((option) =>
+              READ_ONLY_AGENTS.includes(option.value as Agent),
+            )}
             disabled={busy}
             onChange={(value) => setProjectMaster(value as Agent)}
           />

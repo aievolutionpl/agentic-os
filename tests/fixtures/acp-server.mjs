@@ -37,11 +37,26 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       method: "session/request_permission",
       params: {
         sessionId: "acp-fixture",
-        options: [{ optionId: "reject", kind: "reject_once", name: "Reject" }],
+        ...(process.env.QA_ACP_EDIT
+          ? {
+              toolCall: {
+                kind: "edit",
+                locations: [{ path: process.env.QA_ACP_EDIT }],
+              },
+            }
+          : {}),
+        options: [
+          { optionId: "reject", kind: "reject_once", name: "Reject" },
+          { optionId: "allow", kind: "allow_once", name: "Allow once" },
+        ],
       },
     });
   } else if (m.id === 100) {
-    if (m.result?.outcome?.optionId !== "reject") process.exit(2);
+    if (
+      m.result?.outcome?.optionId !==
+      (process.env.QA_EXPECT_ALLOW === "1" ? "allow" : "reject")
+    )
+      process.exit(2);
     send({ id: promptId, result: { stopReason: "end_turn" } });
   }
 });

@@ -46,6 +46,7 @@ jobs:
           path: |
             docs/evidence/release-04
             docs/evidence/workspace-06
+            docs/evidence/master-07
           retention-days: 14
   windows-package:
     needs: verify

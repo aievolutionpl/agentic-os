@@ -1083,5 +1083,44 @@ summary:focus-visible {
   }
 }
 
-.chat-topline > button { display: inline-flex; align-items: center; gap: 8px; }
-.chat-context summary .icon { display: inline; }
+.chat-topline > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (min-width: 761px) and (min-height: 700px) {
+  .chat-workspace:has(.chat-composer) {
+    height: calc(100dvh - 120px);
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-workspace:has(.chat-composer) .chat-topline {
+    flex-shrink: 0;
+  }
+  .chat-workspace:has(.chat-composer) .chat-layout {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    align-items: stretch;
+  }
+  .chat-stage:has(.chat-composer) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .chat-stage:has(.chat-composer) > :not(.chat-transcript) {
+    flex-shrink: 0;
+  }
+  .chat-stage:has(.chat-composer) .chat-transcript {
+    flex: 1;
+    min-height: 100px;
+    max-height: none;
+  }
+  .chat-stage:has(.chat-composer) > details[open] {
+    max-height: 22vh;
+    overflow-y: auto;
+  }
+}
+.chat-context summary .icon {
+  display: inline;
+}

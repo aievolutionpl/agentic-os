@@ -6,7 +6,8 @@
     "nine-skills-search-and-licensed-source-preview",
     "multi-turn-history-and-pinned-shared-memory",
     "chat-to-draft-task-with-independent-reviewer",
-    "automatic-official-quota-protocol-read-fixture"
+    "automatic-official-quota-protocol-read-fixture",
+    "conversation-composer-remains-visible-at-desktop-sizes"
   ],
   "screenshots": [
     {

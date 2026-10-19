@@ -241,6 +241,21 @@ try {
   await page.waitForFunction(() => !document.querySelector(".projects-toggle"));
   await nav("Czaty");
   await page.locator(".chat-history>button").first().click();
+  for (const width of [1440, 900]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForFunction(() => {
+      const box = document
+        .querySelector(".chat-composer")
+        ?.getBoundingClientRect();
+      return box && box.top >= 0 && box.bottom <= innerHeight;
+    });
+    await page.screenshot({
+      path: join(output, `conversation-light-${width}.png`),
+      fullPage: true,
+    });
+  }
+  report.checks.push("conversation-composer-remains-visible-at-desktop-sizes");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
     path: join(output, "conversation-light-1440.png"),
     fullPage: true,

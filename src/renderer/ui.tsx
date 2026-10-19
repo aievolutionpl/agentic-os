@@ -314,6 +314,8 @@ export function useNarrow() {
     if (!window.matchMedia) return;
     const media = window.matchMedia("(max-width: 760px)");
     const update = () => setNarrow(media.matches);
+    // The viewport may have changed between the first render and this effect.
+    update();
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);

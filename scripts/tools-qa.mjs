@@ -68,6 +68,8 @@ try {
   });
   page = await desktop.firstWindow();
   page.on("pageerror", (e) => errors.push(e.message));
+  // The app opens on the Control Center; pick the project from the sidebar.
+  await page.locator(".project-link", { hasText: a.name }).click();
   await page.getByRole("heading", { name: a.name, exact: true }).waitFor();
   await page.getByRole("button", { name: "Extensions", exact: true }).click();
   await page.getByText("Evidence-based review", { exact: true }).waitFor();
@@ -165,6 +167,12 @@ try {
       theme,
     );
     await page.reload();
+    // A reload returns to the Control Center; reopen the project at desktop width.
+    await desktop.evaluate(({ BrowserWindow }) =>
+      BrowserWindow.getAllWindows()[0].setContentSize(1440, 960),
+    );
+    await page.waitForFunction(() => innerWidth >= 1000);
+    await page.locator(".project-link", { hasText: a.name }).click();
     await page.getByRole("button", { name: "Extensions", exact: true }).click();
     await page.getByText("Evidence-based review", { exact: true }).waitFor();
     for (const width of [1440, 390]) {

@@ -1,5 +1,21 @@
 # Agenting OS — przekazanie projektu
 
+## Działające subskrypcje Hermesa i Google — 2026-10-19
+
+Gemini CLI zaktualizowano do 0.64.0. Zainstalowane Hermes 0.22.2 i Antigravity CLI 1.4.2 są teraz wykrywane w natywnych lokalizacjach Windows. Hermes został zalogowany do ChatGPT/Codex i działa w aplikacji na `openai-codex:gpt-6.1-sol`; Google działa przez Antigravity na `gemini-4-argon-medium`. Dwie tury rozmowy i zachowanie kontekstu potwierdzono w prawdziwym oknie aplikacji.
+
+Google zakończył obsługę kont indywidualnych AI Pro/Ultra w Gemini CLI. Aplikacja pokazuje ten stan i kieruje do Antigravity. Wcześniejszy błąd wymiany OAuth wynikał z certyfikatów Node; procesy Gemini korzystają teraz z systemowego magazynu Windows. Wybór modeli jest zapisywany osobno w Agenting OS (baza v12); globalny model Hermesa pozostaje bez zmian. 80/80 testów przeszło. [Pełny raport i źródła](docs/SUBSCRIPTION_CONNECTIONS.md).
+
+## Czat, pamięć i subskrypcje — 2026-10-19
+
+Nowy ekran startowy to **Czaty**: wybór agenta, rozmowy/planowania oraz kontekstu domyślnego, folderu lokalnego lub GitHuba. Odpowiedzi są strumieniowane i zapisywane; można je zatrzymać, zapamiętać albo przenieść do zadania z osobnym recenzentem. Odczyt zwykłego folderu bez Git i dwie tury historii potwierdzono na prawdziwych subskrypcjach Codexa i Claude'a. Klonowanie publicznego repozytorium przez `gh` i odczyt limitów Codexa również przeszły test.
+
+Sidebar ma osobne **Wspólna pamięć** i **Biblioteka skilli**. Przypięte wpisy trafiają automatycznie do kontekstu wszystkich agentów w odpowiednim zakresie. Jest dziewięć skilli, w tym trzy ze wskazanej rewizji obra/superpowers na MIT, oraz import lokalnego SKILL.md. Baza migruje do v11. OpenQuota odświeża dane automatycznie co minutę. UI otrzymał font Sora, Lucide, fioletowy sidebar, cyan przyciski, mocniejsze obramowania i dwa wygenerowane obrazy.
+
+Nowe widoki przeszły 30 kontroli rozmiaru/motywu, dotychczasowe 24 widoki również przeszły regresję. Gemini CLI jest lokalnie w wersji 0.1.4 bez wymaganego ACP, a Hermes nie został wykryty. Integracje i komunikaty są przygotowane, ale ich rzeczywistej inferencji nie potwierdzono. Automatyczne limity Claude'a/Hermesa/Gemini/Antigravity nadal pozostają nieznane.
+
+Aktualne wyniki i ograniczenia: [audyt harness](docs/HARNESS_AUDIT.md), [dowody testów](docs/evidence/harness-08/README.md), [źródła i obrazy](docs/research/harness-assets-2026-10-19.md). 75/75 testów przeszło. PR #4 został już scalony; ta rozbudowa powstaje na nowej gałęzi `codex/conversation-memory-harness` z aktualnego main. Zlecenie obejmuje push, bez kolejnego merge. Poniższe sekcje opisują wcześniejsze etapy.
+
 ## Master Agent według schematu — 2026-10-19
 
 Nowa zakładka **Master Agent** obsługuje cel → plan modelu → zatwierdzone uruchomienie → delegowanie → niezależne review (również analiz bez zmian plików) → decyzję człowieka o zastosowaniu → ocenę celu. Misje, kontekst i dziennik są trwałe w SQLite v10. Wynik można jawnie zapisać w pamięci projektu lub całego workspace.

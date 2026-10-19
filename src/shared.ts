@@ -87,9 +87,7 @@ export interface Task {
   createdAt: string;
 }
 export type FailureCode =
-  | "worker_error"
-  | "validation_failed"
-  | "lease_expired";
+  "worker_error" | "validation_failed" | "lease_expired";
 export interface TaskEvent {
   seq: number;
   projectId: string;
@@ -124,6 +122,39 @@ export interface Memory {
   source: string;
   createdAt: string;
   scope?: "project" | "workspace";
+  pinned?: number;
+  updatedAt?: string | null;
+}
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  at: number;
+  status: "complete" | "streaming" | "failed" | "cancelled";
+}
+export interface ChatSession {
+  id: string;
+  title: string;
+  projectId: string;
+  agent: Agent;
+  mode: "chat" | "plan";
+  source: "default" | "local" | "github";
+  root: string;
+  workspace: string;
+  status: "idle" | "running" | "failed" | "interrupted";
+  messages: ChatMessage[];
+  contextIds: string[];
+  skillIds: string[];
+  activity: string[];
+  error: string | null;
+  updatedAt: number;
+}
+export interface ProviderHealth {
+  agent: Agent;
+  state: "connected" | "needs-auth" | "unavailable";
+  detail: string;
+  models: { id: string; name: string }[];
+  observedAt: string;
 }
 export interface Preferences {
   language: "pl" | "en";
@@ -300,6 +331,52 @@ export interface ProjectData {
   events: TaskEvent[];
 }
 export interface API {
+  chatList?(): Promise<ChatSession[]>;
+  chatCreate?(input: {
+    agent: Agent;
+    mode: "chat" | "plan";
+    source: "default" | "local" | "github";
+    path?: string;
+    repository?: string;
+    projectId?: string;
+  }): Promise<ChatSession>;
+  chatSend?(input: {
+    id: string;
+    message: string;
+    contextIds: string[];
+    skillIds: string[];
+    consent: true;
+  }): Promise<ChatSession>;
+  chatAction?(input: { id: string; action: "stop" | "delete" }): Promise<void>;
+  chatRemember?(input: {
+    id: string;
+    messageId: string;
+    content: string;
+    scope: "project" | "workspace";
+  }): Promise<Memory>;
+  chatTask?(input: {
+    id: string;
+    messageId: string;
+    reviewer: Agent;
+  }): Promise<Task>;
+  memoryList?(): Promise<Memory[]>;
+  memoryUpdate?(input: {
+    projectId: string;
+    id: string;
+    content: string;
+    scope: "project" | "workspace";
+    pinned: boolean;
+  }): Promise<void>;
+  skillCatalog?(): Promise<Extension[]>;
+  skillImportFile?(input: { projectId: string }): Promise<Extension | null>;
+  providerCheck?(input: { agent: Agent }): Promise<ProviderHealth>;
+  providerSignIn?(input: {
+    agent: "gemini" | "hermes";
+  }): Promise<ProviderHealth>;
+  providerConnectDetected?(input: {
+    agent: Agent;
+    consent: true;
+  }): Promise<ProviderSetting[]>;
   missionPlan?(input: {
     projectId: string;
     goal: string;
@@ -369,13 +446,7 @@ export interface API {
   browserAction(input: {
     projectId: string;
     action:
-      | "navigate"
-      | "back"
-      | "forward"
-      | "reload"
-      | "state"
-      | "bounds"
-      | "hide";
+      "navigate" | "back" | "forward" | "reload" | "state" | "bounds" | "hide";
     url?: string;
     bounds?: { x: number; y: number; width: number; height: number };
   }): Promise<BrowserState | null>;
@@ -428,6 +499,7 @@ export interface API {
     args: string[];
     protocol: "codex" | "acp" | "claude-cli" | "antigravity-cli";
     profile?: "isolated" | "existing";
+    model?: string | null;
     consent: true;
   }): Promise<void>;
   providerSettings(): Promise<ProviderSetting[]>;
@@ -536,6 +608,7 @@ export interface ProviderSetting {
   args: string[];
   protocol: string;
   profile?: "isolated" | "existing";
+  model?: string | null;
 }
 export interface RuntimeView {
   runs: Run[];

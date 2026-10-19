@@ -26,6 +26,10 @@ import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
+import { Chats } from "./chats.js";
+import { QuotaMonitor } from "./quota-monitor.js";
+import { readSkillFile } from "./skill-files.js";
+import { AGENTS, type Agent } from "../shared.js";
 import {
   scanAllQuotas,
   saveCustomSubscription,
@@ -45,6 +49,8 @@ let store: Store;
 let supervisor: Supervisor;
 let orchestrator: Orchestrator | undefined;
 let masterAgent: MasterAgent | undefined;
+let chats: Chats | undefined;
+let quotaMonitor: QuotaMonitor | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
 let browser: ProjectBrowser | undefined;
@@ -106,7 +112,7 @@ app
             : {},
     );
     orchestrator = new Orchestrator(store, supervisor);
-    const quotas = () =>
+    const quotaSources = () =>
       scanAllQuotas(app.getPath("userData"), {
         codex: async () => {
           const config = store.runs.provider("codex");
@@ -116,7 +122,7 @@ app
           mkdirSync(home, { recursive: true });
           const client = new CodexAdapter({
             command: config.command,
-            args: ["app-server", "--listen", "stdio://"],
+            args: [...config.args, "app-server", "--listen", "stdio://"],
             cwd: app.getPath("userData"),
             env: config.profile === "existing" ? {} : { CODEX_HOME: home },
           });
@@ -140,14 +146,24 @@ app
             ? openRouterQuota(await router.quota())
             : unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
       });
+    quotaMonitor = new QuotaMonitor(quotaSources);
+    const quotas = () => quotaMonitor!.read();
+    const quotaProvider = (agent: Agent) =>
+      agent === "opencode" && router.settings().configured
+        ? "openrouter"
+        : agent;
+    chats = new Chats(
+      store,
+      supervisor,
+      app.getPath("userData"),
+      quotas,
+      quotaProvider,
+    );
     masterAgent = new MasterAgent(
       store,
       supervisor,
       quotas,
-      (agent) =>
-        agent === "opencode" && router.settings().configured
-          ? "openrouter"
-          : agent,
+      quotaProvider,
       (projectId) => orchestrator!.state({ projectId }).status === "running",
     );
     mcp = new McpTools(store.extensions, app.getPath("userData"));
@@ -166,6 +182,64 @@ app
       }),
     );
     const handlers: Record<string, (input: unknown) => unknown> = {
+      chatList: () => chats!.list(),
+      chatCreate: (input) => chats!.create(input),
+      chatSend: (input) => chats!.send(input),
+      chatAction: (input) => chats!.action(input),
+      chatRemember: (input) => chats!.remember(input),
+      chatTask: (input) => chats!.task(input),
+      memoryList: () => store.allMemory(),
+      memoryUpdate: (input) => store.updateMemory(input),
+      skillCatalog: () => store.extensions.catalog(),
+      skillImportFile: async (input) => {
+        const p = exact(input, ["projectId"]),
+          projectId = text(p.projectId);
+        store.extensions.list(projectId);
+        const result = await dialog.showOpenDialog(window!, {
+          title: "Import SKILL.md",
+          properties: ["openFile"],
+          filters: [{ name: "Agent Skill", extensions: ["md"] }],
+        });
+        if (result.canceled || !result.filePaths[0]) return null;
+        return store.extensions.import({
+          projectId,
+          manifest: JSON.stringify(readSkillFile(result.filePaths[0])),
+          consent: true,
+        });
+      },
+      providerCheck: (input) => supervisor.health(input),
+      providerSignIn: (input) => supervisor.signIn(input),
+      providerConnectDetected: (input) => {
+        const p = exact(input, ["agent", "consent"]);
+        if (p.consent !== true || !AGENTS.includes(p.agent as Agent))
+          throw Error("EXPLICIT_CONSENT_REQUIRED");
+        const agent = p.agent as Agent,
+          command = detectExecutables()[agent];
+        if (!command) throw Error("PROVIDER_NOT_FOUND");
+        supervisor.configure({
+          agent,
+          command,
+          args:
+            agent === "gemini"
+              ? ["--acp"]
+              : ["hermes", "opencode", "local"].includes(agent)
+                ? ["acp"]
+                : [],
+          protocol:
+            agent === "codex"
+              ? "codex"
+              : agent === "claude"
+                ? "claude-cli"
+                : agent === "antigravity"
+                  ? "antigravity-cli"
+                  : "acp",
+          profile: "existing",
+          consent: true,
+        });
+        quotaMonitor!.invalidate();
+        void quotaMonitor!.read().catch(() => {});
+        return supervisor.settings();
+      },
       missionPlan: (input) => masterAgent!.plan(input),
       missionList: (input) => masterAgent!.list(input),
       missionAction: (input) => masterAgent!.action(input),
@@ -178,8 +252,16 @@ app
       orchestrationStop: (input) => orchestrator!.stop(input),
       providerDetect: () => detectExecutables(),
       openRouterSettings: () => router.settings(),
-      openRouterSave: (input) => router.save(input),
-      openRouterRemove: () => router.remove(),
+      openRouterSave: (input) => {
+        const value = router.save(input);
+        quotaMonitor!.invalidate();
+        return value;
+      },
+      openRouterRemove: () => {
+        const value = router.remove();
+        quotaMonitor!.invalidate();
+        return value;
+      },
       openRouterModels: () => router.models(),
       browserAction: (input) => browser!.action(input),
       extensionList: (input) => {
@@ -230,7 +312,10 @@ app
       runtimeStart: (input) => supervisor.start(input),
       runtimeAction: (input) => supervisor.action(input),
       runtimeReview: (input) => supervisor.review(input),
-      configureProvider: (input) => supervisor.configure(input),
+      configureProvider: (input) => {
+        supervisor.configure(input);
+        quotaMonitor!.invalidate();
+      },
       providerSettings: () => supervisor.settings(),
       chooseExecutable: async () => {
         const result = await dialog.showOpenDialog(window!, {
@@ -270,7 +355,11 @@ app
           )
             throw Error("INVALID_LOGIN_URL");
           client.rpc.on("notification", (message) => {
-            if (message.method === "account/login/completed") client.close();
+            if (message.method === "account/login/completed") {
+              client.close();
+              quotaMonitor!.invalidate();
+              void quotaMonitor!.read().catch(() => {});
+            }
           });
           const timer = setTimeout(() => client.close(), 5 * 60 * 1000);
           timer.unref();
@@ -327,12 +416,16 @@ app
       setPreferences: (input) => store.setPreferences(input),
       setMaster: (input) => store.setMaster(input),
       quotaScan: quotas,
-      quotaSaveCustom: (input) =>
-        saveCustomSubscription(app.getPath("userData"), input),
+      quotaSaveCustom: (input) => {
+        const value = saveCustomSubscription(app.getPath("userData"), input);
+        quotaMonitor!.invalidate();
+        return value;
+      },
       quotaDeleteCustom: (input) => {
         deleteCustomSubscription(app.getPath("userData"), input);
+        quotaMonitor!.invalidate();
       },
-      quotaRefresh: quotas,
+      quotaRefresh: () => quotaMonitor!.read(true),
     };
     for (const [name, handler] of Object.entries(handlers))
       ipcMain.handle(`app:${name}`, async (event, input: unknown) => {
@@ -351,7 +444,7 @@ app
         } catch (error) {
           const code = error instanceof Error ? error.message : "";
           if (
-            name.startsWith("mission") &&
+            (name.startsWith("mission") || name.startsWith("chat")) &&
             [
               "PROVIDER_NOT_CONFIGURED",
               "SELECT_TWO_WORKERS",
@@ -363,6 +456,15 @@ app
               "MISSION_NOT_FOUND",
               "INVALID_TRANSITION",
               "MISSION_NOT_EVALUATED",
+              "CHAT_BUSY",
+              "CHAT_CONTEXT_FULL",
+              "CHAT_HISTORY_FULL",
+              "CHAT_LIMIT_REACHED",
+              "CHAT_NOT_FOUND",
+              "INVALID_GITHUB_REPOSITORY",
+              "GITHUB_CLONE_FAILED",
+              "ISOLATED_GIT_WORKSPACE_REQUIRED",
+              "FOLDER_REQUIRED",
             ].includes(code)
           )
             throw Error(code);
@@ -370,6 +472,7 @@ app
         }
       });
     openWindow();
+    quotaMonitor.start();
     app.on("activate", () => {
       if (!window) openWindow();
     });
@@ -395,6 +498,8 @@ app.on("before-quit", (event) => {
   orchestrator?.close();
   void Promise.all([
     masterAgent?.close(),
+    chats?.close(),
+    quotaMonitor?.close(),
     supervisor?.close(),
     mcp?.close(),
   ]).finally(() => {

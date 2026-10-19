@@ -6,6 +6,7 @@ import { Knowledge } from "./knowledge.js";
 import { Extensions } from "./extensions.js";
 import { migrateWorkspace } from "./workspace-migration.js";
 import { Missions } from "./missions.js";
+import { ChatStore } from "./chat-store.js";
 import { AGENTS } from "../shared.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
@@ -45,6 +46,7 @@ export class Store {
   readonly knowledge: Knowledge;
   readonly extensions: Extensions;
   readonly missions: Missions;
+  readonly chats: ChatStore;
   constructor(file: string, clock: () => number = Date.now) {
     this.db = new DatabaseSync(file);
     this.db.exec(
@@ -55,7 +57,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 10) {
+      if (version.user_version > 12) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -96,6 +98,21 @@ export class Store {
       this.extensions = new Extensions(this.db);
       migrateWorkspace(this.db);
       this.missions = new Missions(this.db);
+      this.chats = new ChatStore(this.db);
+      if (
+        Number(this.db.prepare("PRAGMA user_version").get()!.user_version) ===
+        11
+      ) {
+        this.db.exec("BEGIN IMMEDIATE");
+        if (
+          !this.db
+            .prepare("PRAGMA table_info(provider_settings)")
+            .all()
+            .some((c) => c.name === "model")
+        )
+          this.db.exec("ALTER TABLE provider_settings ADD COLUMN model TEXT");
+        this.db.exec("PRAGMA user_version=12; COMMIT;");
+      }
     } catch (error) {
       this.db.close();
       throw error;
@@ -236,6 +253,36 @@ export class Store {
       .prepare("DELETE FROM memory WHERE projectId=? AND id=?")
       .run(this.project(p.projectId), text(p.id));
     if (!result.changes) throw Error("MEMORY_NOT_FOUND");
+  }
+  allMemory(): Memory[] {
+    return this.db
+      .prepare(
+        "SELECT * FROM memory ORDER BY pinned DESC,createdAt DESC LIMIT 500",
+      )
+      .all() as unknown as Memory[];
+  }
+  updateMemory(input: unknown) {
+    const p = object(input);
+    if (
+      !["project", "workspace"].includes(String(p.scope)) ||
+      typeof p.pinned !== "boolean"
+    )
+      throw Error("INVALID_INPUT");
+    if (
+      !this.db
+        .prepare(
+          "UPDATE memory SET content=?,scope=?,pinned=?,updatedAt=? WHERE projectId=? AND id=?",
+        )
+        .run(
+          text(p.content, 20000),
+          String(p.scope),
+          p.pinned ? 1 : 0,
+          new Date().toISOString(),
+          this.project(p.projectId),
+          text(p.id),
+        ).changes
+    )
+      throw Error("MEMORY_NOT_FOUND");
   }
   preferences(): Preferences {
     return {

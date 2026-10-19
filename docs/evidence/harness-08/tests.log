@@ -1,0 +1,111 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 pretest
+> npm run build
+
+
+> agenting-os@0.4.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+node_modules/lucide-react/dist/esm/context.mjs (2:0): Module level directives cause errors when bundled, "use client" in "node_modules/lucide-react/dist/esm/context.mjs" was ignored.
+node_modules/lucide-react/dist/esm/Icon.mjs (2:0): Module level directives cause errors when bundled, "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" was ignored.
+✓ 1950 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                               0.66 kB │ gzip:   0.38 kB
+dist/renderer/assets/Sora-Variable-Bqpd64dN.ttf      111.40 kB
+dist/renderer/assets/InterVariable-H_M6nIbt.ttf      862.94 kB
+dist/renderer/assets/shared-archive-Dj-m42FU.png   1,693.65 kB
+dist/renderer/assets/evolution-orbit-BOBch8nR.png  1,816.94 kB
+dist/renderer/assets/index-gfCD5jxa.css               71.19 kB │ gzip:  14.39 kB
+dist/renderer/assets/index-BOuRGUzQ.js               367.17 kB │ gzip: 114.49 kB
+✓ built in 2.42s
+
+> agenting-os@0.4.0 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs tests/chats.test.mjs
+
+✔ provider probes use only the documented fixed commands and redact command output (2.3333ms)
+✔ missing or timed-out commands remain unknown without claiming installation or auth (0.2036ms)
+✔ integration smoke contract: passed, with seven unprobed entries (8.9222ms)
+✔ integration smoke contract: unavailable, with seven unprobed entries (5.3724ms)
+✔ integration smoke contract: timed_out, with seven unprobed entries (4.47ms)
+✔ integration smoke contract: failed, with seven unprobed entries (4.9514ms)
+✔ GitHub context validates exact repository names and rejects injection, credentials and non-GitHub URLs (0.4005ms)
+✔ shared pinned memory is automatic for all contexts while private project pins remain isolated and edits are searchable (23.3893ms)
+✔ chat retains multi-turn history, freezes selected context per turn and supports explicit memory/task handoff (88.0545ms)
+✔ chat quota gate, concurrent send rejection and cancellation are durable without automatic replay (254.4328ms)
+✔ chat only gates OpenCode against OpenRouter when that backend is selected (278.9136ms)
+✔ chat runs the real Codex app-server protocol in read-only mode and ACP handshake uses no model prompt (407.3379ms)
+✔ quota monitor deduplicates concurrent callers, caches, invalidates and retries failed reads (0.6392ms)
+✔ skills retain pinned GitHub provenance and local markdown imports never execute supporting files (21.7705ms)
+✔ scan classifies real-world outputs honestly and never leaks credentials (0.9965ms)
+✔ unauthenticated and broken tools are reported as such, not as connected (0.3708ms)
+✔ local servers: models from loopback JSON, down server is degraded, absent is needs-install (0.5154ms)
+✔ every spawned command is a fixed, read-only version or status query (0.1975ms)
+✔ PATH resolution is strict, and the HTTP probe refuses non-loopback hosts (1.6684ms)
+✔ local run counters are exact and separate from provider quota (4.4978ms)
+✔ WCAG reference ratios and sRGB transfer (0.1839ms)
+✔ source-over alpha and transparent ancestor backgrounds (0.2295ms)
+✔ group opacity applies to foreground AND background before parent compositing (0.1456ms)
+✔ large-text thresholds use points converted to CSS px; never round a fail up (0.1101ms)
+✔ DOM collector reads rendered styles, input values, placeholders and rejects complex paint (83.1106ms)
+✔ extension import is scoped, explicit and contributes versioned frozen context (21.3999ms)
+✔ MCP uses versioned handshake and pagination, rejects cross-project and unapproved calls (114.8119ms)
+✔ browser only accepts safe explicit web URLs and blocks local navigation from remote content (0.8431ms)
+✔ persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart (360.749ms)
+✔ lifecycle persists, fences two claimants and journals failures/retries atomically (25.6347ms)
+✔ expired lease cannot heartbeat or finish; explicit recovery and retry required (22.8997ms)
+✔ dependencies, cycles, invalid transitions and workspace separation fail closed (23.2684ms)
+✔ heartbeat extends ownership, retry is bounded and invalid requests leave no events (26.0438ms)
+✔ migration preserves original v1 data and events are atomic with task mutations (37.5645ms)
+✔ two simultaneous worker connections produce exactly one claim (98.4371ms)
+✔ cross-project dependency edges and worker writes are rejected (24.6502ms)
+✔ all connections close before restart; expired attempt is preserved and recovered once (27.8123ms)
+✔ Codex thread overrides disable inherited MCP/plugins without forwarding secrets or writing config (0.2053ms)
+✔ master validates a bounded DAG, independent review, providers and structured evaluation (1.3845ms)
+✔ local model configuration rejects remote endpoints and confines OpenCode to the chosen model (3.3604ms)
+✔ ACP grants only located in-worktree edits, denies traversal, Git metadata and hardlinks (4.7211ms)
+✔ ACP actual permission exchange permits one scoped edit but never a read-only or outside edit (252.8818ms)
+✔ master freezes explicitly selected shared memory, preserves private scope and survives restart (28.3116ms)
+✔ exhausted verified quota blocks inference; unknown quota is explicit and cancellation is durable (41.6659ms)
+✔ invalid model plan creates no tasks and atomic task binding rolls back on launch failure (25.0429ms)
+✔ Master protocol → research → implementation → review → human apply → evaluation → shared memory (12435.6824ms)
+✔ supervised protocol run seals a real worktree, redacts output and keeps the source unchanged (4810.781ms)
+✔ orchestrator dispatches a real worktree run and reviewer, shares frozen memory, then waits for human approval (4724.8808ms)
+✔ FTS retrieval and frozen context keep source provenance, budgets and project scope (429.3458ms)
+✔ only independently reviewed, exact approved artifacts apply by fast-forward; replay is idempotent (8331.8778ms)
+✔ dirty or changed source and expired approvals cannot apply or overwrite user work (9418.1574ms)
+✔ protected files and a reviewer that modifies the captured worktree fail closed (11607.1505ms)
+✔ ACP v1 uses read-only mode and rejects permission grants with an actual stdio process (82.6566ms)
+✔ interrupted runs survive a real database reopen and resume only on an explicit action (4172.904ms)
+✔ application never overwrites an ignored local file even when the proposal changes gitignore (7645.4459ms)
+✔ cancellation terminates the provider and leaves durable cancelled state and source files intact (2273.2181ms)
+✔ provider crash fails closed; invalid project, dirty repository and unconsented executable are rejected (2063.4524ms)
+✔ only exact local main frame gets app IPC (0.2616ms)
+✔ empty launch, persisted projects, tasks, memory and preferences survive reopen (21.8391ms)
+✔ memory and tasks are isolated and deletion is project scoped (21.2661ms)
+✔ invalid and oversized input, unknown projects, invalid roles fail closed (17.2959ms)
+✔ unconfigured integrations never report quota values or observed provenance (19.8441ms)
+✔ exact diff approval records persist and fail closed on scope, bytes, expiry and input (30.294ms)
+✔ approval v2 migration preserves data; SQLite rejects mutation and malformed hashes (38.2847ms)
+✔ diff artifact capture persists exact bytes from isolated committed worktree (5210.3235ms)
+✔ v4 migration preserves unbound history and rolls back failed schema changes (41.7777ms)
+✔ built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings (698.8796ms)
+✔ quota readings preserve unknown data, multi-bucket windows, reset duration and real daily usage (1.7627ms)
+✔ OpenRouter key resets use remaining budget instead of lifetime spend; unlimited is unknown, zero is exhausted (0.3284ms)
+✔ manual budgets reject invalid data, preserve overrun and migrate plaintext key fields out of legacy records (4.5586ms)
+✔ OpenRouter vault keeps credentials out of public settings and plaintext disk; unencrypted storage is refused (6.9963ms)
+✔ workspace memory is explicit, searchable and frozen for all providers; project memory stays isolated after restart (27.5589ms)
+✔ native CLI uses stdin, constrained tools and process cancellation; malformed or denied results fail closed (1414.0208ms)
+✔ detected CLI is not a configured connection and isolated Codex does not inherit global auth claims (0.3835ms)
+✔ orchestrator is finite, shares context, reviews changes and pauses without applying or starting the next task (61.85ms)
+ℹ tests 75
+ℹ suites 0
+ℹ pass 75
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 78649.2893

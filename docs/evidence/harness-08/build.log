@@ -1,0 +1,20 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+node_modules/lucide-react/dist/esm/context.mjs (2:0): Module level directives cause errors when bundled, "use client" in "node_modules/lucide-react/dist/esm/context.mjs" was ignored.
+node_modules/lucide-react/dist/esm/Icon.mjs (2:0): Module level directives cause errors when bundled, "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" was ignored.
+✓ 1950 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                               0.66 kB │ gzip:   0.38 kB
+dist/renderer/assets/Sora-Variable-Bqpd64dN.ttf      111.40 kB
+dist/renderer/assets/InterVariable-H_M6nIbt.ttf      862.94 kB
+dist/renderer/assets/shared-archive-Dj-m42FU.png   1,693.65 kB
+dist/renderer/assets/evolution-orbit-BOBch8nR.png  1,816.94 kB
+dist/renderer/assets/index-gfCD5jxa.css               71.19 kB │ gzip:  14.39 kB
+dist/renderer/assets/index-BOuRGUzQ.js               367.17 kB │ gzip: 114.49 kB
+✓ built in 2.88s

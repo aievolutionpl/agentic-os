@@ -1,6 +1,93 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import type { Agent } from "../shared";
 import { ProviderIcon } from "./ProviderIcon";
+import {
+  Layers3,
+  Sparkles,
+  Cable,
+  Database,
+  ChartNoAxesColumnIncreasing,
+  Play,
+  Plus,
+  ChevronRight,
+  ChevronDown,
+  Moon,
+  Sun,
+  Globe,
+  FolderOpen,
+  Copy,
+  ShieldCheck,
+  Search,
+  ArrowLeftRight,
+  Info,
+  X,
+  Menu,
+  Ellipsis,
+  Check,
+  RefreshCw,
+  LayoutDashboard,
+  ListTodo,
+  Clock3,
+  MessageSquare,
+  History,
+  GitBranch,
+  Send,
+  Square,
+  UserRound,
+  Trash2,
+  ArrowUpRight,
+  NotebookPen,
+  Pin,
+  Pencil,
+  Download,
+  Palette,
+  Code2,
+  BookOpen,
+  type LucideIcon,
+} from "lucide-react";
+const iconLibrary: Record<string, LucideIcon> = {
+  layers: Layers3,
+  spark: Sparkles,
+  connections: Cable,
+  memory: Database,
+  tokens: ChartNoAxesColumnIncreasing,
+  play: Play,
+  plus: Plus,
+  chevron: ChevronRight,
+  down: ChevronDown,
+  moon: Moon,
+  sun: Sun,
+  globe: Globe,
+  folder: FolderOpen,
+  copy: Copy,
+  shield: ShieldCheck,
+  search: Search,
+  swap: ArrowLeftRight,
+  info: Info,
+  close: X,
+  menu: Menu,
+  dots: Ellipsis,
+  check: Check,
+  refresh: RefreshCw,
+  grid: LayoutDashboard,
+  task: ListTodo,
+  clock: Clock3,
+  message: MessageSquare,
+  history: History,
+  github: GitBranch,
+  send: Send,
+  stop: Square,
+  user: UserRound,
+  trash: Trash2,
+  arrow: ArrowUpRight,
+  plan: NotebookPen,
+  pin: Pin,
+  edit: Pencil,
+  download: Download,
+  palette: Palette,
+  code: Code2,
+  skill: BookOpen,
+};
 
 export function Icon({
   name,
@@ -9,6 +96,15 @@ export function Icon({
   name: string;
   className?: string;
 }) {
+  const Glyph = iconLibrary[name];
+  if (Glyph)
+    return (
+      <Glyph
+        className={`icon ${className}`}
+        strokeWidth={1.8}
+        aria-hidden="true"
+      />
+    );
   const paths: Record<string, React.ReactNode> = {
     layers: <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />,
     spark: (

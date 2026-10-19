@@ -6,6 +6,7 @@ import { exact, object, text, redact } from "./validate.js";
 import type { ContextSkill } from "./knowledge.js";
 import { RpcProcess } from "./rpc.js";
 import type { Extension, McpTool } from "../shared.js";
+import { COMMUNITY_SKILLS } from "./community-skills.js";
 
 const BUILTINS: Extension[] = [
   {
@@ -76,6 +77,7 @@ const BUILTINS: Extension[] = [
   },
 ];
 export class Extensions {
+  catalog(): Extension[] { return [...BUILTINS, ...COMMUNITY_SKILLS]; }
   constructor(private db: DatabaseSync) {
     if (Number(db.prepare("PRAGMA user_version").get()!.user_version) === 7)
       db.exec(`BEGIN IMMEDIATE;
@@ -93,7 +95,7 @@ export class Extensions {
   list(projectId: string): Extension[] {
     this.project(projectId);
     return [
-      ...BUILTINS,
+      ...this.catalog(),
       ...this.db
         .prepare(
           "SELECT id,manifest FROM extensions WHERE projectId=? ORDER BY createdAt,id",

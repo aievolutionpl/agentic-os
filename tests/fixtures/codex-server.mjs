@@ -32,6 +32,8 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     reply({ data: [], nextCursor: null });
   else if (m.method === "account/read")
     reply({ account: null, requiresOpenaiAuth: true });
+  else if (m.method === "account/rateLimits/read") reply({rateLimits:{primary:{usedPercent:25,windowDurationMins:300,resetsAt:2000000000}}});
+  else if (m.method === "account/usage/read") reply({});
   else if (m.method === "turn/start") {
     reply({ turn: { id: "fixture-turn", status: "inProgress" } });
     if (process.env.QA_BEHAVIOR === "disconnect") {
@@ -66,6 +68,9 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       p.sandboxPolicy.type === "readOnly"
         ? "Fixture independent review completed."
         : "Fixture implementation completed. sk-" + "q".repeat(40);
+    if (p.input?.[0]?.text?.includes("Continue this conversation")) {
+      message = "Fixture chat reply: source reviewed. This is a protocol test, not a live model.\n\nPlan:\n1. Inspect the existing UI.\n2. Implement the bounded change.\n3. Verify with tests.";
+    }
     if (process.env.QA_BEHAVIOR === "master") {
       const prompt = p.input?.[0]?.text ?? "";
       if (prompt.includes("Master Agent planning"))

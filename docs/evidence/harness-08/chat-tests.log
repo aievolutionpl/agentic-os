@@ -1,0 +1,17 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+✔ GitHub context validates exact repository names and rejects injection, credentials and non-GitHub URLs (0.9721ms)
+✔ shared pinned memory is automatic for all contexts while private project pins remain isolated and edits are searchable (23.7705ms)
+✔ chat retains multi-turn history, freezes selected context per turn and supports explicit memory/task handoff (78.569ms)
+✔ chat quota gate, concurrent send rejection and cancellation are durable without automatic replay (252.9925ms)
+✔ chat only gates OpenCode against OpenRouter when that backend is selected (244.8965ms)
+✔ chat runs the real Codex app-server protocol in read-only mode and ACP handshake uses no model prompt (380.1985ms)
+✔ quota monitor deduplicates concurrent callers, caches, invalidates and retries failed reads (0.8799ms)
+✔ skills retain pinned GitHub provenance and local markdown imports never execute supporting files (23.3511ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1391.5988

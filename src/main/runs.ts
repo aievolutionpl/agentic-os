@@ -170,6 +170,7 @@ export class Runs {
               ? ("existing" as const)
               : ("isolated" as const),
           consent: row.consent === 1,
+          model: row.model == null ? null : String(row.model),
         }
       : null;
   }
@@ -179,11 +180,12 @@ export class Runs {
     args: string[],
     protocol: string,
     profile: "isolated" | "existing" = "isolated",
+    model: string | null = null,
   ) {
     this.db
       .prepare(
-        "INSERT INTO provider_settings(id,command,args,protocol,consent,profile) VALUES(?,?,?,?,1,?) ON CONFLICT(id) DO UPDATE SET command=excluded.command,args=excluded.args,protocol=excluded.protocol,consent=1,profile=excluded.profile",
+        "INSERT INTO provider_settings(id,command,args,protocol,consent,profile,model) VALUES(?,?,?,?,1,?,?) ON CONFLICT(id) DO UPDATE SET command=excluded.command,args=excluded.args,protocol=excluded.protocol,consent=1,profile=excluded.profile,model=excluded.model",
       )
-      .run(id, command, JSON.stringify(args), protocol, profile);
+      .run(id, command, JSON.stringify(args), protocol, profile, model);
   }
 }

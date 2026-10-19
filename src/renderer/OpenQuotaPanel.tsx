@@ -106,13 +106,15 @@ export function OpenQuotaPanel({
     [deleting, setDeleting] = useState<ProviderQuotaCard | null>(null);
   const mounted = useRef(true),
     inFlight = useRef(false);
-  async function load() {
+  async function load(force = false) {
     if (inFlight.current || !api?.quotaScan) return;
     inFlight.current = true;
     setBusy(true);
     setError(false);
     try {
-      const data = await api.quotaScan();
+      const data = await (force && api.quotaRefresh
+        ? api.quotaRefresh()
+        : api.quotaScan());
       if (mounted.current) setCards(data);
     } catch {
       if (mounted.current) setError(true);
@@ -124,8 +126,19 @@ export function OpenQuotaPanel({
   useEffect(() => {
     mounted.current = true;
     void load();
+    const timer = setInterval(() => {
+      if (!document.hidden) void load();
+    }, 60000);
+    const focus = () => {
+      if (!document.hidden) void load();
+    };
+    window.addEventListener("focus", focus);
+    document.addEventListener("visibilitychange", focus);
     return () => {
       mounted.current = false;
+      clearInterval(timer);
+      window.removeEventListener("focus", focus);
+      document.removeEventListener("visibilitychange", focus);
     };
   }, []);
   const num = (n: number) =>
@@ -156,14 +169,14 @@ export function OpenQuotaPanel({
           </h1>
           <p>
             {pl
-              ? "Limity subskrypcji, budżety API i tokeny. Każda liczba ze swoim źródłem."
-              : "Subscription limits, API budgets and tokens. Every number has a source."}
+              ? "Automatyczna synchronizacja co minutę. Limity subskrypcji, budżety API i tokeny ze wskazanym źródłem."
+              : "Automatic sync every minute. Subscription limits, API budgets and tokens with their source."}
           </p>
         </div>
         <div className="panel-actions">
           <button
             className="secondary"
-            onClick={() => void load()}
+            onClick={() => void load(true)}
             disabled={busy}
           >
             <Icon name="refresh" className={busy ? "spin" : ""} />

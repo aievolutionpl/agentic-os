@@ -1,0 +1,6 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 notices
+> node scripts/notices.mjs
+
+Preserved license texts for 293 installed packages

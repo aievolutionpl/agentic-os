@@ -20,9 +20,12 @@ import { ControlCenter } from "./ControlCenter";
 import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { OrchestrationPanel } from "./OrchestrationPanel";
 import { MasterPanel } from "./MasterPanel";
+import { ChatWorkspace } from "./ChatWorkspace";
+import { MemoryHub, SkillsHub } from "./KnowledgeHub";
 import { READ_ONLY_AGENTS } from "../shared";
 import { ccWords } from "./cc-i18n";
 import "./style.css";
+import "./harness.css";
 
 const api = window.agenting;
 const agentChoices = [
@@ -46,8 +49,14 @@ function App() {
     "master" | "tasks" | "memory" | "agents" | "extensions" | "browser"
   >(api?.missionPlan ? "master" : "tasks");
   const [view, setView] = useState<
-    "center" | "project" | "quota" | "connections"
-  >(api?.connectorScan ? "center" : "project");
+    | "center"
+    | "project"
+    | "quota"
+    | "connections"
+    | "chat"
+    | "skills"
+    | "shared-memory"
+  >(api?.chatList ? "chat" : api?.connectorScan ? "center" : "project");
   const [scan, setScan] = useState<ConnectorScan | null>(null),
     [scanning, setScanning] = useState(false),
     [scanFailed, setScanFailed] = useState(false);
@@ -348,6 +357,37 @@ function App() {
         </div>
         {api?.connectorScan && (
           <nav className="primary-nav" aria-label="Agenting OS">
+            {api.chatList &&
+              (
+                [
+                  { id: "chat", icon: "message", pl: "Czaty", en: "Chats" },
+                  {
+                    id: "shared-memory",
+                    icon: "memory",
+                    pl: "Wspólna pamięć",
+                    en: "Shared memory",
+                  },
+                  {
+                    id: "skills",
+                    icon: "skill",
+                    pl: "Biblioteka skilli",
+                    en: "Skill library",
+                  },
+                ] as const
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  className={`nav-item ${view === item.id ? "selected" : ""}`}
+                  aria-current={view === item.id ? "page" : undefined}
+                  onClick={() => {
+                    setProjectsExpanded(false);
+                    setView(item.id);
+                  }}
+                >
+                  <Icon name={item.icon} />
+                  <span>{prefs.language === "pl" ? item.pl : item.en}</span>
+                </button>
+              ))}
             <button
               className={`nav-item ${view === "connections" ? "selected" : ""}`}
               aria-current={view === "connections" ? "page" : undefined}
@@ -483,17 +523,29 @@ function App() {
             <span>{w.workspace}</span>
             <Icon name="chevron" />
             <strong title={view === "center" ? undefined : project?.name}>
-              {view === "center"
-                ? ccWords[prefs.language].nav
-                : view === "quota"
+              {view === "chat"
+                ? prefs.language === "pl"
+                  ? "Czaty"
+                  : "Chats"
+                : view === "skills"
                   ? prefs.language === "pl"
-                    ? "Limity i tokeny"
-                    : "OpenQuota"
-                  : view === "connections"
+                    ? "Biblioteka skilli"
+                    : "Skill library"
+                  : view === "shared-memory"
                     ? prefs.language === "pl"
-                      ? "Połączenia i modele"
-                      : "Connections & models"
-                    : (project?.name ?? "Agenting OS")}
+                      ? "Wspólna pamięć"
+                      : "Shared memory"
+                    : view === "center"
+                      ? ccWords[prefs.language].nav
+                      : view === "quota"
+                        ? prefs.language === "pl"
+                          ? "Limity i tokeny"
+                          : "OpenQuota"
+                        : view === "connections"
+                          ? prefs.language === "pl"
+                            ? "Połączenia i modele"
+                            : "Connections & models"
+                          : (project?.name ?? "Agenting OS")}
             </strong>
           </div>
           <div className="settings">
@@ -555,7 +607,31 @@ function App() {
                 <button onClick={() => void refresh()}>{w.retry}</button>
               </div>
             )}
-            {view === "connections" ? (
+            {view === "chat" ? (
+              <ChatWorkspace
+                language={prefs.language}
+                projects={snapshot?.projects ?? []}
+                onConfigure={() => setView("connections")}
+                onProjectsChanged={() => void refresh()}
+                onTask={(id) => {
+                  setView("project");
+                  setTab("tasks");
+                  void selectProject(id);
+                }}
+              />
+            ) : view === "skills" ? (
+              <SkillsHub
+                language={prefs.language}
+                projects={snapshot?.projects ?? []}
+                onChat={() => setView("chat")}
+              />
+            ) : view === "shared-memory" ? (
+              <MemoryHub
+                language={prefs.language}
+                projects={snapshot?.projects ?? []}
+                onNewProject={openProject}
+              />
+            ) : view === "connections" ? (
               <ProviderSetup language={prefs.language} />
             ) : view === "quota" ? (
               <OpenQuotaPanel

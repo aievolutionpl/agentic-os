@@ -1,0 +1,36 @@
+{
+  "at": "2026-10-19T21:34:19.907Z",
+  "status": "passed",
+  "checks": [
+    "codex-live-two-turn-chat-history-and-readonly-local-folder",
+    "claude-live-two-turn-chat-history-and-readonly-local-folder",
+    "real-github-cli-public-repository-clone",
+    "real-codex-subscription-limits-over-official-app-server",
+    "source-file-unchanged"
+  ],
+  "providers": {
+    "codex": {
+      "detected": true,
+      "state": "connected",
+      "detail": "CLI_SIGN_IN_VERIFIED",
+      "modelCount": 0
+    },
+    "claude": {
+      "detected": true,
+      "state": "connected",
+      "detail": "CLI_SIGN_IN_VERIFIED",
+      "modelCount": 0
+    },
+    "gemini": {
+      "detected": true,
+      "state": "unavailable",
+      "detail": "CONNECTION_CHECK_FAILED",
+      "modelCount": 0
+    },
+    "hermes": {
+      "detected": false
+    }
+  },
+  "errors": [],
+  "scope": "Existing CLI subscriptions; read-only chat turns in temporary projects. GitHub test clones public octocat/Hello-World; no push."
+}

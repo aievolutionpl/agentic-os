@@ -1,6 +1,20 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  chatList: () => ipcRenderer.invoke("app:chatList"),
+  chatCreate: (input) => ipcRenderer.invoke("app:chatCreate", input),
+  chatSend: (input) => ipcRenderer.invoke("app:chatSend", input),
+  chatAction: (input) => ipcRenderer.invoke("app:chatAction", input),
+  chatRemember: (input) => ipcRenderer.invoke("app:chatRemember", input),
+  chatTask: (input) => ipcRenderer.invoke("app:chatTask", input),
+  memoryList: () => ipcRenderer.invoke("app:memoryList"),
+  memoryUpdate: (input) => ipcRenderer.invoke("app:memoryUpdate", input),
+  skillCatalog: () => ipcRenderer.invoke("app:skillCatalog"),
+  skillImportFile: (input) => ipcRenderer.invoke("app:skillImportFile", input),
+  providerCheck: (input) => ipcRenderer.invoke("app:providerCheck", input),
+  providerSignIn: (input) => ipcRenderer.invoke("app:providerSignIn", input),
+  providerConnectDetected: (input) =>
+    ipcRenderer.invoke("app:providerConnectDetected", input),
   missionPlan: (input) => ipcRenderer.invoke("app:missionPlan", input),
   missionList: (input) => ipcRenderer.invoke("app:missionList", input),
   missionAction: (input) => ipcRenderer.invoke("app:missionAction", input),

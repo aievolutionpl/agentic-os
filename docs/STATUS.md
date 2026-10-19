@@ -1,3 +1,13 @@
+# Hermes and Google subscription connections — 2026-10-19
+
+Gemini CLI updated locally to 0.64.0; native Hermes 0.22.2 and Antigravity 1.4.2 installations are detected. Actual two-turn Electron chats pass on Hermes ChatGPT/Codex and Google's Antigravity subscription path. Google's consumer deprecation in Gemini CLI is explicitly reported. Schema v12 persists app-specific models, browser sign-in stays provider-owned, and Windows system CA trust fixes the observed Google token-exchange failure. 80/80 tests pass. [Current connection report](SUBSCRIPTION_CONNECTIONS.md) and [evidence](evidence/subscriptions-09/README.md). Earlier sections are historical.
+
+# Conversation and shared-memory harness — 2026-10-19
+
+Persistent chat with agent/planning/context selection, real GitHub cloning, streamed responses, stop/restart recovery, answer-to-memory and answer-to-task handoffs. Schema v11 adds pinned shared memory and chat persistence. Nine licensed skills, local Markdown imports, detected-CLI connection checks, Hermes native Windows discovery and background authoritative quota polling are implemented. The UI uses Sora, Lucide, distinct cyan/violet surfaces and two generated illustrations.
+
+Real Codex/Claude multi-turn subscription chats, local read-only file inspection, public GitHub clone and Codex quota reads pass. Gemini 0.1.4 lacks ACP locally; Hermes is not installed. 75/75 automated tests pass. New UI: 30 theme/size captures; existing workspace: 24 captures, with no measured text contrast failures or overflow. See [current audit](HARNESS_AUDIT.md) and [evidence](evidence/harness-08/README.md). This change follows merged PR #4 on `codex/conversation-memory-harness`. Earlier sections below are historical checkpoints.
+
 # Selectable Master Agent — 2026-10-19
 
 Added model-driven goal planning, validated six-step DAGs, persistent mission/context journals (schema v10), atomic task binding, sequential delegation, quota checks, independent reviews including no-change research, human Git application gates, final Master evaluation and explicit memory writeback. The new project tab visualizes the architecture supplied by the user. Added Gemini/Hermes ACP and separate local OpenCode model profiles; live compatibility is stated separately from configuration.

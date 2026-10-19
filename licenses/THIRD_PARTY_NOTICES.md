@@ -177,6 +177,7 @@ Installed metadata and original license/notice texts retained in dependencies/. 
 - lazy-val 1.0.5: MIT; NOTICE REVIEW REQUIRED
 - lodash 4.18.1: MIT; [notice](dependencies/lodash-4.18.1-LICENSE)
 - lru-cache 6.0.0: ISC; [notice](dependencies/lru-cache-6.0.0-LICENSE)
+- lucide-react 1.59.0: ISC; [notice](dependencies/lucide-react-1.59.0-LICENSE)
 - math-intrinsics 1.1.0: MIT; [notice](dependencies/math-intrinsics-1.1.0-LICENSE)
 - mime 2.6.0: MIT; [notice](dependencies/mime-2.6.0-LICENSE)
 - mime-db 1.52.0: MIT; [notice](dependencies/mime-db-1.52.0-LICENSE)

@@ -1,0 +1,1 @@
+Slice: isolated-worktree diff artifact capture. Persist base/target identity, reproducible exact-byte SHA-256 hashing of the diff, tests; no execution/apply, no UI claims, no deps/config/auth changes, no push. Run npm run typecheck && npm test && xvfb-run -a npm run smoke; append evidence to docs/STATUS.md. Read BUILD_BRIEF.md and docs/STATUS.md first.

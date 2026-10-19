@@ -1,0 +1,417 @@
+--- docs/evidence/adapter-slice/before/package.json
++++ package.json
+@@ -12,13 +12,14 @@
+   "scripts": {
+     "build": "tsc -p tsconfig.main.json && vite build",
+     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit",
+-    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs",
++    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs",
+     "start": "npm run build && electron .",
+     "smoke": "node scripts/smoke.mjs",
+     "smoke:headless": "xvfb-run -a node scripts/smoke.mjs",
+     "pretest": "npm run build",
+     "notices": "node scripts/notices.mjs",
+-    "qa:contrast": "node scripts/contrast-qa.mjs"
++    "qa:contrast": "node scripts/contrast-qa.mjs",
++    "probe:adapters": "node scripts/probe-adapters.mjs"
+   },
+   "dependencies": {
+     "react": "https://registry.npmjs.org/react/-/react-19.2.7.tgz",
+--- docs/evidence/adapter-slice/before/src/shared.ts
++++ src/shared.ts
+@@ -67,6 +67,7 @@
+   id: string;
+   name: string;
+   status: "not_configured";
++  probe?: ProviderProbe;
+   quota: {
+     state: "unknown";
+     remaining: null;
+@@ -74,6 +75,25 @@
+     source: null;
+     observedAt: null;
+     resetAt: null;
++  };
++}
++export type ProbeState = "passed" | "failed" | "unavailable" | "timed_out";
++export interface ProviderProbe {
++  installation: "installed" | "not_found" | "unknown";
++  version: string | null;
++  auth: "unknown";
++  provenance: "local-command";
++  observedAt: string;
++  commands: {
++    version: ProbeState;
++    help: ProbeState;
++    authStatus: ProbeState;
++  };
++  capabilities: {
++    version: boolean;
++    help: boolean;
++    authStatus: boolean;
++    execution: false;
+   };
+ }
+ export interface Snapshot {
+--- docs/evidence/adapter-slice/before/src/main/index.ts
++++ src/main/index.ts
+@@ -4,6 +4,7 @@
+ import { fileURLToPath, pathToFileURL } from "node:url";
+ import { Store } from "./store.js";
+ import { trustedSender } from "./security.js";
++import { probeProviders, withProviderProbes } from "./adapters.js";
+ const here = dirname(fileURLToPath(import.meta.url));
+ const page = join(here, "../renderer/index.html");
+ const expectedUrl = pathToFileURL(page).href;
+@@ -57,10 +58,13 @@
+       }),
+     );
+     const handlers: Record<string, (input: unknown) => unknown> = {
+-      snapshot: () => ({
++      snapshot: async () => ({
+         projects: store.projects(),
+         preferences: store.preferences(),
+-        integrations: store.integrations(),
++        integrations: withProviderProbes(
++          store.integrations(),
++          await probeProviders(),
++        ),
+       }),
+       projectData: (id) => store.projectData(id),
+       taskAction: (input) => store.taskAction(input),
+--- docs/evidence/adapter-slice/before/src/main/adapters.ts
++++ src/main/adapters.ts
+@@ -0,0 +1,158 @@
++import { spawn } from "node:child_process";
++import type { Integration, ProbeState, ProviderProbe } from "../shared.js";
++
++const TIMEOUT_MS = 2_000;
++const MAX_CAPTURE = 16_384;
++type ProbeKind = "version" | "help" | "authStatus";
++type RunResult = {
++  code: number | null;
++  stdout: string;
++  stderr: string;
++  error?: "not_found" | "timed_out" | "spawn_failed";
++};
++type Runner = (
++  executable: string,
++  args: readonly string[],
++  timeoutMs: number,
++) => Promise<RunResult>;
++
++const SPECS = [
++  { id: "codex", name: "Codex", authArgs: ["login", "status"] },
++  { id: "claude", name: "Claude Code", authArgs: ["auth", "status"] },
++] as const;
++
++function state(result: RunResult): ProbeState {
++  if (result.error === "not_found") return "unavailable";
++  if (result.error === "timed_out") return "timed_out";
++  return result.code === 0 ? "passed" : "failed";
++}
++
++function versionOf(stdout: string): string | null {
++  const firstLine = stdout.split(/\r?\n/, 1)[0]?.trim() ?? "";
++  const match = firstLine.match(
++    /(?:^|\s)(\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?)(?:\s|$)/,
++  );
++  return match?.[1] ?? null;
++}
++
++function defaultRunner(
++  executable: string,
++  args: readonly string[],
++  timeoutMs: number,
++): Promise<RunResult> {
++  return new Promise((resolve) => {
++    let stdout = "";
++    let stderr = "";
++    let settled = false;
++    const finish = (result: RunResult) => {
++      if (settled) return;
++      settled = true;
++      clearTimeout(timer);
++      resolve({
++        ...result,
++        stdout: stdout.slice(0, MAX_CAPTURE),
++        stderr: stderr.slice(0, MAX_CAPTURE),
++      });
++    };
++    const child = spawn(executable, [...args], {
++      shell: false,
++      windowsHide: true,
++      stdio: ["ignore", "pipe", "pipe"],
++    });
++    child.stdout.setEncoding("utf8");
++    child.stderr.setEncoding("utf8");
++    child.stdout.on("data", (chunk: string) => {
++      if (stdout.length < MAX_CAPTURE) stdout += chunk;
++    });
++    child.stderr.on("data", (chunk: string) => {
++      if (stderr.length < MAX_CAPTURE) stderr += chunk;
++    });
++    child.once("error", (error: NodeJS.ErrnoException) =>
++      finish({
++        code: null,
++        stdout,
++        stderr,
++        error: error.code === "ENOENT" ? "not_found" : "spawn_failed",
++      }),
++    );
++    child.once("close", (code) => finish({ code, stdout, stderr }));
++    const timer = setTimeout(() => {
++      child.kill("SIGTERM");
++      finish({ code: null, stdout, stderr, error: "timed_out" });
++    }, timeoutMs);
++  });
++}
++
++async function probeProvider(
++  spec: (typeof SPECS)[number],
++  runner: Runner,
++  observedAt: string,
++): Promise<Integration> {
++  const commands = {
++    version: await runner(spec.id, ["--version"], TIMEOUT_MS),
++    help: await runner(spec.id, ["--help"], TIMEOUT_MS),
++    authStatus: await runner(spec.id, spec.authArgs, TIMEOUT_MS),
++  };
++  const states = {
++    version: state(commands.version),
++    help: state(commands.help),
++    authStatus: state(commands.authStatus),
++  };
++  const installation =
++    commands.version.error === "not_found"
++      ? "not_found"
++      : states.version === "passed"
++        ? "installed"
++        : "unknown";
++  const probe: ProviderProbe = {
++    installation,
++    version: states.version === "passed" ? versionOf(commands.version.stdout) : null,
++    auth: "unknown",
++    provenance: "local-command",
++    observedAt,
++    commands: states,
++    capabilities: {
++      version: states.version === "passed",
++      help: states.help === "passed",
++      authStatus:
++        states.authStatus === "passed",
++      execution: false,
++    },
++  };
++  return {
++    id: spec.id,
++    name: spec.name,
++    status: "not_configured",
++    probe,
++    quota: {
++      state: "unknown",
++      remaining: null,
++      unit: null,
++      source: null,
++      observedAt: null,
++      resetAt: null,
++    },
++  };
++}
++
++export async function probeProviders(
++  runner: Runner = defaultRunner,
++  now: () => string = () => new Date().toISOString(),
++): Promise<Integration[]> {
++  const observedAt = now();
++  const results: Integration[] = [];
++  for (const spec of SPECS)
++    results.push(await probeProvider(spec, runner, observedAt));
++  return results;
++}
++
++export function withProviderProbes(
++  integrations: Integration[],
++  probes: Integration[],
++): Integration[] {
++  const byId = new Map(probes.map((probe) => [probe.id, probe]));
++  return integrations.map((integration) => {
++    const probe = byId.get(integration.id)?.probe;
++    return probe ? { ...integration, probe } : integration;
++  });
++}
+--- docs/evidence/adapter-slice/before/src/renderer/main.tsx
++++ src/renderer/main.tsx
+@@ -591,8 +591,36 @@
+                       <article key={i.id}>
+                         <div className="integration-title">
+                           <h3>{i.name}</h3>
+-                          <span className="badge">{w.notConfigured}</span>
++                          <span className="badge">
++                            {i.probe?.installation === "installed"
++                              ? w.detected
++                              : i.probe?.installation === "not_found"
++                                ? w.notDetected
++                                : w.notConfigured}
++                          </span>
+                         </div>
++                        {i.probe && (
++                          <dl>
++                            <div>
++                              <dt>{w.probeVersion}</dt>
++                              <dd>{i.probe.version ?? w.unknown}</dd>
++                            </div>
++                            <div>
++                              <dt>{w.authStatus}</dt>
++                              <dd>{w.unknown}</dd>
++                            </div>
++                            <div>
++                              <dt>{w.capabilityStatus}</dt>
++                              <dd>
++                                {i.probe.capabilities.version &&
++                                i.probe.capabilities.help &&
++                                i.probe.capabilities.authStatus
++                                  ? w.probePassed
++                                  : w.probeUnknown}
++                              </dd>
++                            </div>
++                          </dl>
++                        )}
+                         <dl>
+                           <div>
+                             <dt>{w.quota}</dt>
+--- docs/evidence/adapter-slice/before/src/renderer/i18n.ts
++++ src/renderer/i18n.ts
+@@ -78,6 +78,14 @@
+     reset: "Reset",
+     never: "Not observed",
+     none: "None",
++    detected: "Installed locally",
++    notDetected: "Not detected",
++    probeVersion: "Version",
++    authStatus: "Auth command",
++    capabilityStatus: "Capabilities",
++    probePassed: "Passed",
++    probeFailed: "Not confirmed",
++    probeUnknown: "Unknown",
+     integrationNote:
+       "Adapters are staged. No account, model access or subscription allowance has been verified. No provider requests are made.",
+     error:
+@@ -183,6 +191,14 @@
+     reset: "Reset",
+     never: "Nie zmierzono",
+     none: "Brak",
++    detected: "Zainstalowany lokalnie",
++    notDetected: "Nie znaleziono",
++    probeVersion: "Wersja",
++    authStatus: "Polecenie autoryzacji",
++    capabilityStatus: "Możliwości",
++    probePassed: "Potwierdzone",
++    probeFailed: "Niepotwierdzone",
++    probeUnknown: "Brak danych",
+     integrationNote:
+       "Adaptery są planowane. Nie zweryfikowano kont, dostępu do modeli ani limitów subskrypcji. Aplikacja nie wysyła zapytań do dostawców.",
+     error:
+--- docs/evidence/adapter-slice/before/tests/adapters.test.mjs
++++ tests/adapters.test.mjs
+@@ -0,0 +1,72 @@
++import { test } from "node:test";
++import assert from "node:assert/strict";
++import { assertIntegrationContract, assertIntegrationCards } from "../scripts/integration-contract.mjs";
++import { Store } from "../dist/main/store.js";
++import { probeProviders, withProviderProbes } from "../dist/main/adapters.js";
++
++test("provider probes use only the documented fixed commands and redact command output", async () => {
++  const calls = [];
++  const results = await probeProviders(async (executable, args, timeoutMs) => {
++    calls.push({ executable, args: [...args], timeoutMs });
++    return {
++      code: 0,
++      stdout: `${executable} 9.8.7\nSECRET_ACCESS_TOKEN=should-not-leak`,
++      stderr: "stderr secret should not leak",
++    };
++  }, () => "2026-10-19T00:00:00.000Z");
++  assert.deepEqual(calls, [
++    { executable: "codex", args: ["--version"], timeoutMs: 2000 },
++    { executable: "codex", args: ["--help"], timeoutMs: 2000 },
++    { executable: "codex", args: ["login", "status"], timeoutMs: 2000 },
++    { executable: "claude", args: ["--version"], timeoutMs: 2000 },
++    { executable: "claude", args: ["--help"], timeoutMs: 2000 },
++    { executable: "claude", args: ["auth", "status"], timeoutMs: 2000 },
++  ]);
++  assert.equal(results[0].probe.version, "9.8.7");
++  assert.equal(results[0].probe.auth, "unknown");
++  assert.equal(results[0].probe.capabilities.execution, false);
++  assert.equal(results[0].quota.remaining, null);
++  assert.equal(results[0].quota.source, null);
++  assert.equal(JSON.stringify(results).includes("SECRET_ACCESS_TOKEN"), false);
++  assert.equal(JSON.stringify(results).includes("stderr secret"), false);
++});
++
++test("missing or timed-out commands remain unknown without claiming installation or auth", async () => {
++  const results = await probeProviders(async (_executable, args) => ({
++    code: null,
++    stdout: "",
++    stderr: "",
++    error: args[0] === "--version" ? "not_found" : "timed_out",
++  }), () => "2026-10-19T00:00:00.000Z");
++  for (const result of results) {
++    assert.equal(result.probe.installation, "not_found");
++    assert.equal(result.probe.version, null);
++    assert.equal(result.probe.auth, "unknown");
++    assert.equal(result.probe.capabilities.authStatus, false);
++    assert.equal(result.quota.state, "unknown");
++  }
++});
++
++for (const outcome of ["passed", "unavailable", "timed_out", "failed"]) {
++  test(`integration smoke contract: ${outcome}, with seven unprobed entries`, async () => {
++    const store = new Store(":memory:");
++    try {
++      const probes = await probeProviders(async () => ({code: outcome === "passed" ? 0 : 1,
++        stdout: "tool 1.2.3", stderr: "", ...(outcome === "unavailable" ? {error: "not_found"}
++          : outcome === "timed_out" ? {error: "timed_out"} : {})}));
++      const integrations = withProviderProbes(store.integrations(), probes);
++      assertIntegrationContract(integrations);
++      const cards = integrations.map(i => ({name: i.name,
++        badge: !i.probe || i.probe.installation === "unknown" ? "Nieskonfigurowane"
++          : i.probe.installation === "installed" ? "Zainstalowany lokalnie" : "Nie znaleziono",
++        fields: {Limit: "Brak danych", Źródło: "Brak", Pomiar: "Nie zmierzono", Reset: "Brak danych",
++          ...(i.probe ? {Wersja: i.probe.version ?? "Brak danych", "Polecenie autoryzacji": "Brak danych",
++            Możliwości: outcome === "passed" ? "Potwierdzone" : "Brak danych"} : {})}}));
++      assertIntegrationCards(cards);
++      cards[2].badge = "Zainstalowany lokalnie";
++      assert.throws(() => assertIntegrationCards(cards));
++      integrations[0].probe.capabilities.execution = true;
++      assert.throws(() => assertIntegrationContract(integrations));
++    } finally { store.close(); }
++  });
++}
+--- docs/evidence/adapter-slice/before/scripts/probe-adapters.mjs
++++ scripts/probe-adapters.mjs
+@@ -0,0 +1,25 @@
++import { mkdirSync, writeFileSync } from "node:fs";
++import { resolve } from "node:path";
++import { probeProviders } from "../dist/main/adapters.js";
++
++const result = {
++  status: "passed",
++  at: new Date().toISOString(),
++  scope: "fixed local version/help/auth-status probes; no provider execution or quota request",
++  providers: await probeProviders(),
++};
++const out = resolve("docs/evidence/adapter-slice/probe-result.json");
++mkdirSync(resolve("docs/evidence/adapter-slice"), { recursive: true });
++writeFileSync(out, JSON.stringify(result, null, 2));
++console.log(
++  JSON.stringify({
++    status: result.status,
++    providers: result.providers.map(({ id, probe }) => ({
++      id,
++      installation: probe?.installation,
++      auth: probe?.auth,
++      capabilities: probe?.capabilities,
++      quota: "unknown",
++    })),
++  }),
++);

@@ -1,0 +1,37 @@
+[
+  {
+    "path": "src/main/approvals.ts",
+    "before": "dd47b482f7691cfe19189c4bb1d429485a2aed97d597ce870bbaaf048b202e25",
+    "after": "0620ae54f86903e3b554f3da8466d1868ac5f925fb8e6941133c4ce5f7379fa5"
+  },
+  {
+    "path": "src/main/store.ts",
+    "before": "c2e379be469a2d2d28ed1c31a12ff547cc82434f10b9f060e635b853e7b12967",
+    "after": "a9f7ea8d8c4965b2c676d4b7494b9c38b3e87db2c26d509682ccbbaae0dfdd22"
+  },
+  {
+    "path": "src/main/lifecycle.ts",
+    "before": "ac26a6af2c3f73d3239ee6dfb887b069dea3fac773e53a1d2fe2129689dcdedb",
+    "after": "82f6bc6f2ff3b4b2e387768391825f85bedb0a0d01248191a2d17bcc16f85933"
+  },
+  {
+    "path": "tests/store.test.mjs",
+    "before": "b03b7d81fc90cffed33a7731409cf411ed5f998006986a00a982f4c406e74f28",
+    "after": "aea09dfa66aab2c63c56991fa2d4b09f768be3736d9e02bd1e042f07fb96cdb1"
+  },
+  {
+    "path": "docs/STATUS.md",
+    "before": "7d41d0bec46867f8ac60de69385c5e0f34db53066573cdb42184418719ac7574",
+    "after": "67be1422a603ebcd5fd22e1cfe088c51f962cb0e44e8245141b4faa056681b6e"
+  },
+  {
+    "path": "docs/KANBAN.md",
+    "before": "977aa8f8e1990f2ca105e83c18f099dec13ddeeca1f415545f9a822e402f2899",
+    "after": "820c5241a42af16d1fda34f41d4f78a84267434266ed9f371aabd1a269d08752"
+  },
+  {
+    "path": "docs/evidence/smoke-result.json",
+    "before": "579de66ac6df856ffa7788b42306e40f05d17daf969a157e1aca222a4897b21b",
+    "after": "40157ea78108a003feb16ed75cd8523c803db8b32cafa3398c3874b6d3730d37"
+  }
+]

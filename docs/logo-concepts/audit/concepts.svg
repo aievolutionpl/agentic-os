@@ -1,0 +1,161 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1600" height="840" viewBox="0 0 1600 840"><rect width="1600" height="840" fill="#f7f7f4"/><text x="60" y="78" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="40" font-weight="700" fill="#161616">Agenting OS — logo concepts (v3)</text><text x="60" y="116" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="20" fill="#6b6b6b">AI Evolution Polska · multi-agent desktop workspace</text><rect x="60" y="150" width="474.667" height="630" rx="18" fill="#fff" stroke="#161616" stroke-width="2"/><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="90" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <title id="c0-title">Agenting OS — Apex: custom A letterform</title>
+  <defs>
+    <linearGradient id="c0-apex-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Left leg: pointed apex at top, flared foot at bottom -->
+  <path d="M128 22 L64 222 L100 222 L128 150 L156 222 L192 222 Z" fill="url(#c0-apex-grad)"/>
+  <!-- Crossbar: horizontal pill, cut into the legs -->
+  <rect x="80" y="138" width="96" height="18" rx="9" fill="url(#c0-apex-grad)"/>
+  <!-- Apex accent dot -->
+  <circle cx="128" cy="16" r="6" fill="#06B6D4"/>
+</svg></g><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="90" y="516" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <title id="s064-title">Agenting OS — Apex: custom A letterform</title>
+  <defs>
+    <linearGradient id="s064-apex-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Left leg: pointed apex at top, flared foot at bottom -->
+  <path d="M128 22 L64 222 L100 222 L128 150 L156 222 L192 222 Z" fill="url(#s064-apex-grad)"/>
+  <!-- Crossbar: horizontal pill, cut into the legs -->
+  <rect x="80" y="138" width="96" height="18" rx="9" fill="url(#s064-apex-grad)"/>
+  <!-- Apex accent dot -->
+  <circle cx="128" cy="16" r="6" fill="#06B6D4"/>
+</svg></g><text x="122" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="180" y="548" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <title id="s032-title">Agenting OS — Apex: custom A letterform</title>
+  <defs>
+    <linearGradient id="s032-apex-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Left leg: pointed apex at top, flared foot at bottom -->
+  <path d="M128 22 L64 222 L100 222 L128 150 L156 222 L192 222 Z" fill="url(#s032-apex-grad)"/>
+  <!-- Crossbar: horizontal pill, cut into the legs -->
+  <rect x="80" y="138" width="96" height="18" rx="9" fill="url(#s032-apex-grad)"/>
+  <!-- Apex accent dot -->
+  <circle cx="128" cy="16" r="6" fill="#06B6D4"/>
+</svg></g><text x="196" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="238" y="564" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <title id="s016-title">Agenting OS — Apex: custom A letterform</title>
+  <defs>
+    <linearGradient id="s016-apex-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Left leg: pointed apex at top, flared foot at bottom -->
+  <path d="M128 22 L64 222 L100 222 L128 150 L156 222 L192 222 Z" fill="url(#s016-apex-grad)"/>
+  <!-- Crossbar: horizontal pill, cut into the legs -->
+  <rect x="80" y="138" width="96" height="18" rx="9" fill="url(#s016-apex-grad)"/>
+  <!-- Apex accent dot -->
+  <circle cx="128" cy="16" r="6" fill="#06B6D4"/>
+</svg></g><text x="246" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="90.0" y="636" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">A · Apex (A letterform)</text><text x="90.0" y="664" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="15" font-weight="700" fill="#161616" letter-spacing="1.5">RECOMMENDED</text><text x="90.0" y="698" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Custom A letterform: pointed apex, flared</text><text x="90.0" y="724" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">foot, horizontal crossbar — reads as A at</text><text x="90.0" y="750" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">any scale, no live text in symbol.</text><rect x="562.667" y="150" width="474.667" height="630" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="592.667" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <title id="c1-title">Agenting OS — Converge: collaborative abstract mark</title>
+  <defs>
+    <linearGradient id="c1-conv-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Bold triangle: three agents as one converging shape -->
+  <polygon points="128,36 52,216 204,216" fill="url(#c1-conv-grad)"/>
+  <!-- Central convergence node: solid, no ring -->
+  <circle cx="128" cy="128" r="20" fill="#F0ABFC"/>
+</svg></g><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="592.667" y="516" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <title id="s164-title">Agenting OS — Converge: collaborative abstract mark</title>
+  <defs>
+    <linearGradient id="s164-conv-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Bold triangle: three agents as one converging shape -->
+  <polygon points="128,36 52,216 204,216" fill="url(#s164-conv-grad)"/>
+  <!-- Central convergence node: solid, no ring -->
+  <circle cx="128" cy="128" r="20" fill="#F0ABFC"/>
+</svg></g><text x="624.667" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="682.667" y="548" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <title id="s132-title">Agenting OS — Converge: collaborative abstract mark</title>
+  <defs>
+    <linearGradient id="s132-conv-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Bold triangle: three agents as one converging shape -->
+  <polygon points="128,36 52,216 204,216" fill="url(#s132-conv-grad)"/>
+  <!-- Central convergence node: solid, no ring -->
+  <circle cx="128" cy="128" r="20" fill="#F0ABFC"/>
+</svg></g><text x="698.667" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="740.667" y="564" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <title id="s116-title">Agenting OS — Converge: collaborative abstract mark</title>
+  <defs>
+    <linearGradient id="s116-conv-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Bold triangle: three agents as one converging shape -->
+  <polygon points="128,36 52,216 204,216" fill="url(#s116-conv-grad)"/>
+  <!-- Central convergence node: solid, no ring -->
+  <circle cx="128" cy="128" r="20" fill="#F0ABFC"/>
+</svg></g><text x="748.667" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="592.6666666666667" y="636" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">B · Converge (collaborative abstract)</text><text x="592.6666666666667" y="670" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Bold triangle with solid central node —</text><text x="592.6666666666667" y="696" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">agents converge on a shared goal.</text><text x="592.6666666666667" y="722" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Flat-colour master: 2 colours.</text><rect x="1065.33" y="150" width="474.667" height="630" rx="18" fill="#fff" stroke="#e4e4e0" stroke-width="1"/><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="1095.33" y="190" width="414.667" height="300" preserveAspectRatio="xMidYMid meet">
+  <title id="c2-title">Agenting OS — AO: interlocking A+O monogram</title>
+  <defs>
+    <linearGradient id="c2-ao-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- O: bold stroked circle, behind A -->
+  <circle cx="172" cy="128" r="58" fill="none" stroke="url(#c2-ao-grad)" stroke-width="28"/>
+  <!-- A: prominent pointed letterform, overlapping O's left edge -->
+  <path d="M128 26 L56 226 L96 226 L128 144 L160 226 L200 226 Z" fill="url(#c2-ao-grad)"/>
+  <!-- A crossbar: thick horizontal pill -->
+  <rect x="76" y="134" width="120" height="18" rx="9" fill="url(#c2-ao-grad)"/>
+</svg></g><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="1095.33" y="516" width="64" height="64" preserveAspectRatio="xMidYMid meet">
+  <title id="s264-title">Agenting OS — AO: interlocking A+O monogram</title>
+  <defs>
+    <linearGradient id="s264-ao-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- O: bold stroked circle, behind A -->
+  <circle cx="172" cy="128" r="58" fill="none" stroke="url(#s264-ao-grad)" stroke-width="28"/>
+  <!-- A: prominent pointed letterform, overlapping O's left edge -->
+  <path d="M128 26 L56 226 L96 226 L128 144 L160 226 L200 226 Z" fill="url(#s264-ao-grad)"/>
+  <!-- A crossbar: thick horizontal pill -->
+  <rect x="76" y="134" width="120" height="18" rx="9" fill="url(#s264-ao-grad)"/>
+</svg></g><text x="1127.33" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">64px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="1185.33" y="548" width="32" height="32" preserveAspectRatio="xMidYMid meet">
+  <title id="s232-title">Agenting OS — AO: interlocking A+O monogram</title>
+  <defs>
+    <linearGradient id="s232-ao-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- O: bold stroked circle, behind A -->
+  <circle cx="172" cy="128" r="58" fill="none" stroke="url(#s232-ao-grad)" stroke-width="28"/>
+  <!-- A: prominent pointed letterform, overlapping O's left edge -->
+  <path d="M128 26 L56 226 L96 226 L128 144 L160 226 L200 226 Z" fill="url(#s232-ao-grad)"/>
+  <!-- A crossbar: thick horizontal pill -->
+  <rect x="76" y="134" width="120" height="18" rx="9" fill="url(#s232-ao-grad)"/>
+</svg></g><text x="1201.33" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">32px</text><g><svg xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title" viewBox="0 0 256 256" x="1243.33" y="564" width="16" height="16" preserveAspectRatio="xMidYMid meet">
+  <title id="s216-title">Agenting OS — AO: interlocking A+O monogram</title>
+  <defs>
+    <linearGradient id="s216-ao-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- O: bold stroked circle, behind A -->
+  <circle cx="172" cy="128" r="58" fill="none" stroke="url(#s216-ao-grad)" stroke-width="28"/>
+  <!-- A: prominent pointed letterform, overlapping O's left edge -->
+  <path d="M128 26 L56 226 L96 226 L128 144 L160 226 L200 226 Z" fill="url(#s216-ao-grad)"/>
+  <!-- A crossbar: thick horizontal pill -->
+  <rect x="76" y="134" width="120" height="18" rx="9" fill="url(#s216-ao-grad)"/>
+</svg></g><text x="1251.33" y="600" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="12" fill="#8a8a8a" text-anchor="middle">16px</text><text x="1095.3333333333335" y="636" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="26" font-weight="700" fill="#161616">C · AO (interlocking monogram)</text><text x="1095.3333333333335" y="670" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">Interlocking A + O monogram: A&#x27;s prominent</text><text x="1095.3333333333335" y="696" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">pointed legs wrap the O — compact, works as</text><text x="1095.3333333333335" y="722" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-size="19" fill="#555">16px favicon.</text></svg>

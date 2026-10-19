@@ -1,0 +1,4 @@
+f43070ecff504d0c499575bb4249df5cbc5612cd6a8a0e9f951b29eaec129116  src/main/store.ts
+78565d1f76250af6d5ed1f16b1a243f7afdaca6d91d15e3ee8743d32f9242fd4  src/main/lifecycle.ts
+d8df4866ef349260ab544c154886a13dfbd74b8a64c08115b79945cf5574a64d  tests/store.test.mjs
+649a26ecab3e6ae47a06367ce2377ad4b3d12455ef52225d76b71bfb0c0e4fd7  docs/STATUS.md

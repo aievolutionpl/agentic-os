@@ -1,0 +1,16 @@
+node_modules/
+dist/
+references/
+.runtime/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.*
+*.log
+!docs/evidence/**/*.log
+**/*worker*.log
+*.sqlite
+*.sqlite-*
+**/__pycache__/
+*.pyc

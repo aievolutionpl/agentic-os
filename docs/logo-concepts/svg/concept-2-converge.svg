@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Agenting OS — Converge: collaborative abstract mark</title>
+  <defs>
+    <linearGradient id="conv-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Bold triangle: three agents as one converging shape -->
+  <polygon points="128,36 52,216 204,216" fill="url(#conv-grad)"/>
+  <!-- Central convergence node: solid, no ring -->
+  <circle cx="128" cy="128" r="20" fill="#F0ABFC"/>
+</svg>

@@ -1,0 +1,200 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { JSDOM } from "jsdom";
+import { mkdtempSync, rmSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { Store } from "../dist/main/store.js";
+const bundle = readFileSync(
+  join(
+    "dist/renderer/assets",
+    readdirSync("dist/renderer/assets").find((n) => n.endsWith(".js")),
+  ),
+  "utf8",
+);
+const wait = async (fn) => {
+  for (let i = 0; i < 150; i++) {
+    if (fn()) return;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+  throw Error("UI condition timed out");
+};
+test("built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "agenting-ui-"));
+  const file = join(dir, "app.db");
+  let store = new Store(file);
+  let dom;
+  function boot() {
+    dom = new JSDOM(
+      '<!doctype html><html lang="pl"><body><div id="root"></div></body></html>',
+      {
+        url: "file:///app/index.html",
+        runScripts: "outside-only",
+        pretendToBeVisual: true,
+      },
+    );
+    const w = dom.window;
+    // DOM emulator has no native dialog implementation. Only dialog open/close is shimmed; not visual QA.
+    w.HTMLDialogElement.prototype.showModal = function () {
+      this.open = true;
+    };
+    w.HTMLDialogElement.prototype.close = function () {
+      this.open = false;
+    };
+    w.agenting = {
+      snapshot: async () => ({
+        projects: store.projects(),
+        preferences: store.preferences(),
+        integrations: store.integrations(),
+      }),
+      projectData: async (id) => ({
+        tasks: store.tasks(id),
+        memory: store.memory(id),
+      }),
+      createProject: async (p) => store.createProject(p),
+      createTask: async (p) => store.createTask(p),
+      createMemory: async (p) => store.createMemory(p),
+      deleteMemory: async (p) => store.deleteMemory(p),
+      setPreferences: async (p) => store.setPreferences(p),
+      setMaster: async (p) => store.setMaster(p),
+    };
+    w.eval(bundle);
+    return w.document;
+  }
+  function button(text, scope = dom.window.document) {
+    const b = [...scope.querySelectorAll("button")].find(
+      (b) => b.textContent.trim() === text,
+    );
+    assert.ok(b, `button ${text}`);
+    return b;
+  }
+  function field(selector, value) {
+    const el = dom.window.document.querySelector(selector);
+    assert.ok(el, selector);
+    const proto =
+      el.tagName === "TEXTAREA"
+        ? dom.window.HTMLTextAreaElement.prototype
+        : el.tagName === "SELECT"
+          ? dom.window.HTMLSelectElement.prototype
+          : dom.window.HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
+    el.dispatchEvent(
+      new dom.window.Event(el.tagName === "SELECT" ? "change" : "input", {
+        bubbles: true,
+      }),
+    );
+    return el;
+  }
+  function submit(form) {
+    form.dispatchEvent(
+      new dom.window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+  }
+  async function project(name) {
+    dom.window.document
+      .querySelector('button[aria-label="Nowy projekt"]')
+      .click();
+    await wait(() => dom.window.document.querySelector("dialog").open);
+    field("input[name=name]", name);
+    field("input[name=root]", "C:\\Projects\\" + name);
+    submit(dom.window.document.querySelector("dialog form"));
+    await wait(
+      () => dom.window.document.querySelector("h1")?.textContent === name,
+    );
+  }
+  try {
+    boot();
+    await wait(() => dom.window.document.querySelector(".empty"));
+    await project("Project A");
+    field("textarea[name=title]", "Review scoped data");
+    submit(dom.window.document.querySelector(".composer form"));
+    await wait(() => dom.window.document.querySelector(".task-list h3"));
+    button("Wspólna pamięć 0").click();
+    await wait(() => dom.window.document.querySelector(".memory-form"));
+    field("textarea[name=content]", "<script>window.pwned=true</script>");
+    field("input[name=source]", "Decision 2026");
+    submit(dom.window.document.querySelector(".memory-form"));
+    await wait(() => dom.window.document.querySelector(".memory-content"));
+    assert.equal(dom.window.pwned, undefined);
+    assert.equal(
+      dom.window.document.querySelector(".memory-content").textContent,
+      "<script>window.pwned=true</script>",
+    );
+    await project("Project B");
+    await wait(
+      () =>
+        dom.window.document.querySelectorAll(".memory-content").length === 0,
+    );
+    assert.equal(store.memory(store.projects()[0].id).length, 1);
+    field("textarea[name=content]", "Delete B only");
+    field("input[name=source]", "User");
+    submit(dom.window.document.querySelector(".memory-form"));
+    await wait(() => dom.window.document.querySelector(".memory-content"));
+    button("Usuń").click();
+    await wait(() => dom.window.document.querySelectorAll("dialog")[1].open);
+    button("Anuluj", dom.window.document.querySelectorAll("dialog")[1]).click();
+    await wait(() => !dom.window.document.querySelectorAll("dialog")[1].open);
+    assert.equal(
+      dom.window.document.querySelectorAll(".memory-content").length,
+      1,
+    );
+    button("Usuń").click();
+    await wait(() => dom.window.document.querySelectorAll("dialog")[1].open);
+    button("Usuń wpis").click();
+    await wait(
+      () =>
+        dom.window.document.querySelectorAll(".memory-content").length === 0,
+    );
+    button("Integracje").click();
+    await wait(
+      () =>
+        dom.window.document.querySelectorAll(".integrations article").length ===
+        9,
+    );
+    assert.equal(
+      dom.window.document.querySelectorAll(".integrations .badge").length,
+      9,
+    );
+    field(".default-master select", "claude");
+    await wait(
+      () =>
+        store.projects().find((p) => p.name === "Project B").master ===
+        "claude",
+    );
+    field(".settings select", "en");
+    await wait(() => dom.window.document.documentElement.lang === "en");
+    button("Light").click();
+    await wait(
+      () => dom.window.document.documentElement.dataset.theme === "light",
+    );
+    dom.window.close();
+    store.close();
+    store = new Store(file);
+    boot();
+    await wait(
+      () =>
+        dom.window.document.querySelector(".task-list h3") &&
+        dom.window.document.documentElement.lang === "en",
+    );
+    assert.equal(dom.window.document.documentElement.lang, "en");
+    assert.equal(dom.window.document.documentElement.dataset.theme, "light");
+    assert.equal(
+      dom.window.document.querySelector(".task-list h3").textContent,
+      "Review scoped data",
+    );
+    assert.equal(
+      store.memory(store.projects().find((p) => p.name === "Project A").id)
+        .length,
+      1,
+    );
+    assert.equal(
+      store.memory(store.projects().find((p) => p.name === "Project B").id)
+        .length,
+      0,
+    );
+  } finally {
+    dom?.window.close();
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

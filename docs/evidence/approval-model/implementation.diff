@@ -1,0 +1,196 @@
+--- before/src/main/store.ts
++++ src/main/store.ts
+@@ -1,3 +1,4 @@
++import { Approvals } from "./approvals.js";
+ import { Lifecycle } from "./lifecycle.js";
+ import { DatabaseSync } from "node:sqlite";
+ import { randomUUID } from "node:crypto";
+@@ -31,6 +32,7 @@
+ export class Store {
+   private db: DatabaseSync;
+   readonly lifecycle: Lifecycle;
++  readonly approvals: Approvals;
+   constructor(file: string, clock: () => number = Date.now) {
+     this.db = new DatabaseSync(file);
+     this.db.exec(
+@@ -41,7 +43,7 @@
+       const version = this.db.prepare("PRAGMA user_version").get() as {
+         user_version: number;
+       };
+-      if (version.user_version > 2) {
++      if (version.user_version > 3) {
+         throw Error("UNSUPPORTED_SCHEMA");
+       }
+       if (version.user_version < 1)
+@@ -63,6 +65,9 @@
+     this.lifecycle = new Lifecycle(this.db, clock);
+     try {
+       this.lifecycle.migrate();
++      this.approvals = new Approvals(this.db, clock);
++      if (Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 2)
++        this.approvals.migrate();
+     } catch (error) {
+       this.db.close();
+       throw error;
+--- before/src/main/lifecycle.ts
++++ src/main/lifecycle.ts
+@@ -37,7 +37,7 @@
+       const version = Number(
+         this.db.prepare("PRAGMA user_version").get()!.user_version,
+       );
+-      if (version === 2) return;
++      if (version === 2 || version === 3) return;
+       if (version !== 1) throw Error("UNSUPPORTED_SCHEMA");
+       this.db.exec(`ALTER TABLE tasks RENAME TO tasks_v1;
+         CREATE TABLE tasks(id TEXT PRIMARY KEY,projectId TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,implementer TEXT NOT NULL,reviewer TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('draft','queued','running','completed','failed','cancelled')),createdAt TEXT NOT NULL,
+--- before/tests/store.test.mjs
++++ tests/store.test.mjs
+@@ -120,3 +120,64 @@
+     });
+   }
+ });
++
++test("exact diff approval records persist and fail closed on scope, bytes, expiry and input", (t) => {
++  const dir = mkdtempSync(join(tmpdir(), "approval-"));
++  const file = join(dir, "app.db");
++  t.after(() => rmSync(dir, {recursive:true, force:true}));
++  let s = new Store(file, () => 1000);
++  const p = s.createProject({name:"A", root:"", master:"codex"});
++  const task = s.createTask({projectId:p.id, title:"Review", implementer:"codex", reviewer:"claude"});
++  const input = {projectId:p.id, taskId:task.id, attempt:0, diff:Buffer.from("diff\n"), decision:"approved", approver:"local-user", expiresAt:2000};
++  const record = s.approvals.record(input);
++  assert.match(record.diffHash, /^[a-f0-9]{64}$/);
++  assert.ok(s.approvals.matches({...input, id:record.id}));
++  assert.equal(s.approvals.matches({...input, id:record.id, diff:Buffer.from("diff\r\n")}), false);
++  assert.equal(s.approvals.matches({...input, id:record.id, attempt:1}), false);
++  const b = s.createProject({name:"B", root:"", master:"claude"});
++  assert.throws(() => s.approvals.record({...input, projectId:b.id}));
++  assert.equal(s.approvals.matches({...input, id:record.id, projectId:b.id}), false);
++  for (const change of [{diff:"diff"}, {diff:Buffer.alloc(0)}, {decision:"yes"}, {approver:" "}, {attempt:-1}, {attempt:1}, {expiresAt:1000}, {expiresAt:Infinity}, {diffHash:"a".repeat(64)}])
++    assert.throws(() => s.approvals.record({...input,...change}));
++  const rejected = s.approvals.record({...input,decision:"rejected"});
++  assert.equal(s.approvals.matches({...input,id:rejected.id}), false);
++  assert.equal(s.tasks(p.id)[0].status,"draft");
++  assert.deepEqual(Object.keys(s.projectData(p.id)).sort(), ["events","memory","tasks"]);
++  s.close();
++  s = new Store(file, () => 1999);
++  assert.deepEqual(s.approvals.list(p.id,task.id)[0],record);
++  assert.ok(s.approvals.matches({...input,id:record.id}));
++  s.close();
++  s = new Store(file, () => 2000);
++  assert.equal(s.approvals.matches({...input,id:record.id}), false);
++  s.close();
++});
++
++test("approval v2 migration preserves data; SQLite rejects mutation and malformed hashes", async (t) => {
++  const { DatabaseSync } = await import("node:sqlite");
++  const dir = mkdtempSync(join(tmpdir(), "approval-migration-"));
++  const file = join(dir,"app.db");
++  t.after(() => rmSync(dir,{recursive:true,force:true}));
++  let s = new Store(file,()=>1000);
++  const p = s.createProject({name:"Keep",root:"",master:"codex"});
++  const task = s.createTask({projectId:p.id,title:"Keep task",implementer:"codex",reviewer:"claude"});
++  s.createMemory({projectId:p.id,content:"Keep memory",source:"user"});
++  s.close();
++  const db = new DatabaseSync(file);
++  // Reconstruct the previous schema by removing only this slice's objects.
++  db.exec("DROP TABLE approval_records; PRAGMA user_version=2");
++  s = new Store(file,()=>1000);
++  t.after(()=>{s.close();db.close();});
++  assert.equal(db.prepare("PRAGMA user_version").get().user_version,3);
++  assert.equal(s.tasks(p.id)[0].title,"Keep task");
++  assert.equal(s.memory(p.id)[0].content,"Keep memory");
++  const input = {projectId:p.id,taskId:task.id,attempt:0,diff:Buffer.from("bytes"),decision:"approved",approver:"user",expiresAt:3000};
++  const record = s.approvals.record(input);
++  assert.throws(()=>db.prepare("UPDATE approval_records SET decision='rejected' WHERE id=?").run(record.id), /IMMUTABLE_APPROVAL/);
++  assert.throws(()=>db.prepare("DELETE FROM approval_records WHERE id=?").run(record.id), /IMMUTABLE_APPROVAL/);
++  assert.throws(()=>db.prepare("INSERT INTO approval_records VALUES(?,?,?,?,?,?,?,?,?)").run("bad",p.id,task.id,0,"z".repeat(64),"approved","user",1000,3000));
++  s.taskAction({projectId:p.id,id:task.id,action:"queue"});
++  s.lifecycle.claim({projectId:p.id,id:task.id,owner:"worker",ttlMs:1000});
++  assert.equal(s.approvals.matches({...input,id:record.id}),false);
++  assert.equal(s.approvals.list(p.id,task.id).length,1);
++});
+--- /dev/null
++++ src/main/approvals.ts
+@@ -0,0 +1,81 @@
++import type { DatabaseSync } from "node:sqlite";
++import { createHash, randomUUID } from "node:crypto";
++import { inputObject } from "./lifecycle.js";
++
++export interface ApprovalRecord {
++  id: string;
++  projectId: string;
++  taskId: string;
++  attempt: number;
++  diffHash: string;
++  decision: "approved" | "rejected";
++  approver: string;
++  createdAt: number;
++  expiresAt: number;
++}
++function label(value: unknown): string {
++  if (typeof value !== "string" || !value.trim() || value.length > 240 || value.includes("\0"))
++    throw Error("INVALID_INPUT");
++  return value;
++}
++function attempt(value: unknown): number {
++  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 3)
++    throw Error("INVALID_INPUT");
++  return value;
++}
++// Hash exact bytes, without text decoding, trimming or newline normalization.
++function hash(value: unknown): string {
++  if (!Buffer.isBuffer(value) || value.length === 0 || value.length > 10 * 1024 * 1024)
++    throw Error("INVALID_DIFF");
++  return createHash("sha256").update(value).digest("hex");
++}
++// Internal metadata only: this API neither authenticates a user nor authorizes execution.
++export class Approvals {
++  constructor(private db: DatabaseSync, private clock: () => number) {}
++  migrate() {
++    this.db.exec(`BEGIN IMMEDIATE;
++      CREATE TABLE approval_records(
++        id TEXT PRIMARY KEY,
++        projectId TEXT NOT NULL, taskId TEXT NOT NULL,
++        attempt INTEGER NOT NULL CHECK(attempt BETWEEN 0 AND 3),
++        diffHash TEXT NOT NULL CHECK(length(diffHash)=64 AND diffHash NOT GLOB '*[^0-9a-f]*'),
++        decision TEXT NOT NULL CHECK(decision IN ('approved','rejected')),
++        approver TEXT NOT NULL CHECK(length(trim(approver)) BETWEEN 1 AND 240),
++        createdAt INTEGER NOT NULL, expiresAt INTEGER NOT NULL CHECK(expiresAt>createdAt),
++        FOREIGN KEY(projectId,taskId) REFERENCES tasks(projectId,id));
++      CREATE INDEX approval_scope ON approval_records(projectId,taskId);
++      CREATE TRIGGER approval_no_update BEFORE UPDATE ON approval_records BEGIN SELECT RAISE(ABORT,'IMMUTABLE_APPROVAL'); END;
++      CREATE TRIGGER approval_no_delete BEFORE DELETE ON approval_records BEGIN SELECT RAISE(ABORT,'IMMUTABLE_APPROVAL'); END;
++      PRAGMA user_version=3;
++      COMMIT;`);
++  }
++  record(input: unknown): ApprovalRecord {
++    const p = inputObject(input);
++    const allowed = ["projectId","taskId","attempt","diff","decision","approver","expiresAt"];
++    if (Object.keys(p).some(k => !allowed.includes(k))) throw Error("INVALID_INPUT");
++    const projectId = label(p.projectId), taskId = label(p.taskId), n = attempt(p.attempt);
++    const diffHash = hash(p.diff), approver = label(p.approver), now = this.clock();
++    if ((p.decision !== "approved" && p.decision !== "rejected") ||
++        typeof p.expiresAt !== "number" || !Number.isSafeInteger(p.expiresAt) || p.expiresAt <= now)
++      throw Error("INVALID_INPUT");
++    const record: ApprovalRecord = {id:randomUUID(),projectId,taskId,attempt:n,diffHash,
++      decision:p.decision,approver,createdAt:now,expiresAt:p.expiresAt};
++    // A single INSERT/SELECT checks the current attempt atomically with the write.
++    const result = this.db.prepare(`INSERT INTO approval_records
++      SELECT ?,projectId,id,?,?,?,?,?,? FROM tasks WHERE projectId=? AND id=? AND attempt=?`)
++      .run(record.id,n,diffHash,record.decision,approver,now,record.expiresAt,projectId,taskId,n);
++    if (!result.changes) throw Error("TASK_ATTEMPT_NOT_FOUND");
++    return record;
++  }
++  list(projectId: unknown, taskId: unknown): ApprovalRecord[] {
++    return this.db.prepare("SELECT * FROM approval_records WHERE projectId=? AND taskId=? ORDER BY rowid")
++      .all(label(projectId),label(taskId)).map(row => ({...row})) as unknown as ApprovalRecord[];
++  }
++  matches(input: unknown): boolean {
++    const p = inputObject(input);
++    return !!this.db.prepare(`SELECT 1 FROM approval_records a JOIN tasks t ON t.projectId=a.projectId AND t.id=a.taskId
++      WHERE a.id=? AND a.projectId=? AND a.taskId=? AND a.attempt=? AND t.attempt=a.attempt
++      AND a.diffHash=? AND a.decision='approved' AND a.expiresAt>?`)
++      .get(label(p.id),label(p.projectId),label(p.taskId),attempt(p.attempt),hash(p.diff),this.clock());
++  }
++}

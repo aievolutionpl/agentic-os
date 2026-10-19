@@ -1,0 +1,4 @@
+54cbfe21ad967823892a59ae54954bc2dc8968bf3f4dcca31ce1df0750d5cb23  src/main/artifacts.ts
+c2e379be469a2d2d28ed1c31a12ff547cc82434f10b9f060e635b853e7b12967  src/main/store.ts
+ac26a6af2c3f73d3239ee6dfb887b069dea3fac773e53a1d2fe2129689dcdedb  src/main/lifecycle.ts
+b03b7d81fc90cffed33a7731409cf411ed5f998006986a00a982f4c406e74f28  tests/store.test.mjs

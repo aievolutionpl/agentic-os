@@ -1,0 +1,302 @@
+--- before/src/main/approvals.ts
++++ after/src/main/approvals.ts
+@@ -8,6 +8,7 @@
+   taskId: string;
+   attempt: number;
+   diffHash: string;
++  artifactId: string | null;
+   decision: "approved" | "rejected";
+   approver: string;
+   createdAt: number;
+@@ -49,23 +50,52 @@
+       PRAGMA user_version=3;
+       COMMIT;`);
+   }
+-  record(input: unknown): ApprovalRecord {
++  migrateArtifactBinding() {
++    this.db.exec('BEGIN IMMEDIATE');
++    try {
++      this.db.exec(`
++        ALTER TABLE approval_records ADD COLUMN artifactId TEXT REFERENCES diff_artifacts(id);
++        CREATE TRIGGER approval_artifact_scope BEFORE INSERT ON approval_records
++        WHEN NEW.artifactId IS NULL OR NOT EXISTS (
++          SELECT 1 FROM diff_artifacts d JOIN tasks t ON t.projectId=d.projectId AND t.id=d.taskId
++          WHERE d.id=NEW.artifactId AND d.projectId=NEW.projectId AND d.taskId=NEW.taskId
++          AND d.attempt=NEW.attempt AND t.attempt=NEW.attempt AND d.diffHash=NEW.diffHash)
++        BEGIN SELECT RAISE(ABORT,'ARTIFACT_SCOPE_MISMATCH'); END;
++        PRAGMA user_version=5; COMMIT;`);
++    } catch (error) {
++      this.db.exec('ROLLBACK');
++      throw error;
++    }
++  }
++  decide(input: unknown): ApprovalRecord {
+     const p = inputObject(input);
+-    const allowed = ["projectId","taskId","attempt","diff","decision","approver","expiresAt"];
++    const allowed = ["projectId","taskId","attempt","artifactId","decision","approver","expiresAt"];
+     if (Object.keys(p).some(k => !allowed.includes(k))) throw Error("INVALID_INPUT");
+     const projectId = label(p.projectId), taskId = label(p.taskId), n = attempt(p.attempt);
+-    const diffHash = hash(p.diff), approver = label(p.approver), now = this.clock();
+-    if ((p.decision !== "approved" && p.decision !== "rejected") ||
+-        typeof p.expiresAt !== "number" || !Number.isSafeInteger(p.expiresAt) || p.expiresAt <= now)
+-      throw Error("INVALID_INPUT");
+-    const record: ApprovalRecord = {id:randomUUID(),projectId,taskId,attempt:n,diffHash,
+-      decision:p.decision,approver,createdAt:now,expiresAt:p.expiresAt};
+-    // A single INSERT/SELECT checks the current attempt atomically with the write.
+-    const result = this.db.prepare(`INSERT INTO approval_records
+-      SELECT ?,projectId,id,?,?,?,?,?,? FROM tasks WHERE projectId=? AND id=? AND attempt=?`)
+-      .run(record.id,n,diffHash,record.decision,approver,now,record.expiresAt,projectId,taskId,n);
+-    if (!result.changes) throw Error("TASK_ATTEMPT_NOT_FOUND");
+-    return record;
++    const artifactId = label(p.artifactId), approver = label(p.approver), now = this.clock();
++    this.db.exec('BEGIN IMMEDIATE');
++    try {
++      const artifact = this.db.prepare(`SELECT d.diff FROM diff_artifacts d JOIN tasks t
++        ON t.projectId=d.projectId AND t.id=d.taskId
++        WHERE d.id=? AND d.projectId=? AND d.taskId=? AND d.attempt=? AND t.attempt=d.attempt`)
++        .get(artifactId,projectId,taskId,n);
++      if (!artifact) throw Error('ARTIFACT_SCOPE_MISMATCH');
++      const diffHash = hash(Buffer.from(artifact.diff as Uint8Array));
++      if ((p.decision !== "approved" && p.decision !== "rejected") ||
++          typeof p.expiresAt !== "number" || !Number.isSafeInteger(p.expiresAt) || p.expiresAt <= now)
++        throw Error("INVALID_INPUT");
++      const record: ApprovalRecord = {id:randomUUID(),projectId,taskId,attempt:n,diffHash,artifactId,
++        decision:p.decision,approver,createdAt:now,expiresAt:p.expiresAt};
++      this.db.prepare(`INSERT INTO approval_records
++        (id,projectId,taskId,attempt,diffHash,decision,approver,createdAt,expiresAt,artifactId)
++        VALUES(?,?,?,?,?,?,?,?,?,?)`)
++        .run(record.id,projectId,taskId,n,diffHash,record.decision,approver,now,record.expiresAt,artifactId);
++      this.db.exec('COMMIT');
++      return record;
++    } catch (error) {
++      this.db.exec('ROLLBACK');
++      throw error;
++    }
+   }
+   list(projectId: unknown, taskId: unknown): ApprovalRecord[] {
+     return this.db.prepare("SELECT * FROM approval_records WHERE projectId=? AND taskId=? ORDER BY rowid")
+@@ -75,7 +105,7 @@
+     const p = inputObject(input);
+     return !!this.db.prepare(`SELECT 1 FROM approval_records a JOIN tasks t ON t.projectId=a.projectId AND t.id=a.taskId
+       WHERE a.id=? AND a.projectId=? AND a.taskId=? AND a.attempt=? AND t.attempt=a.attempt
+-      AND a.diffHash=? AND a.decision='approved' AND a.expiresAt>?`)
+-      .get(label(p.id),label(p.projectId),label(p.taskId),attempt(p.attempt),hash(p.diff),this.clock());
++      AND a.artifactId=? AND a.diffHash=? AND a.decision='approved' AND a.expiresAt>?`)
++      .get(label(p.id),label(p.projectId),label(p.taskId),attempt(p.attempt),label(p.artifactId),hash(p.diff),this.clock());
+   }
+ }
+--- before/src/main/store.ts
++++ after/src/main/store.ts
+@@ -45,7 +45,7 @@
+       const version = this.db.prepare("PRAGMA user_version").get() as {
+         user_version: number;
+       };
+-      if (version.user_version > 4) {
++      if (version.user_version > 5) {
+         throw Error("UNSUPPORTED_SCHEMA");
+       }
+       if (version.user_version < 1)
+@@ -73,6 +73,8 @@
+       this.artifacts = new Artifacts(this.db, clock);
+       if (Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 3)
+         this.artifacts.migrate();
++      if (Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 4)
++        this.approvals.migrateArtifactBinding();
+     } catch (error) {
+       this.db.close();
+       throw error;
+--- before/src/main/lifecycle.ts
++++ after/src/main/lifecycle.ts
+@@ -37,7 +37,7 @@
+       const version = Number(
+         this.db.prepare("PRAGMA user_version").get()!.user_version,
+       );
+-      if (version === 2 || version === 3 || version === 4) return;
++      if (version === 2 || version === 3 || version === 4 || version === 5) return;
+       if (version !== 1) throw Error("UNSUPPORTED_SCHEMA");
+       this.db.exec(`ALTER TABLE tasks RENAME TO tasks_v1;
+         CREATE TABLE tasks(id TEXT PRIMARY KEY,projectId TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,implementer TEXT NOT NULL,reviewer TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('draft','queued','running','completed','failed','cancelled')),createdAt TEXT NOT NULL,
+--- before/tests/store.test.mjs
++++ after/tests/store.test.mjs
+@@ -121,7 +121,20 @@
+   }
+ });
+ 
+-test("exact diff approval records persist and fail closed on scope, bytes, expiry and input", (t) => {
++async function storedArtifact(file, projectId, taskId, diff, attempt = 0) {
++  const { DatabaseSync } = await import('node:sqlite');
++  const { createHash, randomUUID } = await import('node:crypto');
++  const db = new DatabaseSync(file), id = randomUUID();
++  db.exec('PRAGMA foreign_keys=ON');
++  db.prepare('INSERT INTO diff_artifacts VALUES(?,?,?,?,?,?,?,?,?,?,?)').run(id,projectId,taskId,attempt,'/fixture','/fixture/work','a'.repeat(40),'b'.repeat(40),diff,createHash('sha256').update(diff).digest('hex'),1000);
++  db.close(); return id;
++}
++function decide(s, input) {
++  const {diff, ...decision} = input;
++  return s.approvals.decide(decision);
++}
++
++test("exact diff approval records persist and fail closed on scope, bytes, expiry and input", async (t) => {
+   const dir = mkdtempSync(join(tmpdir(), "approval-"));
+   const file = join(dir, "app.db");
+   t.after(() => rmSync(dir, {recursive:true, force:true}));
+@@ -129,17 +142,29 @@
+   const p = s.createProject({name:"A", root:"", master:"codex"});
+   const task = s.createTask({projectId:p.id, title:"Review", implementer:"codex", reviewer:"claude"});
+   const input = {projectId:p.id, taskId:task.id, attempt:0, diff:Buffer.from("diff\n"), decision:"approved", approver:"local-user", expiresAt:2000};
+-  const record = s.approvals.record(input);
++  input.artifactId = await storedArtifact(file,p.id,task.id,input.diff);
++  const record = decide(s,input);
+   assert.match(record.diffHash, /^[a-f0-9]{64}$/);
++  assert.equal(record.artifactId,input.artifactId);
++  assert.equal(typeof s.approvals.record,'undefined');
++  assert.throws(()=>s.approvals.decide({...input}), /INVALID_INPUT/);
++  const sameBytes = await storedArtifact(file,p.id,task.id,input.diff);
++  assert.equal(s.approvals.matches({...input,id:record.id,artifactId:sameBytes}),false);
++  const wrongTask = s.createTask({projectId:p.id,title:'Other',implementer:'codex',reviewer:'claude'});
++  const otherArtifact = await storedArtifact(file,p.id,wrongTask.id,input.diff);
++  assert.throws(()=>decide(s,{...input,artifactId:otherArtifact}));
++  const staleArtifact = await storedArtifact(file,p.id,task.id,input.diff,1);
++  assert.throws(()=>decide(s,{...input,artifactId:staleArtifact}));
++
+   assert.ok(s.approvals.matches({...input, id:record.id}));
+   assert.equal(s.approvals.matches({...input, id:record.id, diff:Buffer.from("diff\r\n")}), false);
+   assert.equal(s.approvals.matches({...input, id:record.id, attempt:1}), false);
+   const b = s.createProject({name:"B", root:"", master:"claude"});
+-  assert.throws(() => s.approvals.record({...input, projectId:b.id}));
++  assert.throws(() => decide(s,{...input, projectId:b.id}));
+   assert.equal(s.approvals.matches({...input, id:record.id, projectId:b.id}), false);
+-  for (const change of [{diff:"diff"}, {diff:Buffer.alloc(0)}, {decision:"yes"}, {approver:" "}, {attempt:-1}, {attempt:1}, {expiresAt:1000}, {expiresAt:Infinity}, {diffHash:"a".repeat(64)}])
+-    assert.throws(() => s.approvals.record({...input,...change}));
+-  const rejected = s.approvals.record({...input,decision:"rejected"});
++  for (const change of [{artifactId:"missing"}, {artifactId:null}, {decision:"yes"}, {approver:" "}, {attempt:-1}, {attempt:1}, {expiresAt:1000}, {expiresAt:Infinity}, {diffHash:"a".repeat(64)}])
++    assert.throws(() => decide(s,{...input,...change}));
++  const rejected = decide(s,{...input,decision:"rejected"});
+   assert.equal(s.approvals.matches({...input,id:rejected.id}), false);
+   assert.equal(s.tasks(p.id)[0].status,"draft");
+   assert.deepEqual(Object.keys(s.projectData(p.id)).sort(), ["events","memory","tasks"]);
+@@ -165,14 +190,15 @@
+   s.close();
+   const db = new DatabaseSync(file);
+   // Reconstruct the previous schema by removing only this slice's objects.
+-  db.exec("DROP TABLE diff_artifacts; DROP TABLE approval_records; PRAGMA user_version=2");
++  db.exec("DROP TABLE approval_records; DROP TABLE diff_artifacts; PRAGMA user_version=2");
+   s = new Store(file,()=>1000);
+   t.after(()=>{s.close();db.close();});
+-  assert.equal(db.prepare("PRAGMA user_version").get().user_version,4);
++  assert.equal(db.prepare("PRAGMA user_version").get().user_version,5);
+   assert.equal(s.tasks(p.id)[0].title,"Keep task");
+   assert.equal(s.memory(p.id)[0].content,"Keep memory");
+   const input = {projectId:p.id,taskId:task.id,attempt:0,diff:Buffer.from("bytes"),decision:"approved",approver:"user",expiresAt:3000};
+-  const record = s.approvals.record(input);
++  input.artifactId = await storedArtifact(file,p.id,task.id,input.diff);
++  const record = decide(s,input);
+   assert.throws(()=>db.prepare("UPDATE approval_records SET decision='rejected' WHERE id=?").run(record.id), /IMMUTABLE_APPROVAL/);
+   assert.throws(()=>db.prepare("DELETE FROM approval_records WHERE id=?").run(record.id), /IMMUTABLE_APPROVAL/);
+   assert.throws(()=>db.prepare("INSERT INTO approval_records VALUES(?,?,?,?,?,?,?,?,?)").run("bad",p.id,task.id,0,"z".repeat(64),"approved","user",1000,3000));
+@@ -213,6 +239,10 @@
+   const a = await s.artifacts.capture(input);
+   const b = await s.artifacts.capture(input);
+   assert.deepEqual(a.diff,b.diff);
++  const approval = s.approvals.decide({projectId:p.id,taskId:task.id,attempt:0,artifactId:a.id,decision:'approved',approver:'local',expiresAt:Date.now()+60000});
++  assert.equal(approval.diffHash,createHash('sha256').update(a.diff).digest('hex'));
++  assert.ok(s.approvals.matches({id:approval.id,projectId:p.id,taskId:task.id,attempt:0,artifactId:a.id,diff:a.diff}));
++
+   assert.equal(a.diffHash,createHash('sha256').update(a.diff).digest('hex'));
+   assert.equal(a.base,base); assert.equal(a.target,target);
+   assert.ok(a.diff.includes(Buffer.from('GIT binary patch')));
+@@ -236,3 +266,37 @@
+   assert.equal(s.tasks(p.id)[0].status,'draft');
+   s.close();
+ });
++
++test('v4 migration preserves unbound history and rolls back failed schema changes', async (t) => {
++  const { DatabaseSync } = await import('node:sqlite');
++  const dir = mkdtempSync(join(tmpdir(),'binding-migration-'));
++  t.after(()=>rmSync(dir,{recursive:true,force:true}));
++  const file = join(dir,'db');
++  let s = new Store(file,()=>1000);
++  const p = s.createProject({name:'Keep',root:'',master:'codex'});
++  const task = s.createTask({projectId:p.id,title:'Keep',implementer:'codex',reviewer:'claude'});
++  const bytes = Buffer.from('legacy\r\n');
++  const artifactId = await storedArtifact(file,p.id,task.id,bytes);
++  s.close();
++  let db = new DatabaseSync(file);
++  db.exec('DROP TRIGGER approval_artifact_scope; ALTER TABLE approval_records DROP COLUMN artifactId; PRAGMA user_version=4');
++  const {createHash} = await import('node:crypto');
++  const legacy = ['legacy',p.id,task.id,0,createHash('sha256').update(bytes).digest('hex'),'approved','local',1000,2000];
++  db.prepare('INSERT INTO approval_records VALUES(?,?,?,?,?,?,?,?,?)').run(...legacy);
++  // Force failure after ALTER TABLE to prove the entire v5 migration rolls back.
++  db.exec("CREATE TRIGGER approval_artifact_scope BEFORE INSERT ON approval_records BEGIN SELECT RAISE(ABORT,'fixture'); END");
++  assert.throws(()=>new Store(file), /already exists/);
++  assert.equal(db.prepare('PRAGMA user_version').get().user_version,4);
++  assert.equal(db.prepare('PRAGMA table_info(approval_records)').all().some(c=>c.name==='artifactId'),false);
++  db.exec('DROP TRIGGER approval_artifact_scope');
++  s = new Store(file,()=>1000);
++  db.close(); db = new DatabaseSync(file);
++  t.after(()=>{s.close();db.close();});
++  assert.equal(db.prepare('PRAGMA user_version').get().user_version,5);
++  assert.deepEqual(Object.values(s.approvals.list(p.id,task.id)[0]),[...legacy,null]);
++  assert.equal(s.approvals.matches({id:'legacy',projectId:p.id,taskId:task.id,attempt:0,artifactId,diff:bytes}),false);
++  assert.deepEqual(s.artifacts.get(p.id,task.id,artifactId).diff,bytes);
++  assert.throws(()=>db.prepare('INSERT INTO approval_records VALUES(?,?,?,?,?,?,?,?,?,?)').run('unbound',...legacy.slice(1),null), /ARTIFACT_SCOPE_MISMATCH/);
++  const current = s.approvals.decide({projectId:p.id,taskId:task.id,attempt:0,artifactId,decision:'approved',approver:'local',expiresAt:2000});
++  assert.equal(current.artifactId,artifactId);
++});
+--- before/docs/STATUS.md
++++ after/docs/STATUS.md
+@@ -155,3 +155,18 @@
+ 
+ ## Supervisor checkpoint — 2026-10-19T15:16:26+01:00
+ Slice3 niezależnie: typecheck PASS, 29/29, xvfb smoke PASS. Start NEXT_SLICE4.md (approval-artifact binding). Windows UNVERIFIED.
++
++## Slice 4 — artifact-bound approval decisions — 2026-10-19
++
++Completed the bounded internal model change from `NEXT_SLICE4.md`. `Approvals.decide` requires `artifactId`; the former caller-byte `record` API is removed. Caller-supplied `diff`, hashes and other unknown fields are rejected. Inside `BEGIN IMMEDIATE`, the API reads persisted artifact bytes scoped to project/task/attempt and the task's current attempt, recomputes SHA-256 over the exact BLOB and inserts an immutable decision with that artifact identity. A database insert trigger additionally rejects absent or mismatched artifact scope/attempt/hash. `matches` now requires the artifact ID as well as exact bytes, scope, current attempt, approved decision and unexpired timestamp. A separate artifact containing identical bytes cannot reuse the decision.
++
++Schema v5 transactionally adds a nullable artifact foreign key and insert guard. Existing v4 approvals remain immutable historical records with `artifactId=null`; they are never implicitly rebound and cannot match. v1/v2/v3 upgrade paths continue through v4/v5; later schema versions remain rejected. Migration rollback is tested by forcing a trigger-name conflict after ALTER TABLE, checking that version 4, columns and historical records survive, then successfully migrating. Restart equality, v2 data preservation, missing/wrong-task/wrong-project/stale-attempt artifacts, expiry/rejection, caller input rejection, immutable records and real Git-captured binary/CRLF artifact binding are covered. SQL-seeded artifacts in isolated model fixtures are test data only.
++
++Final required command sequence: `npm run typecheck && npm test && xvfb-run -a npm run smoke`:
++- Typecheck **exit 0**: [typecheck.log](evidence/artifact-approval/typecheck.log).
++- Tests **exit 0, 30/30 PASS**, including production pretest build: [tests.log](evidence/artifact-approval/tests.log).
++- Smoke **exit 1 before first window**, `Process failed to launch!`: [smoke.log](evidence/artifact-approval/smoke.log). No UI success, screenshots or launch-cause inference claimed; no sandbox workaround attempted. Existing standard smoke-result.json regenerated as failed.
++
++TDD red (missing `decide` and old schema) is in [red.log](evidence/artifact-approval/red.log). An intermediate test failure came from a separate SQLite connection retaining the old schema; the migration fixture now reopens that connection before checking the new insert trigger. Evidence retained in `intermediate-tests.log`. Pre-edit files/hashes and reviewable diff are in [artifact-approval](evidence/artifact-approval/). Self-review only; independent review remains pending.
++
++Changed implementation: `src/main/approvals.ts`, `src/main/store.ts`, `src/main/lifecycle.ts`, `tests/store.test.mjs`; STATUS/KANBAN and evidence. No apply, execution, approval consumption, IPC/renderer, dependency, config, auth, provider inference, paid API or push changes. Approver remains a local attribution string, not authenticated identity. This model does not establish a filesystem race-safe apply gate. Windows remains **UNVERIFIED**. Stop this slice here. Next: supervisor reruns smoke on an allowed host and reviews the exact diff; any future apply/consumption design is a separate slice.
+--- before/docs/KANBAN.md
++++ after/docs/KANBAN.md
+@@ -96,3 +96,9 @@
+ - Persistent separate Chromium without Node/preload; visible automation and safe selected import.
+ - Curated developer/UI/browser skill registry with source/license and scope.
+ - OpenRouter/custom API workers with main-only OS-backed secrets and hard approval budget.
++
++## Slice 4 — artifact-bound approvals (complete bounded implementation)
++- Done: `Approvals.decide` references persisted artifact identity, recomputes hash from BLOB bytes, checks scope/current attempt atomically; caller diff/hash rejected; matches checks artifact ID.
++- Done: transactional schema v5, unbound legacy history preserved, insert guard, migration rollback/restart/negative tests and real captured artifact binding. Typecheck and production build PASS; 30/30 tests PASS.
++- Blocked: real Electron smoke exits 1 before window (`Process failed to launch!`). Windows **UNVERIFIED**; independent review pending. Evidence: `docs/evidence/artifact-approval/`.
++- Next: supervisor allowed-host smoke and preserved-diff review. No apply/execution/IPC/dependency/config/auth/push enabled. Slice stops here.
+--- before/docs/evidence/smoke-result.json
++++ after/docs/evidence/smoke-result.json
+@@ -1,21 +1 @@
+-{
+-  "status": "passed",
+-  "platform": "linux",
+-  "sandboxDisabledForHost": false,
+-  "checks": [
+-    "real Electron UI CRUD",
+-    "restart persistence",
+-    "project isolation",
+-    "memory deletion cancel/confirm",
+-    "script text inert",
+-    "role selection",
+-    "PL/EN and light/dark persistence",
+-    "seven unprobed integrations and two honest probe-dependent statuses; unknown auth/quota, execution disabled",
+-    "renderer Node unavailable",
+-    "sandbox/context isolation settings",
+-    "1440/1280/390 screenshots",
+-    "no horizontal overflow at 390",
+-    "keyboard focus",
+-    "no renderer exceptions"
+-  ]
+-}+{"status":"failed","at":"2026-10-19T14:18:58.732Z","reason":"Smoke process exited unsuccessfully; see smoke log"}

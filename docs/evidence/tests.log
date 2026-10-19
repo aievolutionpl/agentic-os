@@ -1,0 +1,70 @@
+
+> agenting-os@0.1.0 pretest
+> npm run build
+
+
+> agenting-os@0.1.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 34 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                   0.64 kB │ gzip:  0.37 kB
+dist/renderer/assets/index-DsruLuWR.css    9.23 kB │ gzip:  2.59 kB
+dist/renderer/assets/index-CRteicql.js   208.41 kB │ gzip: 65.09 kB
+✓ built in 3.20s
+
+> agenting-os@0.1.0 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs
+
+(node:84) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:84) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+TAP version 13
+# Subtest: only exact local main frame gets app IPC
+ok 1 - only exact local main frame gets app IPC
+  ---
+  duration_ms: 1.399905
+  type: 'test'
+  ...
+# Subtest: empty launch, persisted projects, tasks, memory and preferences survive reopen
+ok 2 - empty launch, persisted projects, tasks, memory and preferences survive reopen
+  ---
+  duration_ms: 179.282404
+  type: 'test'
+  ...
+# Subtest: memory and tasks are isolated and deletion is project scoped
+ok 3 - memory and tasks are isolated and deletion is project scoped
+  ---
+  duration_ms: 168.431467
+  type: 'test'
+  ...
+# Subtest: invalid and oversized input, unknown projects, invalid roles fail closed
+ok 4 - invalid and oversized input, unknown projects, invalid roles fail closed
+  ---
+  duration_ms: 60.265503
+  type: 'test'
+  ...
+# Subtest: unconfigured integrations never report quota values or observed provenance
+ok 5 - unconfigured integrations never report quota values or observed provenance
+  ---
+  duration_ms: 68.719231
+  type: 'test'
+  ...
+# Subtest: built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings
+ok 6 - built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings
+  ---
+  duration_ms: 777.658919
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1955.749289

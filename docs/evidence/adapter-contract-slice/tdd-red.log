@@ -1,0 +1,38 @@
+TAP version 13
+# Subtest: provider probes use only the documented fixed commands and redact command output
+ok 1 - provider probes use only the documented fixed commands and redact command output
+  ---
+  duration_ms: 4.070716
+  type: 'test'
+  ...
+# Subtest: missing or timed-out commands remain unknown without claiming installation or auth
+not ok 2 - missing or timed-out commands remain unknown without claiming installation or auth
+  ---
+  duration_ms: 1.414006
+  type: 'test'
+  location: '/home/aibot/apps/agenting-os/tests/adapters.test.mjs:32:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/aibot/apps/agenting-os/tests/adapters.test.mjs:43:12)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 28.870813

@@ -1,0 +1,22 @@
+{
+  "src/shared.ts": "58756301cde07d94801860859b91084356094c33d793b43c9d14e7357c5658af",
+  "src/main/security.ts": "ac29767fe4f3f3ef4a5906fb4944b55aa723dec070789ebc4f666ba222d7d4b6",
+  "src/main/store.ts": "7d897782f71a674d31bf5d65657b7a8e69a5a83843562b5ac7d365c097935901",
+  "src/main/lifecycle.ts": "ab751b6e2569f7ae4318b71d16f6903f87129a85c973243fe8e6b995b976a9bd",
+  "src/main/preload.cts": "0469c264f13bf251ef88fee0e3f8868ac6e35375711620bfedd35efef4f50fd2",
+  "src/main/index.ts": "e33523e8c2f40bb4a063317f737f2136d1bfde1fe17c09edd594ca98dc89a281",
+  "src/renderer/style.css": "9fcbe0cd33f9ade69808917b3dac0ed722fcaaaa2ac13afa002e9da772885bae",
+  "src/renderer/main.tsx": "a979e4106afd63c1f6b64994c7129fdceef3bc69f0ebdecae3e195e9451f17a0",
+  "src/renderer/global.d.ts": "a85dbdc61efa4ccb43b0335e91da7665c9a5d05c572255c979f53a0adfa2aedd",
+  "src/renderer/i18n.ts": "2253c3516e5d540ce2e72eb2b0398cb874456dc4ff119f099e4492b19bef6aa7",
+  "scripts/smoke.mjs": "54cfe250f30dcc8f333a8cd16e1022e48861e9f00d1b7eee58aac58b3f167264",
+  "scripts/notices.mjs": "be110cd1d9fce79664e3f6465d2cc210e08c3e05d0ade2f1216a8719aa575956",
+  "tests/ui.test.mjs": "9a46a4e0c6660b1bbb5626458528fb61efd99bbf4dd66d6b8cc4a9a43e07567a",
+  "tests/lifecycle-ui.test.mjs": "61b481cc613ae0090df1c62af0e80cd4eeb41e67900870dd3656f513fc8faa65",
+  "tests/store.test.mjs": "cab5f1e441726efdf6308d322830cd381dd0ba70407e7e01bd5601f1357ad3f6",
+  "tests/security.test.mjs": "b0545f4f39993c382f007fa8d5fa86309fd13fe1d6cdadb9bb61c3fbe63bcd88",
+  "tests/lifecycle.test.mjs": "6441c01c1f360b127d058753575f470272d4b3de095ae03aa2c3036a42becb2b",
+  "package.json": "ce1560558133997e320f3faca53ae13c590bed91f2a3471b9c30b14afc5e8ca8",
+  "docs/STATUS.md": "89a24e8e5970d3694263526b2f75813c589cecbd3421898f4478019fea869bb5",
+  "docs/KANBAN.md": "b283c7865fd1e8dd6b3abe78b00285d9743364f9a16f8defadcfe916385dd6b9"
+}

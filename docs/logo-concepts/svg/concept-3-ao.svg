@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Agenting OS — AO: interlocking A+O monogram</title>
+  <defs>
+    <linearGradient id="ao-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- O: bold stroked circle, behind A -->
+  <circle cx="172" cy="128" r="58" fill="none" stroke="url(#ao-grad)" stroke-width="28"/>
+  <!-- A: prominent pointed letterform, overlapping O's left edge -->
+  <path d="M128 26 L56 226 L96 226 L128 144 L160 226 L200 226 Z" fill="url(#ao-grad)"/>
+  <!-- A crossbar: thick horizontal pill -->
+  <rect x="76" y="134" width="120" height="18" rx="9" fill="url(#ao-grad)"/>
+</svg>

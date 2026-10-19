@@ -1,0 +1,212 @@
+
+> agenting-os@0.1.0 pretest
+> npm run build
+
+
+> agenting-os@0.1.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 34 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                   0.64 kB │ gzip:  0.37 kB
+dist/renderer/assets/index-Dq6buJcY.css    9.47 kB │ gzip:  2.65 kB
+dist/renderer/assets/index-DMqUWLyH.js   213.51 kB │ gzip: 66.75 kB
+✓ built in 1.61s
+
+> agenting-os@0.1.0 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs
+
+(node:81) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:81) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+TAP version 13
+# Subtest: provider probes use only the documented fixed commands and redact command output
+ok 1 - provider probes use only the documented fixed commands and redact command output
+  ---
+  duration_ms: 3.363412
+  type: 'test'
+  ...
+# Subtest: missing or timed-out commands remain unknown without claiming installation or auth
+ok 2 - missing or timed-out commands remain unknown without claiming installation or auth
+  ---
+  duration_ms: 0.375401
+  type: 'test'
+  ...
+# Subtest: integration smoke contract: passed, with seven unprobed entries
+ok 3 - integration smoke contract: passed, with seven unprobed entries
+  ---
+  duration_ms: 5.973022
+  type: 'test'
+  ...
+# Subtest: integration smoke contract: unavailable, with seven unprobed entries
+ok 4 - integration smoke contract: unavailable, with seven unprobed entries
+  ---
+  duration_ms: 2.572809
+  type: 'test'
+  ...
+# Subtest: integration smoke contract: timed_out, with seven unprobed entries
+ok 5 - integration smoke contract: timed_out, with seven unprobed entries
+  ---
+  duration_ms: 2.363009
+  type: 'test'
+  ...
+# Subtest: integration smoke contract: failed, with seven unprobed entries
+ok 6 - integration smoke contract: failed, with seven unprobed entries
+  ---
+  duration_ms: 2.300508
+  type: 'test'
+  ...
+# Subtest: WCAG reference ratios and sRGB transfer
+ok 7 - WCAG reference ratios and sRGB transfer
+  ---
+  duration_ms: 0.364802
+  type: 'test'
+  ...
+# Subtest: source-over alpha and transparent ancestor backgrounds
+ok 8 - source-over alpha and transparent ancestor backgrounds
+  ---
+  duration_ms: 0.373501
+  type: 'test'
+  ...
+# Subtest: group opacity applies to foreground AND background before parent compositing
+ok 9 - group opacity applies to foreground AND background before parent compositing
+  ---
+  duration_ms: 0.662802
+  type: 'test'
+  ...
+# Subtest: large-text thresholds use points converted to CSS px; never round a fail up
+ok 10 - large-text thresholds use points converted to CSS px; never round a fail up
+  ---
+  duration_ms: 0.631903
+  type: 'test'
+  ...
+# Subtest: DOM collector reads rendered styles, input values, placeholders and rejects complex paint
+ok 11 - DOM collector reads rendered styles, input values, placeholders and rejects complex paint
+  ---
+  duration_ms: 142.156208
+  type: 'test'
+  ...
+# Subtest: persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart
+ok 12 - persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart
+  ---
+  duration_ms: 829.35266
+  type: 'test'
+  ...
+# Subtest: lifecycle persists, fences two claimants and journals failures/retries atomically
+ok 13 - lifecycle persists, fences two claimants and journals failures/retries atomically
+  ---
+  duration_ms: 241.312661
+  type: 'test'
+  ...
+# Subtest: expired lease cannot heartbeat or finish; explicit recovery and retry required
+ok 14 - expired lease cannot heartbeat or finish; explicit recovery and retry required
+  ---
+  duration_ms: 221.205089
+  type: 'test'
+  ...
+# Subtest: dependencies, cycles, invalid transitions and workspace separation fail closed
+ok 15 - dependencies, cycles, invalid transitions and workspace separation fail closed
+  ---
+  duration_ms: 224.166299
+  type: 'test'
+  ...
+# Subtest: heartbeat extends ownership, retry is bounded and invalid requests leave no events
+ok 16 - heartbeat extends ownership, retry is bounded and invalid requests leave no events
+  ---
+  duration_ms: 255.47501
+  type: 'test'
+  ...
+# Subtest: migration preserves original v1 data and events are atomic with task mutations
+ok 17 - migration preserves original v1 data and events are atomic with task mutations
+  ---
+  duration_ms: 409.494459
+  type: 'test'
+  ...
+(node:81) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:81) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: two simultaneous worker connections produce exactly one claim
+ok 18 - two simultaneous worker connections produce exactly one claim
+  ---
+  duration_ms: 201.357117
+  type: 'test'
+  ...
+# Subtest: cross-project dependency edges and worker writes are rejected
+ok 19 - cross-project dependency edges and worker writes are rejected
+  ---
+  duration_ms: 122.943138
+  type: 'test'
+  ...
+# Subtest: all connections close before restart; expired attempt is preserved and recovered once
+ok 20 - all connections close before restart; expired attempt is preserved and recovered once
+  ---
+  duration_ms: 146.684522
+  type: 'test'
+  ...
+# Subtest: only exact local main frame gets app IPC
+ok 21 - only exact local main frame gets app IPC
+  ---
+  duration_ms: 0.254701
+  type: 'test'
+  ...
+# Subtest: empty launch, persisted projects, tasks, memory and preferences survive reopen
+ok 22 - empty launch, persisted projects, tasks, memory and preferences survive reopen
+  ---
+  duration_ms: 120.162928
+  type: 'test'
+  ...
+# Subtest: memory and tasks are isolated and deletion is project scoped
+ok 23 - memory and tasks are isolated and deletion is project scoped
+  ---
+  duration_ms: 131.716369
+  type: 'test'
+  ...
+# Subtest: invalid and oversized input, unknown projects, invalid roles fail closed
+ok 24 - invalid and oversized input, unknown projects, invalid roles fail closed
+  ---
+  duration_ms: 137.919591
+  type: 'test'
+  ...
+# Subtest: unconfigured integrations never report quota values or observed provenance
+ok 25 - unconfigured integrations never report quota values or observed provenance
+  ---
+  duration_ms: 100.682058
+  type: 'test'
+  ...
+# Subtest: exact diff approval records persist and fail closed on scope, bytes, expiry and input
+ok 26 - exact diff approval records persist and fail closed on scope, bytes, expiry and input
+  ---
+  duration_ms: 147.473882
+  type: 'test'
+  ...
+# Subtest: approval v2 migration preserves data; SQLite rejects mutation and malformed hashes
+ok 27 - approval v2 migration preserves data; SQLite rejects mutation and malformed hashes
+  ---
+  duration_ms: 211.032926
+  type: 'test'
+  ...
+# Subtest: diff artifact capture persists exact bytes from isolated committed worktree
+ok 28 - diff artifact capture persists exact bytes from isolated committed worktree
+  ---
+  duration_ms: 2033.841119
+  type: 'test'
+  ...
+# Subtest: built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings
+ok 29 - built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings
+  ---
+  duration_ms: 546.463094
+  type: 'test'
+  ...
+1..29
+# tests 29
+# suites 0
+# pass 29
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6766.36087

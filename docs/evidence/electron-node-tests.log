@@ -1,0 +1,13 @@
+✔ only exact local main frame gets app IPC (2.366807ms)
+✔ empty launch, persisted projects, tasks, memory and preferences survive reopen (113.953231ms)
+✔ memory and tasks are isolated and deletion is project scoped (123.859361ms)
+✔ invalid and oversized input, unknown projects, invalid roles fail closed (79.334731ms)
+✔ unconfigured integrations never report quota values or observed provenance (53.625856ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 431.302254

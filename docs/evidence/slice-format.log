@@ -1,0 +1,14 @@
+src/main/lifecycle.ts 184ms
+src/main/store.ts 52ms
+src/main/index.ts 39ms
+src/main/preload.cts 8ms (unchanged)
+src/shared.ts 17ms
+src/renderer/main.tsx 145ms
+src/renderer/i18n.ts 17ms
+src/renderer/style.css 149ms
+tests/lifecycle.test.mjs 96ms
+tests/lifecycle-ui.test.mjs 21ms
+scripts/smoke.mjs 41ms
+src/main/store.ts 162ms
+src/main/index.ts 44ms (unchanged)
+tests/lifecycle-ui.test.mjs 77ms (unchanged)

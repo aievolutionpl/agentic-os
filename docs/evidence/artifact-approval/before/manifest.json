@@ -1,0 +1,9 @@
+{
+  "src/main/approvals.ts": "dd47b482f7691cfe19189c4bb1d429485a2aed97d597ce870bbaaf048b202e25",
+  "src/main/store.ts": "c2e379be469a2d2d28ed1c31a12ff547cc82434f10b9f060e635b853e7b12967",
+  "src/main/lifecycle.ts": "ac26a6af2c3f73d3239ee6dfb887b069dea3fac773e53a1d2fe2129689dcdedb",
+  "tests/store.test.mjs": "b03b7d81fc90cffed33a7731409cf411ed5f998006986a00a982f4c406e74f28",
+  "docs/STATUS.md": "7d41d0bec46867f8ac60de69385c5e0f34db53066573cdb42184418719ac7574",
+  "docs/KANBAN.md": "977aa8f8e1990f2ca105e83c18f099dec13ddeeca1f415545f9a822e402f2899",
+  "docs/evidence/smoke-result.json": "579de66ac6df856ffa7788b42306e40f05d17daf969a157e1aca222a4897b21b"
+}

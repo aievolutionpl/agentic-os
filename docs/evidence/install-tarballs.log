@@ -1,0 +1,8 @@
+npm error code EROFS
+npm error syscall mkdtemp
+npm error path /home/aibot/.npm/_cacache/tmp/4TiVDe
+npm error errno -30
+npm error rofs EROFS: read-only file system, mkdtemp '/home/aibot/.npm/_cacache/tmp/4TiVDe'
+npm error rofs Often virtualized file systems, or other file systems
+npm error rofs that don't support symlinks, give this error.
+npm error A complete log of this run can be found in: /tmp/agenting-npm-logs/2026-10-19T10_43_49_701Z-debug-0.log

@@ -1,0 +1,13 @@
+
+> agenting-os@0.1.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 34 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                   0.64 kB │ gzip:  0.37 kB
+dist/renderer/assets/index-Dq6buJcY.css    9.47 kB │ gzip:  2.65 kB
+dist/renderer/assets/index-DMqUWLyH.js   213.51 kB │ gzip: 66.75 kB
+✓ built in 1.26s

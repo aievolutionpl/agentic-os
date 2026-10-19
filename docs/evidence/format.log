@@ -1,0 +1,20 @@
+src/main/index.ts 408ms
+src/main/preload.cts 26ms
+src/main/security.ts 8ms
+src/main/store.ts 113ms
+src/renderer/global.d.ts 4ms
+src/renderer/i18n.ts 29ms
+src/renderer/main.tsx 334ms
+src/renderer/style.css 315ms
+src/shared.ts 42ms
+tests/security.test.mjs 49ms
+tests/store.test.mjs 47ms
+tests/ui.test.mjs 69ms
+scripts/notices.mjs 13ms
+scripts/smoke.mjs 105ms
+package-lock.json 104ms (unchanged)
+package.json 3ms (unchanged)
+tsconfig.json 2ms
+tsconfig.main.json 2ms
+vite.config.ts 7ms
+index.html 73ms

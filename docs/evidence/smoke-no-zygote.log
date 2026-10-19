@@ -1,0 +1,21 @@
+
+> agenting-os@0.1.0 smoke
+> node scripts/smoke.mjs
+
+2026-10-19T10:50:21.626Z pw:browser <launching> /home/aibot/apps/agenting-os/node_modules/electron/dist/electron -r /home/aibot/apps/agenting-os/node_modules/playwright-core/lib/server/electron/loader.js --inspect=0 --remote-debugging-port=0 /home/aibot/apps/agenting-os --no-sandbox --no-zygote
+2026-10-19T10:50:21.637Z pw:browser <launched> pid=68
+2026-10-19T10:50:21.706Z pw:browser [pid=68][err] [68:1019/115021.704890:FATAL:content/browser/sandbox_host_linux.cc:41] Check failed: . shutdown: Operation not permitted (1)
+2026-10-19T10:50:21.900Z pw:browser [pid=68] <kill>
+2026-10-19T10:50:21.900Z pw:browser [pid=68] <will force kill>
+/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:45524
+  const failError = new Error("Process failed to launch!");
+                    ^
+
+Error: Process failed to launch!
+    at waitForLine (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:45524:21)
+    at Electron.launch (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:45734:36)
+    at async ElectronDispatcher.launch (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:57012:37)
+    at async _ProgressController.run (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:13018:27)
+    at async DispatcherConnection.dispatch (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:20191:27)
+
+Node.js v22.22.2

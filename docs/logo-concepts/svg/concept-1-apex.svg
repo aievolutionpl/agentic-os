@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Agenting OS — Apex: custom A letterform</title>
+  <defs>
+    <linearGradient id="apex-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <!-- Left leg: pointed apex at top, flared foot at bottom -->
+  <path d="M128 22 L64 222 L100 222 L128 150 L156 222 L192 222 Z" fill="url(#apex-grad)"/>
+  <!-- Crossbar: horizontal pill, cut into the legs -->
+  <rect x="80" y="138" width="96" height="18" rx="9" fill="url(#apex-grad)"/>
+  <!-- Apex accent dot -->
+  <circle cx="128" cy="16" r="6" fill="#06B6D4"/>
+</svg>

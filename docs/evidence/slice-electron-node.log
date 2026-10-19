@@ -1,0 +1,21 @@
+✔ lifecycle persists, fences two claimants and journals failures/retries atomically (133.290476ms)
+✔ expired lease cannot heartbeat or finish; explicit recovery and retry required (116.310003ms)
+✔ dependencies, cycles, invalid transitions and workspace separation fail closed (175.392757ms)
+✔ heartbeat extends ownership, retry is bounded and invalid requests leave no events (201.740862ms)
+✔ migration preserves original v1 data and events are atomic with task mutations (393.020875ms)
+✔ two simultaneous worker connections produce exactly one claim (190.426011ms)
+✔ cross-project dependency edges and worker writes are rejected (132.778019ms)
+✔ all connections close before restart; expired attempt is preserved and recovered once (132.837623ms)
+✔ only exact local main frame gets app IPC (0.299001ms)
+✔ empty launch, persisted projects, tasks, memory and preferences survive reopen (110.062411ms)
+✔ memory and tasks are isolated and deletion is project scoped (168.01208ms)
+✔ invalid and oversized input, unknown projects, invalid roles fail closed (92.985832ms)
+✔ unconfigured integrations never report quota values or observed provenance (104.958487ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1999.908144

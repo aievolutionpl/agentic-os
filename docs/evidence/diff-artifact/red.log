@@ -1,0 +1,66 @@
+(node:4) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+TAP version 13
+# Subtest: empty launch, persisted projects, tasks, memory and preferences survive reopen
+ok 1 - empty launch, persisted projects, tasks, memory and preferences survive reopen
+  ---
+  duration_ms: 178.762777
+  type: 'test'
+  ...
+# Subtest: memory and tasks are isolated and deletion is project scoped
+ok 2 - memory and tasks are isolated and deletion is project scoped
+  ---
+  duration_ms: 194.065727
+  type: 'test'
+  ...
+# Subtest: invalid and oversized input, unknown projects, invalid roles fail closed
+ok 3 - invalid and oversized input, unknown projects, invalid roles fail closed
+  ---
+  duration_ms: 129.672819
+  type: 'test'
+  ...
+# Subtest: unconfigured integrations never report quota values or observed provenance
+ok 4 - unconfigured integrations never report quota values or observed provenance
+  ---
+  duration_ms: 119.886187
+  type: 'test'
+  ...
+# Subtest: exact diff approval records persist and fail closed on scope, bytes, expiry and input
+ok 5 - exact diff approval records persist and fail closed on scope, bytes, expiry and input
+  ---
+  duration_ms: 183.850993
+  type: 'test'
+  ...
+# Subtest: approval v2 migration preserves data; SQLite rejects mutation and malformed hashes
+ok 6 - approval v2 migration preserves data; SQLite rejects mutation and malformed hashes
+  ---
+  duration_ms: 257.35333
+  type: 'test'
+  ...
+# Subtest: diff artifact capture persists exact bytes from isolated committed worktree
+not ok 7 - diff artifact capture persists exact bytes from isolated committed worktree
+  ---
+  duration_ms: 149.290382
+  type: 'test'
+  location: '/home/aibot/apps/agenting-os/tests/store.test.mjs:185:1'
+  failureType: 'testCodeFailure'
+  error: 'spawnSync git EPERM'
+  code: 'EPERM'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1120:20)
+    spawnSync (node:child_process:902:24)
+    execFileSync (node:child_process:945:15)
+    git (file:///home/aibot/apps/agenting-os/tests/store.test.mjs:194:32)
+    TestContext.<anonymous> (file:///home/aibot/apps/agenting-os/tests/store.test.mjs:195:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 6
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1271.941404

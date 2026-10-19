@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "platform": "linux",
+  "sandboxDisabledForHost": false,
+  "checks": [
+    "real Electron UI CRUD",
+    "restart persistence",
+    "project isolation",
+    "memory deletion cancel/confirm",
+    "script text inert",
+    "role selection",
+    "PL/EN and light/dark persistence",
+    "seven unprobed integrations and two honest probe-dependent statuses; unknown auth/quota, execution disabled",
+    "renderer Node unavailable",
+    "sandbox/context isolation settings",
+    "1440/1280/390 screenshots",
+    "no horizontal overflow at 390",
+    "keyboard focus",
+    "no renderer exceptions"
+  ]
+}

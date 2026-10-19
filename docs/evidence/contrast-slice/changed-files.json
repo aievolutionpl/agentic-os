@@ -1,0 +1,49 @@
+{
+  "files": [
+    {
+      "path": "docs/KANBAN.md",
+      "beforeSha256": "b283c7865fd1e8dd6b3abe78b00285d9743364f9a16f8defadcfe916385dd6b9",
+      "afterSha256": "d90ea10db73c229989031806b6ddc9d2736f0b5a9c2067e1385368c80383257c",
+      "status": "modified"
+    },
+    {
+      "path": "docs/STATUS.md",
+      "beforeSha256": "89a24e8e5970d3694263526b2f75813c589cecbd3421898f4478019fea869bb5",
+      "afterSha256": "b325b05847f1307a522af72da466cf681ca4f34a32f99148335cceb5ac4d54e4",
+      "status": "modified"
+    },
+    {
+      "path": "package.json",
+      "beforeSha256": "ce1560558133997e320f3faca53ae13c590bed91f2a3471b9c30b14afc5e8ca8",
+      "afterSha256": "25b19ebb4055bef110fbede50e47d8e4b762c88b036c760613aa8d4469a7c556",
+      "status": "modified"
+    },
+    {
+      "path": "scripts/contrast-dom.mjs",
+      "beforeSha256": null,
+      "afterSha256": "9c13a7c5c1f11d6a325fa42ead941cf71e04adad64334e12a3cc8d499e51e1ed",
+      "status": "added"
+    },
+    {
+      "path": "scripts/contrast-math.mjs",
+      "beforeSha256": null,
+      "afterSha256": "91932e3b207445ed035ffebe934bf718a32a346745614a9616faf458597cb0e2",
+      "status": "added"
+    },
+    {
+      "path": "scripts/contrast-qa.mjs",
+      "beforeSha256": null,
+      "afterSha256": "d97432d9526c5826995d008fbdca9c575b24d04f23088263da47af82dece3fe6",
+      "status": "added"
+    },
+    {
+      "path": "tests/contrast.test.mjs",
+      "beforeSha256": null,
+      "afterSha256": "023834234483398daea606c74fa430e34b087b6550d00d92a47f8b4419dc6fa5",
+      "status": "added"
+    }
+  ],
+  "evidence": "docs/evidence/contrast-slice/",
+  "standardSmokeOutput": "docs/evidence/smoke-result.json",
+  "generatedBuild": "dist/ (pretest)"
+}

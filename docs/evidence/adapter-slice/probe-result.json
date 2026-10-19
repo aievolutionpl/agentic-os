@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "at": "2026-10-19T12:37:47.390Z",
+  "scope": "fixed local version/help/auth-status probes; no provider execution or quota request",
+  "providers": [
+    {
+      "id": "codex",
+      "name": "Codex",
+      "status": "not_configured",
+      "probe": {
+        "installation": "installed",
+        "version": "0.159.1",
+        "auth": "unknown",
+        "provenance": "local-command",
+        "observedAt": "2026-10-19T12:37:47.390Z",
+        "commands": {
+          "version": "passed",
+          "help": "passed",
+          "authStatus": "passed"
+        },
+        "capabilities": {
+          "version": true,
+          "help": true,
+          "authStatus": true,
+          "execution": false
+        }
+      },
+      "quota": {
+        "state": "unknown",
+        "remaining": null,
+        "unit": null,
+        "source": null,
+        "observedAt": null,
+        "resetAt": null
+      }
+    },
+    {
+      "id": "claude",
+      "name": "Claude Code",
+      "status": "not_configured",
+      "probe": {
+        "installation": "installed",
+        "version": "2.1.269",
+        "auth": "unknown",
+        "provenance": "local-command",
+        "observedAt": "2026-10-19T12:37:47.390Z",
+        "commands": {
+          "version": "passed",
+          "help": "passed",
+          "authStatus": "passed"
+        },
+        "capabilities": {
+          "version": true,
+          "help": true,
+          "authStatus": true,
+          "execution": false
+        }
+      },
+      "quota": {
+        "state": "unknown",
+        "remaining": null,
+        "unit": null,
+        "source": null,
+        "observedAt": null,
+        "resetAt": null
+      }
+    }
+  ]
+}

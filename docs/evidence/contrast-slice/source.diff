@@ -1,0 +1,222 @@
+--- before/docs/KANBAN.md
++++ after/docs/KANBAN.md
+@@ -1,3 +1,20 @@
++# Bounded contrast QA checkpoint — 2026-10-19
++
++## Done in this slice
++- Preserved pre-edit source/document snapshots and SHA-256 manifest: `docs/evidence/contrast-slice/before/`.
++- Added contrast math + DOM collector + dedicated actual Electron QA matrix (dark/light, mobile 360/390, tablet 768/1024, tasks/memory/integrations/project dialog); structured ratios and screenshot capture paths. Text AA 4.5:1 / large 3:1; correct transparency/group-opacity compositing; complex paint fails unresolved.
++- TDD missing-module red then 5/5 green; full `npm test` exit 0, **20/20**; `npm run typecheck` exit 0. Logs in `docs/evidence/contrast-slice/`.
++- Changed-file list: `package.json`, new `scripts/contrast-math.mjs`, `scripts/contrast-dom.mjs`, `scripts/contrast-qa.mjs`, `tests/contrast.test.mjs`, `docs/STATUS.md`, `docs/KANBAN.md`; evidence directory added and standard `docs/evidence/smoke-result.json` regenerated. Source hashes/diff targets in `contrast-slice/changed-files.json`. Existing source/UI colours preserved; no actual contrast fixes justified without rendering.
++
++## Blocked / not done
++- `xvfb-run -a npm run smoke` **exit 1** and `xvfb-run -a npm run qa:contrast` **exit 1**: Chromium launch fatal `shutdown: Operation not permitted (1)` before rendering. Diagnostic launch log and structured blocked result retained. **Zero measured rendered screens or new screenshots.** Harness matrix is not yet validated end to end. Earlier historical smoke PASS does not override this failure.
++- Windows, independent diff review and measured rendered contrast remain **UNVERIFIED**. Text harness does not certify non-text contrast, native popup menus or every interaction state.
++
++## Next bounded task (not executed)
++- Resolve Electron launch on an allowed host, rerun smoke and `qa:contrast`, inspect PNG/JSON evidence and fix only observed contrast failures. Review exact source differences against snapshots. Stop this slice here; no provider execution, dependencies/config/auth changes, paid calls, push or workers.
++
++---
++
+ # Current slice — 2026-10-19
+ 
+ ## Done
+--- before/docs/STATUS.md
++++ after/docs/STATUS.md
+@@ -1,3 +1,23 @@
++# Bounded contrast regression slice — 2026-10-19 (BLOCKED at Electron launch)
++
++This entry supersedes the earlier next-task statement only for this slice. Existing app/lifecycle work is preserved. No renderer/main source, CSS, dependencies, provider execution, login, Hermes configuration, cron, secrets or other projects changed. No workers spawned. Windows remains **UNVERIFIED**. No independent review claimed.
++
++- Before source edits, copied all existing `src/`, `scripts/`, `tests/`, `package.json`, STATUS and KANBAN into [contrast-slice/before](evidence/contrast-slice/before/), with SHA-256 [manifest](evidence/contrast-slice/before/manifest.json). Git remains absent; no git initialization attempted.
++- Added `npm run qa:contrast`: actual Electron/Playwright renderer collection of computed text and placeholder foregrounds, ancestor backgrounds and opacity; source-over alpha and group opacity compositing; WCAG relative luminance without ratio rounding. AA threshold 4.5:1, large text 3:1 at >=24 CSS px normal or >=18 2/3 CSS px with weight >=700. Disabled controls recorded but exempt. Complex image/filter/blend/shadow paint is unresolved and fails the check rather than silently passing. Decorative aria-hidden text is excluded.
++- Planned matrix: dark/light × 360/390 mobile and 768/1024 tablet widths × tasks, memory, integrations and project dialog, plus initial empty state. Per-screen JSON includes measured styles, composite colours, ratios, thresholds, failures, viewport and overflow; captures full-page PNGs. Isolated temporary local profile only, no provider calls. Native popup menus, non-text boundaries/focus, every interactive state, and general WCAG conformance are outside this text-contrast check.
++- **TDD:** [red](evidence/contrast-slice/tdd-red.log) proves missing new module fails before implementation. [Collector red](evidence/contrast-slice/collector-red.log) records an intermediate JSDOM named-colour fixture failure; fixture corrected to the RGB serialization Chromium returns. [Green](evidence/contrast-slice/tdd-green.log): 5/5 contrast tests pass, including reference ratios, transparency, group opacity, threshold boundaries and collector routing. JSDOM collector tests stub geometry and are **not rendered-UI evidence**.
++- `npm run typecheck`: **exit 0**, [log](evidence/contrast-slice/typecheck.log).
++- `npm test`: **exit 0, 20 passed / 0 failed**, including existing 15 tests and production pretest build; [log](evidence/contrast-slice/tests.log).
++- `xvfb-run -a npm run smoke`: **exit 1**, Electron fails before app startup; [log](evidence/contrast-slice/smoke.log). Standard smoke also updates its existing `docs/evidence/smoke-result.json` to failed. Earlier screenshots remain historical evidence.
++- `xvfb-run -a npm run qa:contrast`: **exit 1 / BLOCKED**, **0 rendered screens, 0 measurements, 0 new screenshots**. [Structured result](evidence/contrast-slice/result.json), [final log](evidence/contrast-slice/qa-final.log), [diagnostic launch log](evidence/contrast-slice/launch-debug.log). Chromium fatal: `content/browser/sandbox_host_linux.cc:41 ... shutdown: Operation not permitted (1)`. Xvfb alone does not resolve this session's host restriction; earlier successful smoke does not establish success here. No auth/network blocker encountered. No sandbox configuration changed or restriction bypassed.
++- No actual rendered contrast failures could be established; **no UI colour fixes made**. Harness matrix and screenshot path remain unverified until Electron can start. This slice stops here with the launch blocker, rather than claiming measured QA passed.
++
++Changed source/document files (complete): `package.json` (test registration + qa script); new `scripts/contrast-math.mjs`, `scripts/contrast-dom.mjs`, `scripts/contrast-qa.mjs`, `tests/contrast.test.mjs`; `docs/STATUS.md`, `docs/KANBAN.md`. Evidence added under `docs/evidence/contrast-slice/` (snapshots, hashes, red/green/full-suite/launch logs and structured blocked result); standard smoke regenerated `docs/evidence/smoke-result.json`. Build regenerated ignored/local `dist/` assets via existing pretest. See [changed-files.json](evidence/contrast-slice/changed-files.json) for baseline hashes and review targets.
++
++Exact next action for a subsequent authorized slice: on a host where Electron launches, run `npm run typecheck`, `npm test`, `xvfb-run -a npm run smoke`, then `xvfb-run -a npm run qa:contrast`; inspect the generated PNGs and JSON, fix only observed contrast failures, rerun and independently compare against the preserved source snapshots. Do not start provider adapters as part of this slice.
++
++---
++
+ # Status — desktop smoke passing under Xvfb (2026-10-19 12:5x)
+ 
+ Existing Electron/React app and all six original tests preserved. Original task lifecycle module, SQLite v1→v2 migration, scoped dependency DAG, transactional journal, atomic execution leases, owner/token fencing, heartbeat, expiry failure and explicit bounded retry are implemented. UI reads persisted statuses/events and supports dependency selection, queue, cancel, retry and refresh in PL/EN with existing themes. Queueing is intent only: execution, provider inference, quotas and exact-diff approvals are NOT simulated or enabled.
+--- before/package.json
++++ after/package.json
+@@ -12,12 +12,13 @@
+   "scripts": {
+     "build": "tsc -p tsconfig.main.json && vite build",
+     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit",
+-    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs",
++    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs",
+     "start": "npm run build && electron .",
+     "smoke": "node scripts/smoke.mjs",
+     "smoke:headless": "xvfb-run -a node scripts/smoke.mjs",
+     "pretest": "npm run build",
+-    "notices": "node scripts/notices.mjs"
++    "notices": "node scripts/notices.mjs",
++    "qa:contrast": "node scripts/contrast-qa.mjs"
+   },
+   "dependencies": {
+     "react": "https://registry.npmjs.org/react/-/react-19.2.7.tgz",
+--- before/scripts/contrast-dom.mjs
++++ after/scripts/contrast-dom.mjs
+@@ -0,0 +1,24 @@
++// Runs inside the actual Electron renderer. No theme-token assumptions.
++export function collectContrast() {
++ const parse=s=>{const m=s.match(/^rgba?\(([^)]+)\)$/);if(!m)throw Error(`Unsupported color: ${s}`);const v=m[1].split(',').map(Number);return [...v.slice(0,3),v[3]??1];};
++ const rows=[]; const modal=document.querySelector('dialog[open]');
++ for(const el of (modal??document.body).querySelectorAll('*')) {
++  const cs=getComputedStyle(el), rect=el.getBoundingClientRect();
++  if(!el.checkVisibility({checkOpacity:true,checkVisibilityCSS:true}) || !rect.width || !rect.height || cs.clip!=='auto' || el.closest('[aria-hidden="true"]') || el.matches('option,script,style'))continue;
++  const text=[...el.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.textContent).join('').trim();
++  const value=el.matches('input,textarea')?el.value:el.matches('select')?[...el.selectedOptions].map(o=>o.text).join(', '):'';
++  const placeholder=el.matches('input,textarea')&&!el.value?el.getAttribute('placeholder'):'';
++  for(const [kind,label,style] of [['text',text||value,cs],['placeholder',placeholder,placeholder?getComputedStyle(el,'::placeholder'):cs]]) {
++   if(!label)continue;
++   const layers=[],unsupported=[];
++   for(let node=el;node;node=node.parentElement){
++    const s=getComputedStyle(node);
++    if(s.backgroundImage!=='none'||s.filter!=='none'||s.backdropFilter!=='none'||s.mixBlendMode!=='normal'||s.textShadow!=='none')unsupported.push(`${node.tagName}: complex paint`);
++    layers.push({background:parse(s.backgroundColor),opacity:Number(s.opacity)});
++   }
++   if(kind==='placeholder' && Number(style.opacity)!==1) layers.unshift({background:[0,0,0,0],opacity:Number(style.opacity)});
++   rows.push({selector:el.id?`#${el.id}`:`${el.tagName.toLowerCase()}.${[...el.classList].join('.')}`,kind,text:label.slice(0,160),size:parseFloat(style.fontSize),weight:parseInt(style.fontWeight)||400,color:parse(style.color),layers,disabled:!!el.closest(':disabled'),unsupported});
++  }
++ }
++ return rows;
++}
+--- before/scripts/contrast-math.mjs
++++ after/scripts/contrast-math.mjs
+@@ -0,0 +1,21 @@
++// WCAG 2 relative luminance; input channels are unrounded sRGB 0..255.
++export function composite(f, b) {
++ const a=f[3]+b[3]*(1-f[3]);
++ return a ? [...f.slice(0,3).map((v,i)=>(v*f[3]+b[i]*b[3]*(1-f[3]))/a),a] : [0,0,0,0];
++}
++export function contrast(a,b) {
++ const lum=c=>c.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
++ const x=lum(a),y=lum(b); return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
++}
++export const threshold=(size,weight)=>size>=24 || (size>=56/3 && weight>=700) ? 3 : 4.5;
++export function measure({color,layers}) {
++ let foreground=color,background=[0,0,0,0];
++ for(const layer of layers) {
++  foreground=composite(foreground,layer.background);
++  background=composite(background,layer.background);
++  foreground[3]*=layer.opacity; background[3]*=layer.opacity;
++ }
++ foreground=composite(foreground,[255,255,255,1]);
++ background=composite(background,[255,255,255,1]);
++ return {foreground,background,ratio:contrast(foreground,background)};
++}
+--- before/scripts/contrast-qa.mjs
++++ after/scripts/contrast-qa.mjs
+@@ -0,0 +1,51 @@
++import { _electron as electron } from 'playwright';
++import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
++import { tmpdir } from 'node:os';
++import { resolve, join } from 'node:path';
++import { collectContrast } from './contrast-dom.mjs';
++import { measure, threshold } from './contrast-math.mjs';
++const out=resolve('docs/evidence/contrast-slice');mkdirSync(out,{recursive:true});
++const profile=mkdtempSync(join(tmpdir(),'agenting-contrast-'));
++const env={...process.env,AGENTING_DATA_DIR:profile};delete env.ELECTRON_RUN_AS_NODE;
++const result={status:'running',at:new Date().toISOString(),platform:process.platform,profile,scope:'WCAG 1.4.3 text and placeholders; disabled controls exempt. Solid backgrounds, alpha and group opacity. Complex paint fails unresolved. Native popup menus, non-text contrast, all interaction states and Windows not certified.',screens:[]};
++const save=()=>writeFileSync(join(out,'result.json'),JSON.stringify(result,null,2));
++save();
++process.on('uncaughtException',e=>{result.status='blocked';result.error=String(e);save();console.error(e);process.exit(1);});
++process.on('exit',code=>{if(code && result.status==='running'){result.status='blocked';result.error='Process exited before rendering; see launch log';save();}});
++let app;
++try {
++ app=await electron.launch({args:[resolve('.')],env,timeout:30000});
++ const page=await app.firstWindow();const errors=[];page.on('pageerror',e=>errors.push(e.message));
++ await page.getByLabel('Język',{exact:true}).selectOption('en');
++ await page.waitForFunction(()=>document.documentElement.lang==='en');
++ async function capture(name){
++  await page.mouse.move(0,0);await page.locator('main[aria-busy="false"]').waitFor();
++  await page.evaluate(()=>document.fonts.ready);
++  const rows=(await page.evaluate(collectContrast)).map(row=>({...row,...measure(row),threshold:threshold(row.size,row.weight)}));
++  const failures=rows.filter(r=>!r.disabled&&(r.unsupported.length||r.ratio<r.threshold));
++  if(!rows.length)throw Error('Vacuous audit');
++  const screenshot=`${name}.png`;await page.screenshot({path:join(out,screenshot),fullPage:true});
++  result.screens.push({name,screenshot,viewport:page.viewportSize(),overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),rows,failures});
++  console.log(`${name}: ${rows.length} measurements, ${failures.length} failures`);
++ }
++ for(const theme of ['dark','light']){
++  if(await page.evaluate(()=>document.documentElement.dataset.theme)!==theme){await page.getByRole('button',{name:'Theme',exact:true}).click();await page.waitForFunction(t=>document.documentElement.dataset.theme===t,theme);}
++  for(const width of [360,390,768,1024]){
++   await page.setViewportSize({width,height:900});
++   if(theme==='dark'&&width===360){await capture('dark-360-empty');await page.getByRole('button',{name:'New project',exact:true}).first().click();await page.locator('dialog[open] input[name="name"]').fill('Contrast QA');await page.getByRole('button',{name:'Create project',exact:true}).click();await page.getByRole('heading',{name:'Contrast QA',exact:true}).waitFor();
++    await page.locator('#task-title').fill('Contrast regression task');await page.getByRole('button',{name:'Save draft',exact:true}).click();await page.getByRole('heading',{name:'Contrast regression task',exact:true}).waitFor();
++   }
++   await page.locator('.tabs button').nth(0).click();await capture(`${theme}-${width}-tasks`);
++   await page.locator('.tabs button').nth(1).click();await capture(`${theme}-${width}-memory`);
++   await page.locator('.tabs button').nth(2).click();await capture(`${theme}-${width}-integrations`);
++   await page.getByRole('button',{name:'New project',exact:true}).first().click();await page.locator('dialog[open]').waitFor();await capture(`${theme}-${width}-dialog`);await page.keyboard.press('Escape');
++  }
++ }
++ result.errors=errors;
++ result.measurements=result.screens.reduce((n,s)=>n+s.rows.length,0);
++ result.failures=result.screens.reduce((n,s)=>n+s.failures.length,0);
++ result.status=result.failures||errors.length||result.screens.some(s=>s.overflow)?'failed':'passed';
++ if(result.status!=='passed')process.exitCode=1;
++}catch(e){result.status='failed';result.error=String(e);process.exitCode=1;console.error(e);}
++finally{writeFileSync(join(out,'result.json'),JSON.stringify(result,null,2));await app?.close();}
++console.log(`Contrast QA: ${result.status}`);
+--- before/tests/contrast.test.mjs
++++ after/tests/contrast.test.mjs
+@@ -0,0 +1,47 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { composite, contrast, measure, threshold } from '../scripts/contrast-math.mjs';
++test('WCAG reference ratios and sRGB transfer', () => {
++ assert.equal(contrast([0,0,0,1],[255,255,255,1]),21);
++ assert.equal(contrast([255,255,255,1],[255,255,255,1]),1);
++ assert.ok(Math.abs(contrast([119,119,119,1],[255,255,255,1])-4.478)<.001);
++});
++test('source-over alpha and transparent ancestor backgrounds', () => {
++ assert.deepEqual(composite([0,0,0,.5],[255,255,255,1]),[127.5,127.5,127.5,1]);
++ const m=measure({color:[0,0,0,.5],layers:[{background:[255,255,255,0],opacity:1},{background:[255,255,255,1],opacity:1}]});
++ assert.ok(Math.abs(m.ratio-3.97665)<.001);
++});
++test('group opacity applies to foreground AND background before parent compositing', () => {
++ const m=measure({color:[255,255,255,1],layers:[{background:[0,0,0,1],opacity:.5},{background:[255,255,255,1],opacity:1}]});
++ assert.deepEqual(m.foreground,[255,255,255,1]);
++ assert.deepEqual(m.background,[127.5,127.5,127.5,1]);
++});
++test('large-text thresholds use points converted to CSS px; never round a fail up', () => {
++ assert.equal(threshold(18,400),4.5); assert.equal(threshold(24,400),3);
++ assert.equal(threshold(18.66,700),4.5); assert.equal(threshold(18.667,700),3);
++ assert.ok(contrast([119,119,119,1],[255,255,255,1])<threshold(16,400));
++});
++
++import { JSDOM } from 'jsdom';
++import { collectContrast } from '../scripts/contrast-dom.mjs';
++test('DOM collector reads rendered styles, input values, placeholders and rejects complex paint', () => {
++ const dom=new JSDOM('<body style="color:rgb(0,0,0);background:rgb(255,255,255)"><p style="color:rgba(0,0,0,0.5)">Alpha</p><input style="color:rgb(0,0,0);background:rgb(255,255,255)" value="Value"><input style="color:rgb(0,0,0);background:rgb(255,255,255)" placeholder="Hint"><div style="filter:brightness(1.1)">Unsupported</div><span aria-hidden="true">Decoration</span></body>');
++ const win=dom.window;
++ win.HTMLElement.prototype.checkVisibility=()=>true;
++ win.HTMLElement.prototype.getBoundingClientRect=()=>({width:100,height:20});
++ // JSDOM supplies no layout; only collector routing is tested here. Electron is mandatory for QA.
++ const original=globalThis.document, originalStyle=globalThis.getComputedStyle, originalNode=globalThis.Node;
++ globalThis.document=win.document;globalThis.Node=win.Node;
++ globalThis.getComputedStyle=el=>{
++  const s=win.getComputedStyle(el);
++  return new Proxy(s,{get(t,k){const defaults={clip:'auto',backgroundColor:'rgba(0, 0, 0, 0)',color:'rgb(0, 0, 0)',opacity:'1',backgroundImage:'none',filter:'none',backdropFilter:'none',mixBlendMode:'normal',textShadow:'none',fontSize:'16px',fontWeight:'400'};return t[k]||defaults[k]||'';}});
++ };
++ try {
++  const rows=collectContrast();
++  assert.ok(rows.some(r=>r.text==='Alpha'&&r.color[3]===.5));
++  assert.ok(rows.some(r=>r.text==='Value'));
++  assert.ok(rows.some(r=>r.kind==='placeholder'&&r.text==='Hint'));
++  assert.ok(rows.find(r=>r.text==='Unsupported').unsupported.length>0);
++  assert.ok(!rows.some(r=>r.text==='Decoration'));
++ }finally{globalThis.document=original;globalThis.getComputedStyle=originalStyle;globalThis.Node=originalNode;win.close();}
++});

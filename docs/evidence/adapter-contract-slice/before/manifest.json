@@ -1,0 +1,9 @@
+{
+  "scripts/smoke.mjs": "54cfe250f30dcc8f333a8cd16e1022e48861e9f00d1b7eee58aac58b3f167264",
+  "src/main/adapters.ts": "6865d77748fe26bd5eccbeb46927b8d97eeac33eaa93e8de31b79509515399eb",
+  "tests/adapters.test.mjs": "45563e4b9859391dc9d16acc3a3ca7c6bd20f6af81597022d261860c479f4760",
+  "package.json": "b67d6e4a7e2ae730322e46f564e8d1b065ce3899d847577a8295da39c0e9ff54",
+  "docs/STATUS.md": "fcfd2fbebc968548205b78c91fcf1b89afdb33c7618b9d96e0d8ef3ad3f5b415",
+  "docs/KANBAN.md": "2a9232b458b03a96c684a7a657cd5ebf633b4f14d282efad675d8e226fc9b992",
+  "docs/evidence/smoke-result.json": "1e019f895dcc8ae20ac2e1dfecc38d07dea5d763a528eb9de6872be659b7675e"
+}

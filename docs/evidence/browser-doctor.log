@@ -1,0 +1,9 @@
+browser-harness doctor
+  platform          Linux 6.6.87.2-microsoft-standard-WSL2
+  python            3.12.3
+  version           0.1.8 (pypi)
+  latest release    0.1.13 (update available)
+  [FAIL] chrome running — start chrome/edge
+  [FAIL] daemon alive — see install.md
+  [FAIL] active browser connections — 0
+  [FAIL] Browser Use cloud auth — optional: browser-harness auth login

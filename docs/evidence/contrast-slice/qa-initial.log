@@ -1,0 +1,16 @@
+
+> agenting-os@0.1.0 qa:contrast
+> node scripts/contrast-qa.mjs
+
+/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:45524
+  const failError = new Error("Process failed to launch!");
+                    ^
+
+Error: Process failed to launch!
+    at waitForLine (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:45524:21)
+    at Electron.launch (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:45734:36)
+    at async ElectronDispatcher.launch (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:57012:37)
+    at async _ProgressController.run (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:13018:27)
+    at async DispatcherConnection.dispatch (/home/aibot/apps/agenting-os/node_modules/playwright-core/lib/coreBundle.js:20191:27)
+
+Node.js v22.22.2

@@ -1,0 +1,170 @@
+
+> agenting-os@0.1.0 pretest
+> npm run build
+
+
+> agenting-os@0.1.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 34 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                   0.64 kB │ gzip:  0.37 kB
+dist/renderer/assets/index-Dq6buJcY.css    9.47 kB │ gzip:  2.65 kB
+dist/renderer/assets/index-DMqUWLyH.js   213.51 kB │ gzip: 66.75 kB
+✓ built in 1.30s
+
+> agenting-os@0.1.0 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs
+
+(node:82) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:82) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+TAP version 13
+# Subtest: provider probes use only the documented fixed commands and redact command output
+ok 1 - provider probes use only the documented fixed commands and redact command output
+  ---
+  duration_ms: 3.131409
+  type: 'test'
+  ...
+# Subtest: missing or timed-out commands remain unknown without claiming installation or auth
+ok 2 - missing or timed-out commands remain unknown without claiming installation or auth
+  ---
+  duration_ms: 0.452401
+  type: 'test'
+  ...
+# Subtest: WCAG reference ratios and sRGB transfer
+ok 3 - WCAG reference ratios and sRGB transfer
+  ---
+  duration_ms: 0.458902
+  type: 'test'
+  ...
+# Subtest: source-over alpha and transparent ancestor backgrounds
+ok 4 - source-over alpha and transparent ancestor backgrounds
+  ---
+  duration_ms: 0.525601
+  type: 'test'
+  ...
+# Subtest: group opacity applies to foreground AND background before parent compositing
+ok 5 - group opacity applies to foreground AND background before parent compositing
+  ---
+  duration_ms: 0.2584
+  type: 'test'
+  ...
+# Subtest: large-text thresholds use points converted to CSS px; never round a fail up
+ok 6 - large-text thresholds use points converted to CSS px; never round a fail up
+  ---
+  duration_ms: 0.2154
+  type: 'test'
+  ...
+# Subtest: DOM collector reads rendered styles, input values, placeholders and rejects complex paint
+ok 7 - DOM collector reads rendered styles, input values, placeholders and rejects complex paint
+  ---
+  duration_ms: 147.491551
+  type: 'test'
+  ...
+# Subtest: persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart
+ok 8 - persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart
+  ---
+  duration_ms: 506.369948
+  type: 'test'
+  ...
+# Subtest: lifecycle persists, fences two claimants and journals failures/retries atomically
+ok 9 - lifecycle persists, fences two claimants and journals failures/retries atomically
+  ---
+  duration_ms: 150.388556
+  type: 'test'
+  ...
+# Subtest: expired lease cannot heartbeat or finish; explicit recovery and retry required
+ok 10 - expired lease cannot heartbeat or finish; explicit recovery and retry required
+  ---
+  duration_ms: 124.157177
+  type: 'test'
+  ...
+# Subtest: dependencies, cycles, invalid transitions and workspace separation fail closed
+ok 11 - dependencies, cycles, invalid transitions and workspace separation fail closed
+  ---
+  duration_ms: 148.34185
+  type: 'test'
+  ...
+# Subtest: heartbeat extends ownership, retry is bounded and invalid requests leave no events
+ok 12 - heartbeat extends ownership, retry is bounded and invalid requests leave no events
+  ---
+  duration_ms: 174.64233
+  type: 'test'
+  ...
+# Subtest: migration preserves original v1 data and events are atomic with task mutations
+ok 13 - migration preserves original v1 data and events are atomic with task mutations
+  ---
+  duration_ms: 395.826198
+  type: 'test'
+  ...
+(node:82) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:82) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: two simultaneous worker connections produce exactly one claim
+ok 14 - two simultaneous worker connections produce exactly one claim
+  ---
+  duration_ms: 198.945097
+  type: 'test'
+  ...
+# Subtest: cross-project dependency edges and worker writes are rejected
+ok 15 - cross-project dependency edges and worker writes are rejected
+  ---
+  duration_ms: 135.103205
+  type: 'test'
+  ...
+# Subtest: all connections close before restart; expired attempt is preserved and recovered once
+ok 16 - all connections close before restart; expired attempt is preserved and recovered once
+  ---
+  duration_ms: 121.126663
+  type: 'test'
+  ...
+# Subtest: only exact local main frame gets app IPC
+ok 17 - only exact local main frame gets app IPC
+  ---
+  duration_ms: 0.228601
+  type: 'test'
+  ...
+# Subtest: empty launch, persisted projects, tasks, memory and preferences survive reopen
+ok 18 - empty launch, persisted projects, tasks, memory and preferences survive reopen
+  ---
+  duration_ms: 96.698191
+  type: 'test'
+  ...
+# Subtest: memory and tasks are isolated and deletion is project scoped
+ok 19 - memory and tasks are isolated and deletion is project scoped
+  ---
+  duration_ms: 146.124339
+  type: 'test'
+  ...
+# Subtest: invalid and oversized input, unknown projects, invalid roles fail closed
+ok 20 - invalid and oversized input, unknown projects, invalid roles fail closed
+  ---
+  duration_ms: 124.420474
+  type: 'test'
+  ...
+# Subtest: unconfigured integrations never report quota values or observed provenance
+ok 21 - unconfigured integrations never report quota values or observed provenance
+  ---
+  duration_ms: 98.053594
+  type: 'test'
+  ...
+# Subtest: built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings
+ok 22 - built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings
+  ---
+  duration_ms: 685.982239
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3724.946057

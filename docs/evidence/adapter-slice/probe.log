@@ -1,0 +1,5 @@
+
+> agenting-os@0.1.0 probe:adapters
+> node scripts/probe-adapters.mjs
+
+{"status":"passed","providers":[{"id":"codex","installation":"installed","auth":"unknown","capabilities":{"version":true,"help":true,"authStatus":true,"execution":false},"quota":"unknown"},{"id":"claude","installation":"installed","auth":"unknown","capabilities":{"version":true,"help":true,"authStatus":true,"execution":false},"quota":"unknown"}]}

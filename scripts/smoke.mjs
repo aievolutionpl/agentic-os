@@ -95,6 +95,7 @@ try {
     (await page.evaluate(() => Object.keys(window.agenting))).sort(),
     [
       "snapshot",
+      "chatList", "chatCreate", "chatSend", "chatAction", "chatRemember", "chatTask", "memoryList", "memoryUpdate", "skillCatalog", "skillImportFile", "providerCheck", "providerConnectDetected",
       "connectorScan",
       "orchestrationStart", "orchestrationState", "orchestrationStop",
       "missionPlan", "missionList", "missionAction", "missionRemember", "localModelSettings", "localModelSave", "localModelRemove",
@@ -168,7 +169,7 @@ try {
   await page
     .getByLabel("Opisz zadanie", { exact: true })
     .fill("Unsaved A input");
-  await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
+  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
   await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
   assert.equal(
     await page.locator("#task-title").inputValue(),
@@ -185,13 +186,13 @@ try {
   await choose("Filtruj według statusu", "Anulowane");
   assert.equal(await page.locator(".task-list h3").count(), 0);
   await page.getByRole("button", { name: "Wyczyść filtry" }).click();
-  await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
+  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
   await memory("<script>window.pwned=true</script> Client A secret-free fact");
   assert.equal(await page.evaluate(() => window.pwned), undefined);
   await create("Client B");
   await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
   assert.equal(await page.locator("#task-title").inputValue(), "");
-  await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
+  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
   assert.equal(
     await page
       .getByText(
@@ -228,7 +229,7 @@ try {
     "Unsaved A input",
   );
   await page.locator("#task-title").fill("");
-  await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
+  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
   await page
     .getByText("<script>window.pwned=true</script> Client A secret-free fact", {
       exact: true,

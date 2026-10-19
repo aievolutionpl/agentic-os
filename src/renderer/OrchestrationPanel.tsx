@@ -180,9 +180,14 @@ export function OrchestrationPanel({
                   type="checkbox"
                   disabled={
                     busy ||
-                    (!contextIds.includes(entry.id) && contextIds.length >= 20)
+                    !!entry.pinned ||
+                    (!contextIds.includes(entry.id) &&
+                      new Set([
+                        ...contextIds,
+                        ...memory.filter((m) => m.pinned).map((m) => m.id),
+                      ]).size >= 20)
                   }
-                  checked={contextIds.includes(entry.id)}
+                  checked={!!entry.pinned || contextIds.includes(entry.id)}
                   onChange={(e) =>
                     setContextIds((ids) =>
                       e.target.checked
@@ -195,6 +200,11 @@ export function OrchestrationPanel({
                   {entry.content}
                   <small>
                     {entry.source} · {entry.scope ?? "project"}
+                    {entry.pinned
+                      ? pl
+                        ? " · Przypięta automatycznie"
+                        : " · Automatically pinned"
+                      : ""}
                   </small>
                 </span>
               </label>

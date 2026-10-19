@@ -93,7 +93,15 @@ export class Knowledge {
       throw Error("INVALID_CONTEXT");
     const key = text(workflow, 40) as keyof typeof WORKFLOWS;
     if (!Object.hasOwn(WORKFLOWS, key)) throw Error("INVALID_WORKFLOW");
-    const memory = ids.map((id) => {
+    const pins = this.db
+      .prepare(
+        "SELECT id FROM memory WHERE pinned=1 AND (projectId=? OR scope='workspace') ORDER BY createdAt,id LIMIT 21",
+      )
+      .all(projectId)
+      .map((row) => String(row.id));
+    const selected = [...new Set([...pins, ...ids])];
+    if (selected.length > 20) throw Error("CONTEXT_BUDGET_EXCEEDED");
+    const memory = selected.map((id) => {
       const row = this.db
         .prepare(
           "SELECT * FROM memory WHERE (projectId=? OR scope='workspace') AND id=?",

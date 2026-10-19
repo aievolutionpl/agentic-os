@@ -67,6 +67,7 @@ try {
     .locator(".project-link", { hasText: a.name })
     .waitFor({ timeout: 90000 });
   page.on("pageerror", (error) => result.errors.push(error.message));
+  await page.locator(".primary-nav").getByRole("button",{name:"Centrum dowodzenia",exact:true}).click();
   await page
     .locator(".connector-card:not(.skeleton-card)")
     .first()
@@ -255,7 +256,7 @@ try {
             .click();
           if (label === "skills") {
             await page.getByText("Frontend design", { exact: true }).waitFor();
-            assert.equal(await page.locator(".extension-list > li").count(), 6);
+            assert.equal(await page.locator(".extension-list > li").count(), 9);
             await page
               .getByRole("searchbox", { name: "Szukaj skilla lub narzędzia" })
               .fill("memory curator");

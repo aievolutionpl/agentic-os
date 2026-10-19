@@ -1,28 +1,30 @@
 # Agenting OS
 
-**One desktop workspace for tasks, agents, context and reviewed changes.**
+**One desktop workspace for conversations, agents, shared memory and reviewed changes.**
 
 Agenting OS is an open-source, local-first workbench by **AI Evolution Polska**. Choose a Master Agent and give your team a goal. Master inspects the project, proposes a plan, delegates approved steps and evaluates the outcome. Changes stay in separate Git worktrees until you review and apply them.
 
 [Getting started](#getting-started) · [Agent workflow](#agent-workflow) · [Provider support](#provider-support) · [Architecture](#architecture) · [Contributing](CONTRIBUTING.md) · [Polish handoff](HANDOFF_PL.md)
 
-![AI Evolution Polska Master Agent workspace](docs/evidence/master-07/ui/master-dark-1440.png)
+![AI Evolution Polska conversation workspace](docs/evidence/harness-08/ui/chat-dark-1440.png)
 
 *Early release 0.4.0. The evidence folders contain real application captures. Model execution requires your own configured provider. Windows builds are unsigned.*
 
 ## What you can do
 
+- **Start with a conversation:** choose an agent, Conversation/Planning, and a default workspace, local folder or GitHub repository. Stream and stop replies, retain history, save an answer to memory or turn a plan into a draft task with an independent reviewer. Codex/Claude read-only chats support ordinary local folders without Git; GitHub cloning uses your existing `gh` login.
+- **Keep a team library:** open Shared Memory and Skills directly from the sidebar. Edit and pin common knowledge; inspect nine bundled skills and import selected local SKILL.md instructions. Pinned workspace entries automatically reach every agent's next context; private project entries stay in that project.
 - **See your whole fleet:** the Control Center detects installed agent CLIs, local model servers and GitHub sign-in, and states honestly what is ready, what needs a login and what is unknown. Provider limits stay *unknown* until a verified official source exists.
 - **Give Master a goal:** select a lead and roster, freeze memory/skills, generate a bounded plan of up to six steps, inspect assignments and acceptance criteria, then launch. Sequential delegation follows dependencies, checks provider quota and includes previous outcomes. Master evaluates the final repository and reports completion or remaining work. Missions persist across restarts without automatic replay.
 - **Keep manual control:** the existing queue can still launch up to ten manually prepared tasks. Both paths pause for human approval of file changes; neither silently retries, merges or publishes.
 - **Run with a boundary:** explicit starts, managed Git worktrees, provider deadlines and a saved artifact instead of silent edits to the source checkout.
 - **Review before applying:** captured diff + SHA-256, a separate configured reviewer, expiring human approval and a second action to apply the exact approved commit.
-- **Share knowledge:** one SQLite FTS5 memory with project-private or explicitly workspace-wide entries, source/date attribution, workflow templates and versioned skills. Only selected entries go to an agent.
+- **Share knowledge:** one SQLite FTS5 memory with project-private or explicitly workspace-wide entries, source/date attribution, workflow templates and versioned skills. Selected and explicitly pinned entries go to an agent.
 - **Connect your providers:** Codex, Claude Code, Gemini CLI, Hermes, OpenCode/OpenRouter, a local model through OpenCode, and experimental Antigravity. An installed CLI, saved connection and verified live execution remain separate facts.
-- **Understand usage:** official Codex rate-limit windows, OpenRouter per-key USD budgets, and clearly labeled manual token budgets. Unknown limits have no invented gauges or trends.
+- **Understand usage:** official Codex rate-limit windows, OpenRouter per-key USD budgets, and clearly labeled manual token budgets. OpenQuota refreshes every minute after connecting a provider, after sign-in and on request. Unknown limits have no invented gauges or trends.
 - **Use your tools:** explicitly trusted MCP stdio servers, paginated tool discovery and a confirmation for every manual call.
 - **Browse per project:** separate persistent cookie sessions, no app bridge in remote pages, blocked downloads/popups/device permissions.
-- **Work comfortably:** Polish/English, dark/light themes, keyboard navigation, compact task rows and layouts for smaller windows.
+- **Work comfortably:** Polish/English, dark/light themes, Sora typography, Lucide icons, original generated illustrations, distinct violet navigation, keyboard access and layouts for smaller windows.
 
 There is no hosted account, telemetry service or cloud database. Local persistence does not prevent a provider, tool server or visited website from using its own network connection.
 
@@ -89,9 +91,11 @@ Codex reads effective configuration through its official app-server, disables am
 
 ## Context and extensions
 
-Memory defaults to its project. An explicitly shared entry is searchable and selectable across the workspace; project-private entries cannot be selected from another project. Only selected entries are included in a run. The frozen context retains source, date and scope, is reused for review, and is limited to 24,000 characters. This is a single local workspace database, not cloud synchronization between computers.
+Memory defaults to its project. An explicitly shared entry is searchable and selectable across the workspace; project-private entries cannot be selected from another project. Selected entries and explicitly pinned entries are included in subsequent contexts. Pinning a workspace entry makes it automatic across projects; pinning a private entry affects its project only. The frozen context retains source, date and scope, is reused for review, and is limited to 20 memory entries and 24,000 characters including skills. This is a single local workspace database, not cloud synchronization between computers.
 
-Four workflows are included: implementation, bug fix, research and UI audit. Research/audit request read-only execution. Six original text skills cover frontend design, source-grounded research, workspace memory curation, evidence-based review, accessible UI and AI Evolution Polska team handoff. The library is searchable. Individual runs choose skills explicitly; the queue includes the team handoff skill automatically. Each task can select a distinct implementer and supported reviewer.
+Four workflows are included: implementation, bug fix, research and UI audit. Research/audit request read-only execution. Six original text skills cover frontend design, source-grounded research, workspace memory curation, evidence-based review, accessible UI and AI Evolution Polska team handoff. Three pinned MIT skills from obra/superpowers add systematic debugging, verification before completion and test-driven development. The searchable sidebar library exposes all nine skills with source/license previews and a local SKILL.md import. Imports contain instructions only; supporting files are not fetched or executed. Individual runs choose skills explicitly; the queue includes the team handoff skill automatically. Each task can select a distinct implementer and supported reviewer.
+
+Conversation keeps at most 12 completed messages in the next prompt and has bounded history/context limits. A stopped or interrupted response is never replayed automatically. Conversation/Planning inspects context and produces answers; use **Create task** to enter the existing implementation/review workflow. Hermes and Antigravity lack verified read-only planning, so their local/GitHub conversations require a separate Git worktree. Read the [harness audit](docs/HARNESS_AUDIT.md) for live-provider evidence and limits, and [visual provenance](docs/research/harness-assets-2026-10-19.md) for bundled art, font and icons.
 
 Import versioned JSON manifests from **Extensions**. Skills contain instructions, not executable scripts:
 

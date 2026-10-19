@@ -55,8 +55,8 @@ test("extension import is scoped, explicit and contributes versioned frozen cont
       manifest: JSON.stringify(skill),
       consent: true,
     });
-    assert.equal(s.store.extensions.list(s.a.id).length, 7);
-    assert.equal(s.store.extensions.list(s.b.id).length, 6);
+    assert.equal(s.store.extensions.list(s.a.id).length, s.store.extensions.catalog().length + 1);
+    assert.equal(s.store.extensions.list(s.b.id).length, s.store.extensions.catalog().length);
     assert.throws(
       () => s.store.extensions.skills(s.b.id, [item.id]),
       /NOT_FOUND/,

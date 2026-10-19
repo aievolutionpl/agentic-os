@@ -48,6 +48,42 @@ export class AcpAdapter implements AgentAdapter {
   constructor(spec: ProcessSpec) {
     this.rpc = new RpcProcess(spec);
   }
+  async probe(cwd: string) {
+    try {
+      const init = await this.rpc.request(
+        "initialize",
+        {
+          protocolVersion: 1,
+          clientCapabilities: {
+            fs: { readTextFile: false, writeTextFile: false },
+            terminal: false,
+          },
+          clientInfo: { name: "agenting-os", version: "0.4.0" },
+        },
+        15000,
+      );
+      if (init.protocolVersion !== 1) throw Error("ACP_VERSION_UNSUPPORTED");
+      const session = await this.rpc.request(
+        "session/new",
+        { cwd, mcpServers: [] },
+        15000,
+      );
+      text(session.sessionId);
+      return (
+        Array.isArray(session.models?.availableModels)
+          ? session.models.availableModels
+          : []
+      )
+        .slice(0, 100)
+        .map((m: any) => ({
+          id: text(m.modelId, 240),
+          name: text(m.name ?? m.modelId, 240),
+        }));
+    } finally {
+      this.close();
+      await this.stopped();
+    }
+  }
   async run(input: AgentInput): Promise<AgentResult> {
     let sessionId = "",
       summary = "";

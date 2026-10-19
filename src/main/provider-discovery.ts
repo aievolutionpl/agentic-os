@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { homedir } from "node:os";
 import type { Agent } from "../shared.js";
 import { resolveOnPath } from "./connectors.js";
 
@@ -59,6 +60,40 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
       const native = candidates.find((p) => existsSync(p));
       if (native) result.codex = native;
     }
+  }
+  if (!result.hermes) {
+    const candidates =
+      process.platform === "win32"
+        ? [
+            join(
+              process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"),
+              "hermes",
+              "bin",
+              "hermes.exe",
+            ),
+            join(homedir(), ".local", "bin", "hermes.exe"),
+            join(
+              homedir(),
+              ".hermes",
+              "hermes-agent",
+              ".venv",
+              "Scripts",
+              "hermes.exe",
+            ),
+          ]
+        : [
+            join(homedir(), ".local", "bin", "hermes"),
+            join(
+              homedir(),
+              ".hermes",
+              "hermes-agent",
+              ".venv",
+              "bin",
+              "hermes",
+            ),
+          ];
+    const found = candidates.find((p) => existsSync(p));
+    if (found) result.hermes = found;
   }
   return result;
 }

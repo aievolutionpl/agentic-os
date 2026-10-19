@@ -1,0 +1,165 @@
+{
+  "status": "passed",
+  "checks": [
+    "default-workspace-real-git-chat-turn-over-native-ipc",
+    "chat-memory-save-edit-pin-auto-context-over-ipc",
+    "nine-skills-search-and-licensed-source-preview",
+    "multi-turn-history-and-pinned-shared-memory",
+    "chat-to-draft-task-with-independent-reviewer",
+    "automatic-official-quota-protocol-read-fixture"
+  ],
+  "screenshots": [
+    {
+      "file": "chat-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "memory-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "chat-dark-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "memory-dark-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-dark-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-dark-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-dark-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "chat-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "memory-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "chat-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "memory-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "chat-light-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "memory-light-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-light-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-light-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-light-900.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "chat-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "memory-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "skills-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    }
+  ],
+  "errors": [],
+  "scope": "Native Electron and real app-server protocol fixture; no live model calls or real quota data."
+}

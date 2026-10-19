@@ -5,6 +5,7 @@ import type {
   OpenRouterModel,
   OpenRouterSetting,
   API,
+  ProviderHealth,
 } from "../shared";
 import { SelectField, Icon, agentName } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
@@ -29,6 +30,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
   const [protocol, setProtocol] =
     useState<Parameters<API["configureProvider"]>[0]["protocol"]>("codex");
   const [profile, setProfile] = useState<"existing" | "isolated">("existing");
+  const [health, setHealth] = useState<ProviderHealth | null>(null);
   const [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
     [status, setStatus] = useState("");
@@ -63,6 +65,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
     setConsent(false);
     setStatus("");
   }, [agent, settings, detected]);
+  useEffect(() => setHealth(null), [agent]);
   async function act(fn: () => Promise<unknown>, message = "saved") {
     setBusy(true);
     setStatus("");
@@ -137,6 +140,55 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
           );
         }}
       >
+        <div className="subscription-connect">
+          <Icon name="shield" />
+          <div>
+            <strong>
+              {pl
+                ? "Istniejąca subskrypcja, własne logowanie CLI"
+                : "Existing subscription, native CLI sign-in"}
+            </strong>
+            <p>
+              {agent === "hermes"
+                ? pl
+                  ? "W Hermes wybierz dostawcę przez hermes model (np. subskrypcję Codex lub Nous). Następnie sprawdź hermes acp --check. Połączymy się z tym samym profilem."
+                  : "Choose a provider with hermes model, then run hermes acp --check. This connection uses that same profile."
+                : agent === "claude"
+                  ? pl
+                    ? "Zaloguj Claude Code poleceniem claude auth login. Agenting OS użyje jego sesji, bez kopiowania tokenów."
+                    : "Sign in with claude auth login. Agenting OS uses the CLI session without copying tokens."
+                  : agent === "codex"
+                    ? pl
+                      ? "Możesz użyć bieżącego konta Codex albo osobnego profilu aplikacji. Odczyt limitów uruchamia się automatycznie po połączeniu."
+                      : "Use your existing Codex account or an isolated app profile. Quota reads start automatically after connection."
+                    : pl
+                      ? "Zaloguj się w narzędziu dostawcy, a następnie zapisz i sprawdź połączenie."
+                      : "Sign in with the provider's tool, then save and check the connection."}
+            </p>
+          </div>
+          {api.providerConnectDetected &&
+            detected[agent] &&
+            !settings.find((p) => p.id === agent)?.configured && (
+              <button
+                type="button"
+                className="primary"
+                disabled={busy}
+                onClick={() =>
+                  void act(async () => {
+                    setSettings(
+                      await api.providerConnectDetected!({
+                        agent,
+                        consent: true,
+                      }),
+                    );
+                    setHealth(await api.providerCheck!({ agent }));
+                  })
+                }
+              >
+                {pl ? "Połącz wykryte CLI" : "Connect detected CLI"}
+              </button>
+            )}
+        </div>
         {agent === "claude" && (
           <SelectField
             label={pl ? "Sposób połączenia" : "Connection method"}
@@ -265,6 +317,23 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
           </span>
         </label>
         <div className="panel-actions">
+          {api.providerCheck && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={
+                busy || !settings.find((p) => p.id === agent)?.configured
+              }
+              onClick={() =>
+                void act(async () => {
+                  setHealth(await api.providerCheck!({ agent }));
+                }, "checked")
+              }
+            >
+              <Icon name="connections" />
+              {pl ? "Sprawdź połączenie" : "Check connection"}
+            </button>
+          )}
           <button
             className="primary"
             disabled={busy || !consent || !command.trim()}
@@ -294,12 +363,60 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
                 ? pl
                   ? "Dokończ logowanie w przeglądarce."
                   : "Finish signing in through your browser."
-                : pl
-                  ? "Zapisano lokalnie."
-                  : "Saved locally."}
+                : status === "checked"
+                  ? pl
+                    ? "Diagnostyka zakończona."
+                    : "Connection check complete."
+                  : pl
+                    ? "Zapisano lokalnie."
+                    : "Saved locally."}
           </p>
         )}
       </form>
+      {health && (
+        <div className={`connection-health ${health.state}`} role="status">
+          <Icon name={health.state === "connected" ? "check" : "info"} />
+          <div>
+            <strong>
+              {health.detail === "CLI_SIGN_IN_VERIFIED"
+                ? pl
+                  ? "Logowanie CLI potwierdzone"
+                  : "CLI sign-in verified"
+                : health.detail === "ACP_READY_AUTH_UNVERIFIED"
+                  ? pl
+                    ? "ACP odpowiada. Dostęp modelu potwierdzi pierwsza rozmowa."
+                    : "ACP responds. The first conversation verifies model access."
+                  : health.detail === "HERMES_ACP_CHECK_REQUIRED"
+                    ? pl
+                      ? "Sprawdź instalację dodatku ACP i uruchom hermes acp --check."
+                      : "Check the ACP extra and run hermes acp --check."
+                    : health.detail === "GEMINI_ACP_CHECK_REQUIRED"
+                      ? pl
+                        ? "Sprawdź logowanie i wersję Gemini CLI z obsługą --experimental-acp. Starsza instalacja wymaga aktualizacji."
+                        : "Check sign-in and a Gemini CLI version supporting --experimental-acp. Older installations need an update."
+                      : pl
+                        ? "Połączenie wymaga konfiguracji lub logowania."
+                        : "Connection requires setup or sign-in."}
+            </strong>
+            <p>{new Date(health.observedAt).toLocaleTimeString(language)}</p>
+            {!!health.models.length && (
+              <details>
+                <summary>
+                  {pl
+                    ? "Modele zgłoszone przez agenta"
+                    : "Models reported by agent"}{" "}
+                  · {health.models.length}
+                </summary>
+                <ul>
+                  {health.models.map((m) => (
+                    <li key={m.id}>{m.name}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        </div>
+      )}
       <OpenRouterSetup language={language} />
       <LocalModelSetup language={language} />
     </section>

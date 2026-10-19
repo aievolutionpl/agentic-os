@@ -11,6 +11,9 @@ files:
   - LICENSE
   - NOTICE
   - licenses/**/*
+  - resources/skills/**/*
+  - src/renderer/fonts/*OFL.txt
+  - docs/research/harness-assets-2026-10-19.md
 win:
   target:
     - target: nsis

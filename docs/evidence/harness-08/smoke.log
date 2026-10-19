@@ -1,0 +1,6 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 smoke
+> node scripts/smoke.mjs
+
+PASS: real Electron UI, isolation, restart, preferences, security and responsive smoke

@@ -7,9 +7,9 @@ import { CodexAdapter, type AgentAdapter } from "./providers.js";
 import { AcpAdapter } from "./acp.js";
 import { CliAdapter } from "./cli-provider.js";
 import { AGENTS, READ_ONLY_AGENTS } from "../shared.js";
-import { resolveOnPath } from "./connectors.js";
+import { resolveOnPath, defaultRunner } from "./connectors.js";
 import { exact, text, redact } from "./validate.js";
-import type { Agent, Run } from "../shared.js";
+import type { Agent, Run, ProviderHealth } from "../shared.js";
 
 export type AdapterFactory = (agent: Agent, cwd: string) => AgentAdapter;
 type Active = {
@@ -173,6 +173,74 @@ export class Supervisor {
       };
     });
   }
+  async health(input: unknown): Promise<ProviderHealth> {
+    const p = exact(input, ["agent"]);
+    if (!AGENTS.includes(p.agent as Agent)) throw Error("INVALID_INPUT");
+    const agent = p.agent as Agent;
+    const result: ProviderHealth = {
+      agent,
+      state: "unavailable",
+      detail: "PROVIDER_NOT_CONFIGURED",
+      models: [],
+      observedAt: new Date().toISOString(),
+    };
+    const config = this.store.runs.provider(agent);
+    if (!config?.consent) return result;
+    const cwd = join(this.dataDir, "connection-check");
+    mkdirSync(cwd, { recursive: true });
+    let adapter: AgentAdapter | undefined;
+    try {
+      if (config.protocol === "claude-cli") {
+        const auth = await defaultRunner(
+          config.command,
+          ["auth", "status", "--json"],
+          10000,
+        );
+        const body = JSON.parse(auth.stdout);
+        return {
+          ...result,
+          state: body.loggedIn === true ? "connected" : "needs-auth",
+          detail:
+            body.loggedIn === true
+              ? "CLI_SIGN_IN_VERIFIED"
+              : "SIGN_IN_REQUIRED",
+        };
+      }
+      adapter = this.factory(agent, cwd);
+      if (adapter instanceof CodexAdapter) {
+        await adapter.initialize();
+        const auth = await adapter.account();
+        return {
+          ...result,
+          state: auth.account ? "connected" : "needs-auth",
+          detail: auth.account ? "CLI_SIGN_IN_VERIFIED" : "SIGN_IN_REQUIRED",
+        };
+      }
+      if (adapter instanceof AcpAdapter) {
+        const models = await adapter.probe(cwd);
+        return {
+          ...result,
+          state: "connected",
+          detail: "ACP_READY_AUTH_UNVERIFIED",
+          models,
+        };
+      }
+      return { ...result, detail: "USE_LIVE_TASK_TO_VERIFY" };
+    } catch {
+      return {
+        ...result,
+        detail:
+          agent === "hermes"
+            ? "HERMES_ACP_CHECK_REQUIRED"
+            : agent === "gemini"
+              ? "GEMINI_ACP_CHECK_REQUIRED"
+              : "CONNECTION_CHECK_FAILED",
+      };
+    } finally {
+      adapter?.close();
+      await adapter?.stopped();
+    }
+  }
   view(input: unknown) {
     const p = exact(input, ["projectId", "taskId"]),
       projectId = text(p.projectId),
@@ -188,6 +256,37 @@ export class Supervisor {
     };
   }
   /** Master reasoning uses the same adapters, a separate worktree and a read-only mode. */
+  async conversation(
+    agent: Agent,
+    cwd: string,
+    prompt: string,
+    readOnly: boolean,
+    signal: AbortSignal,
+    activity: (kind: string, message: string) => void,
+  ) {
+    if (readOnly && !READ_ONLY_AGENTS.includes(agent))
+      throw Error("READ_ONLY_PROVIDER_REQUIRED");
+    const adapter = this.factory(agent, cwd);
+    const abort = () => adapter.close();
+    signal.addEventListener("abort", abort, { once: true });
+    try {
+      if (signal.aborted) throw Error("RUN_CANCELLED");
+      const result = await adapter.run({
+        cwd,
+        prompt,
+        readOnly,
+        signal,
+        session: () => {},
+        activity,
+      });
+      if (signal.aborted) throw Error("RUN_CANCELLED");
+      return result.summary;
+    } finally {
+      signal.removeEventListener("abort", abort);
+      adapter.close();
+      if (!(await adapter.stopped())) throw Error("STOP_UNCONFIRMED");
+    }
+  }
   async reason(
     projectId: string,
     agent: Agent,

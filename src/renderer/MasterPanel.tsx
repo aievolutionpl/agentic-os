@@ -107,6 +107,10 @@ export function MasterPanel({
     ["ready", "blocked", "interrupted"].includes(m.status),
   );
   const composing = draft || !mission;
+  const contextCount = new Set([
+    ...contextIds,
+    ...memory.filter((m) => m.pinned).map((m) => m.id),
+  ]).size;
   const statuses: Record<Mission["status"], string> = pl
     ? {
         planning: "Master przygotowuje plan",
@@ -257,7 +261,7 @@ export function MasterPanel({
             <Icon name="memory" />
             <strong>Shared Memory</strong>
             <small>
-              {composing ? contextIds.length : mission.contextIds.length}{" "}
+              {composing ? contextCount : mission.contextIds.length}{" "}
               {pl ? "wybranych wpisów" : "selected entries"}
             </small>
           </span>
@@ -366,7 +370,7 @@ export function MasterPanel({
           <details className="mission-context">
             <summary>
               {pl ? "Wspólna pamięć i skille" : "Shared memory and skills"} ·{" "}
-              {contextIds.length} / {skillIds.length}
+              {contextCount} / {skillIds.length}
             </summary>
             <fieldset>
               <legend>Shared Memory</legend>
@@ -383,9 +387,10 @@ export function MasterPanel({
                     type="checkbox"
                     disabled={
                       busy ||
-                      (contextIds.length >= 20 && !contextIds.includes(m.id))
+                      !!m.pinned ||
+                      (contextCount >= 20 && !contextIds.includes(m.id))
                     }
-                    checked={contextIds.includes(m.id)}
+                    checked={!!m.pinned || contextIds.includes(m.id)}
                     onChange={() => setContextIds(toggle(contextIds, m.id))}
                   />
                   <span>
@@ -393,6 +398,11 @@ export function MasterPanel({
                     <small>
                       {m.scope === "workspace" ? "Workspace" : project.name} ·{" "}
                       {m.source}
+                      {m.pinned
+                        ? pl
+                          ? " · Przypięta automatycznie"
+                          : " · Automatically pinned"
+                        : ""}
                     </small>
                   </span>
                 </label>

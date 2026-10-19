@@ -276,14 +276,22 @@ export function RunPanel({
           {!!memory.length && (
             <details className="context-picker">
               <summary>
-                {w.context} <span className="count">{ids.length}</span>
+                {w.context}{" "}
+                <span className="count">
+                  {
+                    new Set([
+                      ...ids,
+                      ...memory.filter((m) => m.pinned).map((m) => m.id),
+                    ]).size
+                  }
+                </span>
               </summary>
               {memory.map((entry) => (
                 <label className="dependency-choice" key={entry.id}>
                   <input
                     type="checkbox"
-                    disabled={busy}
-                    checked={ids.includes(entry.id)}
+                    disabled={busy || !!entry.pinned}
+                    checked={!!entry.pinned || ids.includes(entry.id)}
                     onChange={(event) =>
                       setIds((current) =>
                         event.target.checked
@@ -294,7 +302,14 @@ export function RunPanel({
                   />
                   <span>
                     {entry.content.slice(0, 140)}
-                    <small>{entry.source}</small>
+                    <small>
+                      {entry.source}
+                      {entry.pinned
+                        ? language === "pl"
+                          ? " · Przypięta automatycznie"
+                          : " · Automatically pinned"
+                        : ""}
+                    </small>
                   </span>
                 </label>
               ))}

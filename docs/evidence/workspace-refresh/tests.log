@@ -1,0 +1,60 @@
+
+> agenting-os@0.1.0 pretest
+> npm run build
+
+
+> agenting-os@0.1.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 34 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                           0.66 kB │ gzip:  0.38 kB
+dist/renderer/assets/InterVariable-H_M6nIbt.ttf  862.94 kB
+dist/renderer/assets/index-DxaGSUY3.css           13.12 kB │ gzip:  3.59 kB
+dist/renderer/assets/index-DKYnyr95.js           216.69 kB │ gzip: 67.70 kB
+✓ built in 1.07s
+
+> agenting-os@0.1.0 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs
+
+✔ provider probes use only the documented fixed commands and redact command output (2.7353ms)
+✔ missing or timed-out commands remain unknown without claiming installation or auth (0.2748ms)
+✔ integration smoke contract: passed, with seven unprobed entries (10.61ms)
+✔ integration smoke contract: unavailable, with seven unprobed entries (2.5554ms)
+✔ integration smoke contract: timed_out, with seven unprobed entries (3.7267ms)
+✔ integration smoke contract: failed, with seven unprobed entries (4.0603ms)
+✔ WCAG reference ratios and sRGB transfer (0.6231ms)
+✔ source-over alpha and transparent ancestor backgrounds (1.6168ms)
+✔ group opacity applies to foreground AND background before parent compositing (0.5416ms)
+✔ large-text thresholds use points converted to CSS px; never round a fail up (0.511ms)
+✔ DOM collector reads rendered styles, input values, placeholders and rejects complex paint (118.003ms)
+✔ persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart (467.5884ms)
+✔ lifecycle persists, fences two claimants and journals failures/retries atomically (140.0206ms)
+✔ expired lease cannot heartbeat or finish; explicit recovery and retry required (128.9999ms)
+✔ dependencies, cycles, invalid transitions and workspace separation fail closed (146.4038ms)
+✔ heartbeat extends ownership, retry is bounded and invalid requests leave no events (158.487ms)
+✔ migration preserves original v1 data and events are atomic with task mutations (310.9602ms)
+✔ two simultaneous worker connections produce exactly one claim (173.8057ms)
+✔ cross-project dependency edges and worker writes are rejected (121.745ms)
+✔ all connections close before restart; expired attempt is preserved and recovered once (126.5508ms)
+✔ only exact local main frame gets app IPC (0.2216ms)
+✔ empty launch, persisted projects, tasks, memory and preferences survive reopen (111.9337ms)
+✔ memory and tasks are isolated and deletion is project scoped (106.2163ms)
+✔ invalid and oversized input, unknown projects, invalid roles fail closed (79.0176ms)
+✔ unconfigured integrations never report quota values or observed provenance (77.2453ms)
+✔ exact diff approval records persist and fail closed on scope, bytes, expiry and input (192.996ms)
+✔ approval v2 migration preserves data; SQLite rejects mutation and malformed hashes (188.2654ms)
+✔ diff artifact capture persists exact bytes from isolated committed worktree (6651.4081ms)
+✔ v4 migration preserves unbound history and rolls back failed schema changes (202.4352ms)
+✔ built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings (819.0458ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11710.0958

@@ -1,3 +1,13 @@
+# Workspace UI continuation — 2026-10-19
+
+Owner resumed development after the handoff. Implemented the handoff's first recommendation: local Inter typography, neutral dark/light workspace, quieter project sidebar/composer, expandable technical details/journal, task title search/status filters with reset, per-project session input across tab/project switches, named dialogs and compact navigation/focus return. Fixed a startup preference/snapshot race found by real Electron QA.
+
+Native Windows exposed an incomplete lockfile, DOS 8.3 path comparison in artifact capture, SQLite cleanup ordering in two tests and global autocrlf-dependent fixture bytes. Fixed without weakening worktree guards, changing schemas or upgrading dependency versions. Native Windows now passes typecheck, build, 30/30 tests, extended Electron smoke and 1986 text contrast measurements across 41 screens. Evidence, tested versions and limits: [workspace refresh](evidence/workspace-refresh/README.md).
+
+No final logo selection, provider execution, patch application, secret storage, automation schedule changes, login changes, paid calls or remote push. Installer, updates, release certification and independent review remain pending. Next bounded increment is supervised isolated execution → artifact → independent review → human decision. Older entries below are history and do not override this checkpoint.
+
+---
+
 # Bounded adapter contract correction — 2026-10-19
 
 This slice stops here; whole-app completion is not claimed. Windows remains **UNVERIFIED**. No other writers or workers, inference, paid API, login/auth change, Hermes config/cron change, dependency change, git init or public push.

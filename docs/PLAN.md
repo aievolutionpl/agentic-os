@@ -1,4 +1,11 @@
 # Implementation plan
+
+## Current continuation — 2026-10-19
+Workspace UI refresh and native Windows verification implemented. Keep the existing architecture; use local Inter and semantic CSS tokens. Task search/status filters, per-project session input, expandable details/journal and compact project navigation are working. Lockfile, Windows canonical paths, test cleanup and initial preference loading were repaired. See `docs/evidence/workspace-refresh/README.md` for exact checks and limits.
+
+Next: supervised isolated Codex execution with cancellation/redacted streaming, then independent review of the persisted artifact and human decision. Verify current official CLI contracts first. Do not enable patch application, paid fallback or unattended external actions as part of that increment.
+
+## Original implementation sequence
 1. Inspect requirements, skills, available OSS/dependencies and record architecture evidence.
 2. Write failing persistence/validation/isolation tests before domain implementation.
 3. Implement SQLite service, narrow IPC and secure Electron shell.

@@ -27,12 +27,25 @@ function App() {
     [deleting, setDeleting] = useState<Memory | null>(null),
     [implementer, setImplementer] = useState<Agent>("codex"),
     [query, setQuery] = useState("");
+  const [taskQuery, setTaskQuery] = useState("");
+  const [taskFilter, setTaskFilter] = useState("all");
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const projectsToggle = useRef<HTMLButtonElement>(null);
   const projectDialog = useRef<HTMLDialogElement>(null),
     deleteDialog = useRef<HTMLDialogElement>(null),
     selection = useRef("");
   const prefs = snapshot?.preferences ?? { language: "pl", theme: "dark" },
     w = words[prefs.language];
   const project = snapshot?.projects.find((p) => p.id === projectId);
+  const visibleTasks = data.tasks.filter((task) =>
+    (taskFilter === "all" || task.status === taskFilter) &&
+    task.title.toLocaleLowerCase(prefs.language).includes(taskQuery.toLocaleLowerCase(prefs.language)),
+  );
+  const visibleMemory = data.memory.filter((memory) =>
+    (memory.content + " " + memory.source).toLocaleLowerCase(prefs.language)
+      .includes(query.toLocaleLowerCase(prefs.language)),
+  );
   useEffect(() => {
     if (project) setImplementer(project.master);
   }, [projectId, project?.master]);
@@ -61,10 +74,16 @@ function App() {
     void refresh();
   }, []);
   async function selectProject(id: string) {
+    if (projectsExpanded) {
+      setProjectsExpanded(false);
+      projectsToggle.current?.focus();
+    }
     selection.current = id;
     setProjectId(id);
     setData({ tasks: [], memory: [], events: [] });
     setQuery("");
+    setTaskQuery("");
+    setTaskFilter("all");
     setLoading(true);
     setError(false);
     try {
@@ -118,10 +137,12 @@ function App() {
     );
   return (
     <div className="shell">
-      <aside>
+      <aside id="project-navigation" className="project-sidebar" data-expanded={projectsExpanded}>
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            A
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />
+            </svg>
           </span>
           <strong>Agenting OS</strong>
         </div>
@@ -137,7 +158,7 @@ function App() {
           </button>
         </div>
         <nav aria-label={w.projects}>
-          {snapshot?.projects.map((p) => (
+          {snapshot?.projects.map((p, index) => (
             <button
               key={p.id}
               disabled={busy}
@@ -146,7 +167,7 @@ function App() {
               onClick={() => void selectProject(p.id)}
             >
               <span className="project-symbol" aria-hidden="true">
-                ◇
+                {String(index + 1).padStart(2, "0")}
               </span>
               <span>{p.name}</span>
             </button>
@@ -157,16 +178,28 @@ function App() {
           disabled={busy}
           onClick={() => setProjectOpen(true)}
         >
-          + {w.newProject}
+          <span aria-hidden="true">+ </span>{w.newProject}
         </button>
         <div className="sidebar-bottom">
-          <span className="local-indicator" />
+          <span className="local-indicator" aria-hidden="true" />
           {w.local}
           <p>{w.footer}</p>
         </div>
       </aside>
       <div className="body">
         <header>
+          <button
+            ref={projectsToggle}
+            className="projects-toggle"
+            aria-label={w.projects}
+            aria-controls="project-navigation"
+            aria-expanded={projectsExpanded}
+            onClick={() => setProjectsExpanded((open) => !open)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="3" /><path d="M9 4v16" />
+            </svg>
+          </button>
           <div className="breadcrumb">
             {w.workspace}
             <span aria-hidden="true"> / </span>
@@ -178,7 +211,7 @@ function App() {
               <select
                 aria-label={w.language}
                 value={prefs.language}
-                disabled={busy}
+                disabled={busy || loading || !snapshot}
                 onChange={(e) =>
                   void preferences({
                     language: e.target.value as Preferences["language"],
@@ -190,7 +223,7 @@ function App() {
               </select>
             </label>
             <button
-              disabled={busy}
+              disabled={busy || loading || !snapshot}
               aria-label={w.theme}
               onClick={() =>
                 void preferences({
@@ -229,6 +262,7 @@ function App() {
             <>
               <div className="page-title">
                 <div>
+                  <p className="eyebrow">{w.work}</p>
                   <h1>{project.name}</h1>
                   <p>{project.root || w.scope}</p>
                 </div>
@@ -266,6 +300,7 @@ function App() {
                             reviewer:
                               implementer === "codex" ? "claude" : "codex",
                           });
+                          setDrafts((current) => ({ ...current, [id]: "" }));
                           form.reset();
                           await reloadProject(id);
                         });
@@ -281,6 +316,11 @@ function App() {
                         maxLength={4000}
                         placeholder={w.taskTitle}
                         disabled={busy}
+                        value={drafts[projectId] ?? ""}
+                        onChange={(e) => {
+                          const title = e.target.value;
+                          setDrafts((current) => ({ ...current, [projectId]: title }));
+                        }}
                       />
                       <div className="role-bar">
                         <label>
@@ -313,18 +353,28 @@ function App() {
                       <p className="helper">{w.roleNote}</p>
                     </form>
                   </section>
-                  <section className="task-list">
-                    <h2>{w.tasks}</h2>
+                  <section className="task-list" aria-labelledby="tasks-heading">
+                    <div className="section-heading task-heading">
+                      <h2 id="tasks-heading">{w.tasks} <span className="count">{data.tasks.length}</span></h2>
+                      <div className="task-tools">
+                        <input type="search" aria-label={w.searchTasks} placeholder={w.searchTasks}
+                          value={taskQuery} onChange={(e) => setTaskQuery(e.target.value)} />
+                        <select aria-label={w.filterTasks} value={taskFilter} onChange={(e) => setTaskFilter(e.target.value)}>
+                          <option value="all">{w.allTasks}</option>
+                          {Object.entries(w.statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                        </select>
+                      </div>
+                    </div>
                     {!data.tasks.length ? (
                       <p className="empty-list">{w.noTasks}</p>
                     ) : (
                       <ul>
-                        {data.tasks.map((t) => (
-                          <li key={t.id}>
+                        {visibleTasks.map((t) => (
+                          <li key={t.id} data-status={t.status}>
                             <span className="draft-icon" aria-hidden="true">
                               □
                             </span>
-                            <div>
+                            <div className="task-description">
                               <h3>{t.title}</h3>
                               <p>
                                 {t.implementer === "codex"
@@ -335,17 +385,17 @@ function App() {
                                   ? "Codex"
                                   : "Claude Code"}
                               </p>
+                              <span className="badge">{w.statuses[t.status]}</span>
+                              {t.status === "queued" && <p>{t.ready ? w.ready : w.blocked}</p>}
+                              {t.failure && <p>{w.failures[t.failure]}</p>}
                             </div>
                             <div className="task-lifecycle">
-                              <span className="badge">
-                                {w.statuses[t.status]}
-                              </span>
+                              <details className="task-details">
+                                <summary>{w.taskDetails}</summary>
+                                <div className="task-detail-content">
                               <p>
                                 {w.attempt}: {t.attempt}/3
                               </p>
-                              {t.status === "queued" && (
-                                <p>{t.ready ? w.ready : w.blocked}</p>
-                              )}
                               {!!t.dependencies.length && (
                                 <p>
                                   {w.dependencies}:{" "}
@@ -367,7 +417,6 @@ function App() {
                                   )}
                                 </p>
                               )}
-                              {t.failure && <p>{w.failures[t.failure]}</p>}
                               {t.status === "draft" && (
                                 <label>
                                   {w.dependencies}
@@ -402,6 +451,9 @@ function App() {
                                   </select>
                                 </label>
                               )}
+                                </div>
+                              </details>
+                              <div className="task-actions">
                               {[
                                 ...(t.status === "draft"
                                   ? ["queue" as const]
@@ -432,12 +484,21 @@ function App() {
                                   {w.actions[action]}
                                 </button>
                               ))}
+                              </div>
                             </div>
                           </li>
                         ))}
                       </ul>
                     )}
+                    {!!data.tasks.length && !visibleTasks.length && (
+                      <div className="empty-list" role="status">
+                        <p>{w.noMatches}</p>
+                        <button onClick={() => { setTaskQuery(""); setTaskFilter("all"); }}>{w.clearFilters}</button>
+                      </div>
+                    )}
                     <p className="helper">{w.lifecycleNote}</p>
+                    <details className="journal">
+                      <summary>{w.journal} <span className="count">{data.events?.length ?? 0}</span></summary>
                     <button
                       disabled={busy || loading}
                       onClick={() =>
@@ -446,7 +507,7 @@ function App() {
                     >
                       {w.refreshEvents}
                     </button>
-                    <h2>{w.journal}</h2>
+                    {!data.events?.length && <p className="empty-list">{w.noEvents}</p>}
                     <ol className="event-journal">
                       {(data.events ?? []).map((event) => (
                         <li key={event.seq}>
@@ -463,6 +524,7 @@ function App() {
                         </li>
                       ))}
                     </ol>
+                    </details>
                   </section>
                 </>
               )}
@@ -526,16 +588,11 @@ function App() {
                       </button>
                     </div>
                   </form>
-                  {!data.memory.length ? (
-                    <p className="empty-list">{w.noMemory}</p>
+                  {!visibleMemory.length ? (
+                    <p className="empty-list">{data.memory.length ? w.noMatches : w.noMemory}</p>
                   ) : (
                     <ul className="memories">
-                      {data.memory
-                        .filter((m) =>
-                          (m.content + " " + m.source)
-                            .toLocaleLowerCase(prefs.language)
-                            .includes(query.toLocaleLowerCase(prefs.language)),
-                        )
+                      {visibleMemory
                         .map((m) => (
                           <li key={m.id}>
                             <p className="memory-content">{m.content}</p>
@@ -650,6 +707,7 @@ function App() {
       </div>
       <dialog
         ref={projectDialog}
+        aria-labelledby="project-dialog-title"
         onCancel={() => setProjectOpen(false)}
         onClose={() => setProjectOpen(false)}
       >
@@ -670,7 +728,7 @@ function App() {
             });
           }}
         >
-          <h2>{w.newProject}</h2>
+          <h2 id="project-dialog-title">{w.newProject}</h2>
           <label>
             {w.name}
             <input
@@ -710,10 +768,11 @@ function App() {
       </dialog>
       <dialog
         ref={deleteDialog}
+        aria-labelledby="delete-dialog-title"
         onCancel={() => setDeleting(null)}
         onClose={() => setDeleting(null)}
       >
-        <h2>{w.deleteAsk}</h2>
+        <h2 id="delete-dialog-title">{w.deleteAsk}</h2>
         <p>{deleting?.content.slice(0, 150)}</p>
         <div className="dialog-actions">
           <button autoFocus onClick={() => setDeleting(null)}>

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { collectContrast } from './contrast-dom.mjs';
 import { measure, threshold } from './contrast-math.mjs';
-const out=resolve('docs/evidence/contrast-slice');mkdirSync(out,{recursive:true});
+const out=resolve('docs/evidence/workspace-refresh/contrast');mkdirSync(out,{recursive:true});
 const profile=mkdtempSync(join(tmpdir(),'agenting-contrast-'));
 const env={...process.env,AGENTING_DATA_DIR:profile};delete env.ELECTRON_RUN_AS_NODE;
 const result={status:'running',at:new Date().toISOString(),platform:process.platform,profile,scope:'WCAG 1.4.3 text and placeholders; disabled controls exempt. Solid backgrounds, alpha and group opacity. Complex paint fails unresolved. Native popup menus, non-text contrast, all interaction states and Windows not certified.',screens:[]};
@@ -30,15 +30,17 @@ try {
  }
  for(const theme of ['dark','light']){
   if(await page.evaluate(()=>document.documentElement.dataset.theme)!==theme){await page.getByRole('button',{name:'Theme',exact:true}).click();await page.waitForFunction(t=>document.documentElement.dataset.theme===t,theme);}
-  for(const width of [360,390,768,1024]){
+  for(const width of [320,390,768,1280,1440]){
    await page.setViewportSize({width,height:900});
-   if(theme==='dark'&&width===360){await capture('dark-360-empty');await page.getByRole('button',{name:'New project',exact:true}).first().click();await page.locator('dialog[open] input[name="name"]').fill('Contrast QA');await page.getByRole('button',{name:'Create project',exact:true}).click();await page.getByRole('heading',{name:'Contrast QA',exact:true}).waitFor();
+   if(theme==='dark'&&width===320){await capture('dark-320-empty');await page.locator('.empty').getByRole('button',{name:'New project',exact:true}).click();await page.locator('dialog[open] input[name="name"]').fill('Contrast QA');await page.getByRole('button',{name:'Create project',exact:true}).click();await page.getByRole('heading',{name:'Contrast QA',exact:true}).waitFor();
     await page.locator('#task-title').fill('Contrast regression task');await page.getByRole('button',{name:'Save draft',exact:true}).click();await page.getByRole('heading',{name:'Contrast regression task',exact:true}).waitFor();
    }
    await page.locator('.tabs button').nth(0).click();await capture(`${theme}-${width}-tasks`);
    await page.locator('.tabs button').nth(1).click();await capture(`${theme}-${width}-memory`);
    await page.locator('.tabs button').nth(2).click();await capture(`${theme}-${width}-integrations`);
+   if(await page.locator('.projects-toggle').isVisible() && !await page.locator('.project-sidebar').isVisible())await page.locator('.projects-toggle').click();
    await page.getByRole('button',{name:'New project',exact:true}).first().click();await page.locator('dialog[open]').waitFor();await capture(`${theme}-${width}-dialog`);await page.keyboard.press('Escape');
+   if(await page.locator('.projects-toggle').isVisible())await page.locator('.projects-toggle').click();
   }
  }
  result.errors=errors;

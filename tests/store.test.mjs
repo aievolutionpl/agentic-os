@@ -182,7 +182,6 @@ test("approval v2 migration preserves data; SQLite rejects mutation and malforme
   const { DatabaseSync } = await import("node:sqlite");
   const dir = mkdtempSync(join(tmpdir(), "approval-migration-"));
   const file = join(dir,"app.db");
-  t.after(() => rmSync(dir,{recursive:true,force:true}));
   let s = new Store(file,()=>1000);
   const p = s.createProject({name:"Keep",root:"",master:"codex"});
   const task = s.createTask({projectId:p.id,title:"Keep task",implementer:"codex",reviewer:"claude"});
@@ -192,7 +191,7 @@ test("approval v2 migration preserves data; SQLite rejects mutation and malforme
   // Reconstruct the previous schema by removing only this slice's objects.
   db.exec("DROP TABLE approval_records; DROP TABLE diff_artifacts; PRAGMA user_version=2");
   s = new Store(file,()=>1000);
-  t.after(()=>{s.close();db.close();});
+  t.after(()=>{s.close();db.close();rmSync(dir,{recursive:true,force:true});});
   assert.equal(db.prepare("PRAGMA user_version").get().user_version,5);
   assert.equal(s.tasks(p.id)[0].title,"Keep task");
   assert.equal(s.memory(p.id)[0].content,"Keep memory");
@@ -221,6 +220,8 @@ test("diff artifact capture persists exact bytes from isolated committed worktre
   const exec = promisify(execFile);
   const git = async (cwd,...args) => (await exec('git',args,{cwd,encoding:'utf8'})).stdout.trim();
   await git(repo,'init','-q');
+  // Fixture bytes must not depend on the developer's global Windows autocrlf.
+  await git(repo,'config','core.autocrlf','false');
   writeFileSync(join(repo,'a.txt'),'before\n');
   await git(repo,'add','.');
   await git(repo,'-c','user.name=Test','-c','user.email=test@example.invalid','commit','-qm','base');
@@ -270,7 +271,6 @@ test("diff artifact capture persists exact bytes from isolated committed worktre
 test('v4 migration preserves unbound history and rolls back failed schema changes', async (t) => {
   const { DatabaseSync } = await import('node:sqlite');
   const dir = mkdtempSync(join(tmpdir(),'binding-migration-'));
-  t.after(()=>rmSync(dir,{recursive:true,force:true}));
   const file = join(dir,'db');
   let s = new Store(file,()=>1000);
   const p = s.createProject({name:'Keep',root:'',master:'codex'});
@@ -291,7 +291,7 @@ test('v4 migration preserves unbound history and rolls back failed schema change
   db.exec('DROP TRIGGER approval_artifact_scope');
   s = new Store(file,()=>1000);
   db.close(); db = new DatabaseSync(file);
-  t.after(()=>{s.close();db.close();});
+  t.after(()=>{s.close();db.close();rmSync(dir,{recursive:true,force:true});});
   assert.equal(db.prepare('PRAGMA user_version').get().user_version,5);
   assert.deepEqual(Object.values(s.approvals.list(p.id,task.id)[0]),[...legacy,null]);
   assert.equal(s.approvals.matches({id:'legacy',projectId:p.id,taskId:task.id,attempt:0,artifactId,diff:bytes}),false);

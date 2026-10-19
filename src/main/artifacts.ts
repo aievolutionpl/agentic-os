@@ -6,6 +6,9 @@ import type { DatabaseSync } from 'node:sqlite';
 import { inputObject } from './lifecycle.js';
 
 const exec = promisify(execFile);
+// The native Windows resolver expands DOS 8.3 aliases as well as junctions.
+// Compare canonical paths without lowercasing case-sensitive directories.
+const canonicalPath = realpathSync.native;
 const limit = 10 * 1024 * 1024;
 function label(v: unknown): string {
   if (typeof v !== 'string' || !v.trim() || v.includes('\0') || v.length > 4096) throw Error('INVALID_INPUT');
@@ -46,13 +49,13 @@ export class Artifacts {
     const attempt = Number(p.attempt), requestedWorktree = label(p.worktree), base = label(p.base), target = label(p.target);
     const task = this.db.prepare('SELECT p.root FROM tasks t JOIN projects p ON p.id=t.projectId WHERE t.projectId=? AND t.id=? AND t.attempt=?').get(projectId,taskId,attempt);
     if (!task) throw Error('TASK_ATTEMPT_NOT_FOUND');
-    const worktree = realpathSync(requestedWorktree);
-    const repository = realpathSync(label(task.root));
+    const worktree = canonicalPath(requestedWorktree);
+    const repository = canonicalPath(label(task.root));
     const read = async (cwd: string,...args: string[]) => (await git(cwd,...args)).toString('utf8').trim();
-    const common = async (cwd: string) => realpathSync(await read(cwd,'rev-parse','--path-format=absolute','--git-common-dir'));
-    const gitDir = realpathSync(await read(worktree,'rev-parse','--absolute-git-dir'));
+    const common = async (cwd: string) => canonicalPath(await read(cwd,'rev-parse','--path-format=absolute','--git-common-dir'));
+    const gitDir = canonicalPath(await read(worktree,'rev-parse','--absolute-git-dir'));
     if ((await common(repository))!==(await common(worktree)) || gitDir===(await common(worktree)) ||
-        realpathSync(await read(worktree,'rev-parse','--show-toplevel'))!==worktree || worktree===repository) throw Error('NOT_ISOLATED_WORKTREE');
+        canonicalPath(await read(worktree,'rev-parse','--show-toplevel'))!==worktree || worktree===repository) throw Error('NOT_ISOLATED_WORKTREE');
     for (const oid of [base,target]) {
       if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(oid) || (await read(worktree,'rev-parse','--verify',`${oid}^{commit}`))!==oid) throw Error('INVALID_COMMIT');
     }

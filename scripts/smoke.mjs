@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 const profile = mkdtempSync(join(tmpdir(), "agenting-smoke-"));
-const evidence = resolve("docs/evidence");
+const evidence = resolve("docs/evidence/workspace-refresh");
 mkdirSync(evidence, { recursive: true });
 writeFileSync(
   join(evidence, "smoke-result.json"),
@@ -122,10 +122,23 @@ try {
   await page
     .getByRole("heading", { name: "Review project boundaries", exact: true })
     .waitFor();
+  await page.getByLabel("Opisz zadanie", {exact:true}).fill("Unsaved A input");
+  await page.getByRole("button", {name:/Wspólna pamięć/}).click();
+  await page.locator(".tabs button").nth(0).click();
+  assert.equal(await page.locator("#task-title").inputValue(), "Unsaved A input");
+  await page.getByRole("searchbox", {name:"Szukaj zadań"}).fill("no matching task");
+  assert.equal(await page.locator(".task-list h3").count(),0);
+  await page.getByRole("button", {name:"Wyczyść filtry"}).click();
+  await page.getByRole("heading", {name:"Review project boundaries",exact:true}).waitFor();
+  await page.getByLabel("Filtruj według statusu").selectOption("cancelled");
+  assert.equal(await page.locator(".task-list h3").count(),0);
+  await page.getByRole("button", {name:"Wyczyść filtry"}).click();
   await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
   await memory("<script>window.pwned=true</script> Client A secret-free fact");
   assert.equal(await page.evaluate(() => window.pwned), undefined);
   await create("Client B");
+  await page.locator(".tabs button").nth(0).click();
+  assert.equal(await page.locator("#task-title").inputValue(), "");
   await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
   assert.equal(
     await page
@@ -157,6 +170,9 @@ try {
     })
     .waitFor();
   await page.getByRole("button", { name: /Client A/, exact: false }).click();
+  await page.locator(".tabs button").nth(0).click();
+  assert.equal(await page.locator("#task-title").inputValue(), "Unsaved A input");
+  await page.locator("#task-title").fill("");
   await page.getByRole("button", { name: /Wspólna pamięć/ }).click();
   await page
     .getByText("<script>window.pwned=true</script> Client A secret-free fact", {
@@ -187,6 +203,7 @@ try {
     () => document.documentElement.dataset.theme === "light",
   );
   await page.setViewportSize({ width: 1440, height: 940 });
+  await page.locator(".tabs button").nth(0).click();
   await page.screenshot({
     path: join(evidence, "desktop-light-1440.png"),
     fullPage: true,
@@ -223,6 +240,34 @@ try {
     path: join(evidence, "desktop-narrow-390.png"),
     fullPage: true,
   });
+  // The compact project picker is keyboard reachable and returns focus on selection.
+  const projectToggle = page.getByRole("button", {name:"Projects",exact:true});
+  await projectToggle.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await projectToggle.getAttribute("aria-expanded"),"true");
+  await page.getByRole("button",{name:/Client B/}).click();
+  assert.equal(await projectToggle.getAttribute("aria-expanded"),"false");
+  assert.equal(await projectToggle.evaluate(el=>el===document.activeElement),true);
+  await projectToggle.click();
+  await page.getByRole("button",{name:/Client A/}).click();
+  for(const width of [320,390,768,1280,1440]) {
+    await page.setViewportSize({width,height:900});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`reflow at ${width}`);
+  }
+  // Long names and task titles must reflow with technical details expanded.
+  await page.getByRole("button",{name:"New project",exact:true}).first().click();
+  await page.getByRole("dialog",{name:"New project",exact:true}).getByRole("textbox",{name:"Project name",exact:true}).fill("Long_project_".repeat(16));
+  await page.getByRole("button",{name:"Create project",exact:true}).click();
+  await page.locator("main[aria-busy=false]").waitFor();
+  await page.locator("#task-title").fill("Long_task_".repeat(300));
+  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await page.locator(".task-list h3").waitFor();
+  await page.locator(".task-details summary").click();
+  assert.equal(await page.locator(".task-details").getAttribute("open"), "");
+  for(const width of [320,390,768,1440]) {
+    await page.setViewportSize({width,height:900});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`long content at ${width}`);
+  }
   await page.keyboard.press("Tab");
   assert.equal(
     await page.evaluate(() => document.activeElement?.tagName !== "BODY"),
@@ -250,6 +295,11 @@ try {
           "1440/1280/390 screenshots",
           "no horizontal overflow at 390",
           "keyboard focus",
+          "task search, status filters and clear filters",
+          "per-project unsaved drafts across tabs and project switches",
+          "compact project navigation and keyboard focus return",
+          "no horizontal overflow at 320/390/768/1280/1440",
+          "long project/task names reflow with expanded task details",
           "no renderer exceptions",
         ],
       },

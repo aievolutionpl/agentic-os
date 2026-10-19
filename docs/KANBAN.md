@@ -1,3 +1,16 @@
+# Current continuation — workspace UI and Windows (2026-10-19)
+
+- Done: implemented workspace visual refresh, local Inter, both themes and compact navigation.
+- Done: task search/status filters/reset, per-project session input, expandable task details/journal and named native dialogs.
+- Done: startup preference race, lockfile, DOS alias canonicalization and Windows test cleanup/fixture fixes.
+- Verified on native Windows: typecheck, production build, 30/30 tests, real Electron smoke, 320/390/768/1280/1440 reflow, long names, keyboard navigation, 1986 text contrast measurements with zero failures. See [evidence](evidence/workspace-refresh/README.md).
+- Pending: owner UI/logo feedback, independent review, installer/updates/release QA.
+- Next: supervised isolated Codex execution with cancellation and redacted streaming, then artifact review and human decision. Apply remains a separate increment.
+
+The entries below are historical checkpoints.
+
+---
+
 # Bounded adapter contract correction — 2026-10-19 (stopped)
 
 ## Done

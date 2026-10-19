@@ -1,5 +1,12 @@
 export const words = {
   en: {
+    searchTasks: "Search tasks",
+    filterTasks: "Filter by status",
+    allTasks: "All statuses",
+    noMatches: "No results for these filters.",
+    clearFilters: "Clear filters",
+    taskDetails: "Task details",
+    noEvents: "The journal will appear when you save your first task.",
     statuses: {
       draft: "Draft · not executed",
       queued: "Queued",
@@ -112,6 +119,13 @@ export const words = {
     work: "Project workspace",
   },
   pl: {
+    searchTasks: "Szukaj zadań",
+    filterTasks: "Filtruj według statusu",
+    allTasks: "Wszystkie statusy",
+    noMatches: "Brak wyników dla tych filtrów.",
+    clearFilters: "Wyczyść filtry",
+    taskDetails: "Szczegóły zadania",
+    noEvents: "Dziennik pojawi się po zapisaniu pierwszego zadania.",
     statuses: {
       draft: "Szkic · niewykonany",
       queued: "W kolejce",

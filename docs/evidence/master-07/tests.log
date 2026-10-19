@@ -1,0 +1,98 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 pretest
+> npm run build
+
+
+> agenting-os@0.4.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 42 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                           0.66 kB │ gzip:   0.38 kB
+dist/renderer/assets/InterVariable-H_M6nIbt.ttf  862.94 kB
+dist/renderer/assets/index-BA1o2hn-.css           54.36 kB │ gzip:  11.21 kB
+dist/renderer/assets/index-Cq6lqvFS.js           320.85 kB │ gzip: 100.21 kB
+✓ built in 2.66s
+
+> agenting-os@0.4.0 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs
+
+✔ provider probes use only the documented fixed commands and redact command output (4.8458ms)
+✔ missing or timed-out commands remain unknown without claiming installation or auth (0.4748ms)
+✔ integration smoke contract: passed, with seven unprobed entries (16.271ms)
+✔ integration smoke contract: unavailable, with seven unprobed entries (9.1643ms)
+✔ integration smoke contract: timed_out, with seven unprobed entries (7.9814ms)
+✔ integration smoke contract: failed, with seven unprobed entries (9.5342ms)
+✔ scan classifies real-world outputs honestly and never leaks credentials (1.7309ms)
+✔ unauthenticated and broken tools are reported as such, not as connected (0.7331ms)
+✔ local servers: models from loopback JSON, down server is degraded, absent is needs-install (1.0229ms)
+✔ every spawned command is a fixed, read-only version or status query (0.5856ms)
+✔ PATH resolution is strict, and the HTTP probe refuses non-loopback hosts (3.965ms)
+✔ local run counters are exact and separate from provider quota (7.3034ms)
+✔ WCAG reference ratios and sRGB transfer (0.577ms)
+✔ source-over alpha and transparent ancestor backgrounds (0.5955ms)
+✔ group opacity applies to foreground AND background before parent compositing (0.3866ms)
+✔ large-text thresholds use points converted to CSS px; never round a fail up (0.2037ms)
+✔ DOM collector reads rendered styles, input values, placeholders and rejects complex paint (157.4731ms)
+✔ extension import is scoped, explicit and contributes versioned frozen context (29.9244ms)
+✔ MCP uses versioned handshake and pagination, rejects cross-project and unapproved calls (185.4981ms)
+✔ browser only accepts safe explicit web URLs and blocks local navigation from remote content (0.8402ms)
+✔ persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart (498.3824ms)
+✔ lifecycle persists, fences two claimants and journals failures/retries atomically (61.7338ms)
+✔ expired lease cannot heartbeat or finish; explicit recovery and retry required (31.2627ms)
+✔ dependencies, cycles, invalid transitions and workspace separation fail closed (47.378ms)
+✔ heartbeat extends ownership, retry is bounded and invalid requests leave no events (45.9997ms)
+✔ migration preserves original v1 data and events are atomic with task mutations (65.1511ms)
+✔ two simultaneous worker connections produce exactly one claim (213.6929ms)
+✔ cross-project dependency edges and worker writes are rejected (37.9314ms)
+✔ all connections close before restart; expired attempt is preserved and recovered once (53.5315ms)
+✔ Codex thread overrides disable inherited MCP/plugins without forwarding secrets or writing config (2.5992ms)
+✔ master validates a bounded DAG, independent review, providers and structured evaluation (1.5768ms)
+✔ local model configuration rejects remote endpoints and confines OpenCode to the chosen model (8.794ms)
+✔ ACP grants only located in-worktree edits, denies traversal, Git metadata and hardlinks (11.0882ms)
+✔ ACP actual permission exchange permits one scoped edit but never a read-only or outside edit (453.7943ms)
+✔ master freezes explicitly selected shared memory, preserves private scope and survives restart (40.0393ms)
+✔ exhausted verified quota blocks inference; unknown quota is explicit and cancellation is durable (60.8386ms)
+✔ invalid model plan creates no tasks and atomic task binding rolls back on launch failure (39.4917ms)
+✔ Master protocol → research → implementation → review → human apply → evaluation → shared memory (16738.6767ms)
+✔ supervised protocol run seals a real worktree, redacts output and keeps the source unchanged (5154.9371ms)
+✔ orchestrator dispatches a real worktree run and reviewer, shares frozen memory, then waits for human approval (5078.7893ms)
+✔ FTS retrieval and frozen context keep source provenance, budgets and project scope (508.3856ms)
+✔ only independently reviewed, exact approved artifacts apply by fast-forward; replay is idempotent (9324.831ms)
+✔ dirty or changed source and expired approvals cannot apply or overwrite user work (10029.1135ms)
+✔ protected files and a reviewer that modifies the captured worktree fail closed (11827.3431ms)
+✔ ACP v1 uses read-only mode and rejects permission grants with an actual stdio process (86.9577ms)
+✔ interrupted runs survive a real database reopen and resume only on an explicit action (4809.725ms)
+✔ application never overwrites an ignored local file even when the proposal changes gitignore (7994.8556ms)
+✔ cancellation terminates the provider and leaves durable cancelled state and source files intact (2283.783ms)
+✔ provider crash fails closed; invalid project, dirty repository and unconsented executable are rejected (2059.3954ms)
+✔ only exact local main frame gets app IPC (0.2643ms)
+✔ empty launch, persisted projects, tasks, memory and preferences survive reopen (25.2601ms)
+✔ memory and tasks are isolated and deletion is project scoped (27.8035ms)
+✔ invalid and oversized input, unknown projects, invalid roles fail closed (21.0867ms)
+✔ unconfigured integrations never report quota values or observed provenance (21.7839ms)
+✔ exact diff approval records persist and fail closed on scope, bytes, expiry and input (36.0385ms)
+✔ approval v2 migration preserves data; SQLite rejects mutation and malformed hashes (43.924ms)
+✔ diff artifact capture persists exact bytes from isolated committed worktree (6262.8485ms)
+✔ v4 migration preserves unbound history and rolls back failed schema changes (44.4588ms)
+✔ built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings (786.3218ms)
+✔ quota readings preserve unknown data, multi-bucket windows, reset duration and real daily usage (2.487ms)
+✔ OpenRouter key resets use remaining budget instead of lifetime spend; unlimited is unknown, zero is exhausted (0.348ms)
+✔ manual budgets reject invalid data, preserve overrun and migrate plaintext key fields out of legacy records (6.7466ms)
+✔ OpenRouter vault keeps credentials out of public settings and plaintext disk; unencrypted storage is refused (9.2031ms)
+✔ workspace memory is explicit, searchable and frozen for all providers; project memory stays isolated after restart (36.8595ms)
+✔ native CLI uses stdin, constrained tools and process cancellation; malformed or denied results fail closed (1583.0547ms)
+✔ detected CLI is not a configured connection and isolated Codex does not inherit global auth claims (0.4579ms)
+✔ orchestrator is finite, shares context, reviews changes and pauses without applying or starting the next task (84.2435ms)
+ℹ tests 67
+ℹ suites 0
+ℹ pass 67
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 88151.2034

@@ -11,6 +11,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { Store } from "../dist/main/store.js";
 import { Supervisor } from "../dist/main/supervisor.js";
+import { Orchestrator } from "../dist/main/orchestrator.js";
 import { CodexAdapter } from "../dist/main/providers.js";
 import { AcpAdapter } from "../dist/main/acp.js";
 import { Applications } from "../dist/main/applications.js";
@@ -45,16 +46,21 @@ async function setup(behavior = "write", clock = Date.now) {
     implementer: "codex",
     reviewer: "claude",
   });
+  const inputs = [];
   const supervisor = new Supervisor(
     store,
     join(dir, "app"),
-    () =>
-      new CodexAdapter({
+    () => {
+      const adapter = new CodexAdapter({
         command: process.execPath,
         args: [fixture],
         cwd: repo,
         env: { QA_BEHAVIOR: behavior },
-      }),
+      });
+      const run = adapter.run.bind(adapter);
+      adapter.run = input => { inputs.push(input); return run(input); };
+      return adapter;
+    },
   );
   return {
     dir,
@@ -64,6 +70,7 @@ async function setup(behavior = "write", clock = Date.now) {
     project,
     task,
     supervisor,
+    inputs,
     async close() {
       await supervisor.close();
       store.close();
@@ -131,6 +138,64 @@ test("supervised protocol run seals a real worktree, redacts output and keeps th
     await f.close();
   }
 });
+test("orchestrator dispatches a real worktree run and reviewer, shares frozen memory, then waits for human approval", async () => {
+  const f = await setup();
+  const queue = new Orchestrator(f.store, f.supervisor);
+  try {
+    for (const agent of ["codex", "claude"])
+      f.store.runs.configure(
+        agent,
+        process.execPath,
+        [fixture],
+        "codex",
+        "existing",
+      );
+    const memory = f.store.createMemory({
+      projectId: f.project.id,
+      content: "Shared team convention",
+      source: "QA",
+      scope: "workspace",
+    });
+    const next = f.store.createTask({
+      projectId: f.project.id,
+      title: "Second task",
+      implementer: "codex",
+      reviewer: "claude",
+    });
+    for (const task of [f.task, next])
+      f.store.taskAction({
+        projectId: f.project.id,
+        id: task.id,
+        action: "queue",
+      });
+    queue.start({
+      projectId: f.project.id,
+      taskIds: [f.task.id, next.id],
+      contextIds: [memory.id],
+      consent: true,
+    });
+    await wait(
+      () => queue.state({ projectId: f.project.id }).status !== "running",
+    );
+    const state = queue.state({ projectId: f.project.id });
+    assert.equal(state.reason, "HUMAN_APPROVAL_REQUIRED");
+    assert.equal(state.finished, 1);
+    const run = f.store.runs.get(f.project.id, state.runId);
+    assert.equal(run.state, "awaiting_review");
+    assert.equal(run.reviewState, "completed");
+    assert.match(f.store.runs.context(run.id), /Shared team convention/);
+    assert.match(f.store.runs.context(run.id), /Skill builtin:teamwork@1\.0\.0/);
+    assert.match(f.inputs.find(input => input.readOnly).prompt, /Shared team convention/);
+    assert.match(f.inputs.find(input => input.readOnly).prompt, /\+isolated result/);
+    assert.equal(f.store.runs.list(f.project.id).length, 1);
+    assert.equal(await gitText(f.repo, "rev-parse", "HEAD"), f.base);
+    assert.equal(existsSync(join(f.repo, "result.txt")), false);
+  } finally {
+    queue.close();
+    await f.close();
+  }
+});
+
 test("FTS retrieval and frozen context keep source provenance, budgets and project scope", async () => {
   const f = await setup();
   try {

@@ -1,0 +1,14 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+{
+  "at": "2026-10-19T21:01:03.649Z",
+  "status": "passed",
+  "scope": "Real Electron UI and Master workflow, Codex planning/evaluation and Claude research on a disposable one-file Git fixture. Existing CLI sign-ins, no API key or private project data.",
+  "checks": [
+    "real-codex-plan-validated-before-execution",
+    "real-claude-worker-read-marker",
+    "real-codex-evaluation-completed",
+    "source-unchanged",
+    "user-triggered-memory-save-over-real-ipc"
+  ],
+  "errors": []
+}

@@ -57,7 +57,7 @@ export class Knowledge {
     if (!tokens.length) {
       const rows = this.db
         .prepare(
-          "SELECT * FROM memory WHERE projectId=? ORDER BY createdAt DESC,id",
+          "SELECT * FROM memory WHERE projectId=? OR scope='workspace' ORDER BY createdAt DESC,id",
         )
         .all(projectId) as unknown as Memory[];
       return rows
@@ -73,7 +73,7 @@ export class Knowledge {
     const match = tokens.map((token) => `"${token}"*`).join(" OR ");
     return this.db
       .prepare(
-        "SELECT m.* FROM memory_search JOIN memory m ON m.id=memory_search.id WHERE memory_search MATCH ? AND m.projectId=? ORDER BY bm25(memory_search),m.id LIMIT 50",
+        "SELECT m.* FROM memory_search JOIN memory m ON m.id=memory_search.id WHERE memory_search MATCH ? AND (m.projectId=? OR m.scope='workspace') ORDER BY bm25(memory_search),m.id LIMIT 50",
       )
       .all(match, projectId) as unknown as Memory[];
   }
@@ -95,7 +95,9 @@ export class Knowledge {
     if (!Object.hasOwn(WORKFLOWS, key)) throw Error("INVALID_WORKFLOW");
     const memory = ids.map((id) => {
       const row = this.db
-        .prepare("SELECT * FROM memory WHERE projectId=? AND id=?")
+        .prepare(
+          "SELECT * FROM memory WHERE (projectId=? OR scope='workspace') AND id=?",
+        )
         .get(projectId, text(id));
       if (!row) throw Error("INVALID_CONTEXT");
       return row as unknown as Memory;
@@ -104,7 +106,7 @@ export class Knowledge {
       `Workflow: ${key}\n${WORKFLOWS[key].instructions}`,
       ...memory.map(
         (entry) =>
-          `[Memory ${entry.id}; source: ${entry.source}; date: ${entry.createdAt}]\n${entry.content}`,
+          `[Memory ${entry.id}; scope: ${entry.scope ?? "project"}; source: ${entry.source}; date: ${entry.createdAt}]\n${entry.content}`,
       ),
       ...skills.map(
         (skill) =>

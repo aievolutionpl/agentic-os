@@ -4,6 +4,9 @@ import { Lifecycle } from "./lifecycle.js";
 import { Runs } from "./runs.js";
 import { Knowledge } from "./knowledge.js";
 import { Extensions } from "./extensions.js";
+import { migrateWorkspace } from "./workspace-migration.js";
+import { Missions } from "./missions.js";
+import { AGENTS } from "../shared.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import type {
@@ -30,8 +33,8 @@ function text(input: unknown, max = 240, empty = false): string {
   return input.trim();
 }
 function agent(input: unknown): Agent {
-  if (input !== "codex" && input !== "claude") throw Error("INVALID_INPUT");
-  return input;
+  if (!AGENTS.includes(input as Agent)) throw Error("INVALID_INPUT");
+  return input as Agent;
 }
 export class Store {
   private db: DatabaseSync;
@@ -41,6 +44,7 @@ export class Store {
   readonly runs: Runs;
   readonly knowledge: Knowledge;
   readonly extensions: Extensions;
+  readonly missions: Missions;
   constructor(file: string, clock: () => number = Date.now) {
     this.db = new DatabaseSync(file);
     this.db.exec(
@@ -51,7 +55,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 8) {
+      if (version.user_version > 10) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -90,6 +94,8 @@ export class Store {
       this.runs = new Runs(this.db, clock);
       this.knowledge = new Knowledge(this.db);
       this.extensions = new Extensions(this.db);
+      migrateWorkspace(this.db);
+      this.missions = new Missions(this.db);
     } catch (error) {
       this.db.close();
       throw error;
@@ -167,6 +173,8 @@ export class Store {
     };
     if (result.implementer === result.reviewer)
       throw Error("INDEPENDENT_REVIEW_REQUIRED");
+    if (result.reviewer === "antigravity" || result.reviewer === "hermes")
+      throw Error("ANTIGRAVITY_READ_ONLY_UNSUPPORTED");
     this.lifecycle.transaction(() => {
       this.db
         .prepare(
@@ -187,26 +195,38 @@ export class Store {
   }
   memory(id: unknown): Memory[] {
     return this.db
-      .prepare("SELECT * FROM memory WHERE projectId=? ORDER BY createdAt,id")
+      .prepare(
+        "SELECT * FROM memory WHERE projectId=? OR scope='workspace' ORDER BY createdAt,id",
+      )
       .all(this.project(id)) as unknown as Memory[];
   }
   createMemory(input: unknown): Memory {
     const p = object(input);
+    if (
+      p.scope !== undefined &&
+      p.scope !== "project" &&
+      p.scope !== "workspace"
+    )
+      throw Error("INVALID_SCOPE");
     const result: Memory = {
       id: randomUUID(),
       projectId: this.project(p.projectId),
       content: text(p.content, 20000),
       source: text(p.source, 1000),
       createdAt: new Date().toISOString(),
+      scope: p.scope === "workspace" ? "workspace" : "project",
     };
     this.db
-      .prepare("INSERT INTO memory VALUES(?,?,?,?,?)")
+      .prepare(
+        "INSERT INTO memory(id,projectId,content,source,createdAt,scope) VALUES(?,?,?,?,?,?)",
+      )
       .run(
         result.id,
         result.projectId,
         result.content,
         result.source,
         result.createdAt,
+        result.scope!,
       );
     return result;
   }

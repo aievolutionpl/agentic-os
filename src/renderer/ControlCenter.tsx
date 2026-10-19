@@ -2,6 +2,7 @@ import React from "react";
 import type { ConnectorScan, ConnectorStatus } from "../shared";
 import { ccWords } from "./cc-i18n";
 import { Icon, relativeTime } from "./ui";
+import { ProviderIcon } from "./ProviderIcon";
 
 const TONES: Record<ConnectorStatus["state"], string> = {
   ready: "tone-success",
@@ -25,7 +26,11 @@ function initials(name: string) {
 export function nextSteps(connectors: ConnectorStatus[]) {
   const steps: { id: string; key: string; name: string }[] = [];
   for (const c of connectors) {
-    if (c.state === "needs-auth")
+    if (c.reason === "connection_required")
+      steps.push({ id: c.id, key: "connection_required", name: c.name });
+    else if (c.id === "openrouter" && c.state === "needs-auth")
+      steps.push({ id: c.id, key: "configure_api", name: c.name });
+    else if (c.state === "needs-auth")
       steps.push({ id: c.id, key: "needs-auth", name: c.name });
     else if (c.reason === "auth_unknown")
       steps.push({ id: c.id, key: "auth_unknown", name: c.name });
@@ -48,6 +53,9 @@ export function ControlCenter({
   failed,
   onRescan,
   onOpenQuota,
+  onConfigure,
+  onNewProject,
+  projectCount = 0,
 }: {
   language: "pl" | "en";
   scan: ConnectorScan | null;
@@ -55,10 +63,14 @@ export function ControlCenter({
   failed: boolean;
   onRescan: () => void;
   onOpenQuota?: () => void;
+  onConfigure?: () => void;
+  onNewProject?: () => void;
+  projectCount?: number;
 }) {
   const t = ccWords[language];
   const connectors = scan?.connectors ?? [];
-  const ready = connectors.filter((c) => c.state === "ready").length;
+  const runnable = connectors.filter((c) => c.adapter === "available");
+  const ready = runnable.filter((c) => c.state === "ready").length;
   const attention = connectors.filter(
     (c) => c.state === "needs-auth" || c.state === "degraded",
   ).length;
@@ -77,6 +89,100 @@ export function ControlCenter({
   };
   return (
     <section className="control-center" aria-labelledby="cc-title">
+      <div className="workspace-hero">
+        <div className="hero-copy">
+          <span className="section-eyebrow">
+            <span className="live-point" />
+            {language === "pl"
+              ? "TWÓJ LOKALNY WORKSPACE"
+              : "YOUR LOCAL WORKSPACE"}
+          </span>
+          <h2>
+            {language === "pl" ? (
+              <>
+                Wiele umysłów.
+                <br />
+                <em>Jeden kierunek.</em>
+              </>
+            ) : (
+              <>
+                Many minds.
+                <br />
+                <em>One direction.</em>
+              </>
+            )}
+          </h2>
+          <p>
+            {language === "pl"
+              ? "Połącz swoich agentów, daj im wspólny kontekst i zachowaj kontrolę nad każdym rezultatem."
+              : "Connect your agents, give them shared context and stay in control of every result."}
+          </p>
+          <div className="hero-buttons">
+            <button className="primary" onClick={onConfigure}>
+              <Icon name="connections" />
+              {language === "pl" ? "Podłącz agenta" : "Connect an agent"}
+            </button>
+            <button className="secondary" onClick={onNewProject}>
+              <Icon name="plus" />
+              {language === "pl" ? "Nowy projekt" : "New project"}
+            </button>
+          </div>
+          <div className="hero-meta">
+            <span>
+              <Icon name="folder" />
+              {projectCount}{" "}
+              {language === "pl" ? "projektów lokalnych" : "local projects"}
+            </span>
+            <span>
+              <Icon name="shield" />
+              {language === "pl"
+                ? "Ty zatwierdzasz zmiany"
+                : "You approve changes"}
+            </span>
+          </div>
+        </div>
+        <div
+          className="agent-map"
+          role="img"
+          aria-label={
+            language === "pl"
+              ? "Schemat: lokalny workspace łączy Codex, Claude, OpenCode i Antigravity ze wspólną pamięcią. Stan połączeń poniżej."
+              : "Diagram: a local workspace connects Codex, Claude, OpenCode and Antigravity to shared memory. Connection status is listed below."
+          }
+        >
+          <svg className="map-lines" viewBox="0 0 420 270" aria-hidden="true">
+            <ellipse cx="210" cy="135" rx="172" ry="99" />
+            <ellipse cx="210" cy="135" rx="109" ry="62" />
+            <path d="M75 58 210 135 345 58M75 218 210 135 345 218M210 135v100" />
+          </svg>
+          <div className="map-center">
+            <Icon name="layers" />
+            <strong>Agenting OS</strong>
+            <span>ORCHESTRATOR</span>
+          </div>
+          {["codex", "claude", "opencode", "antigravity"].map((id, i) => (
+            <div className={`map-node node-${i}`} key={id}>
+              <ProviderIcon provider={id} />
+              <span>
+                {
+                  (
+                    {
+                      codex: "Codex",
+                      claude: "Claude",
+                      opencode: "OpenCode",
+                      antigravity: "Antigravity",
+                    } as Record<string, string>
+                  )[id]
+                }
+              </span>
+            </div>
+          ))}
+          <div className="map-memory">
+            <Icon name="memory" />
+            {language === "pl" ? "Wspólna pamięć" : "Shared memory"}
+          </div>
+        </div>
+      </div>
       <div className="cc-head">
         <div>
           <h1 id="cc-title">{t.title}</h1>
@@ -108,7 +214,7 @@ export function ControlCenter({
       <ul className="cc-stats" aria-label={t.fleet}>
         <li>
           <span className="stat-value">
-            {scan ? `${ready}/${connectors.length}` : "–"}
+            {scan ? `${ready}/${runnable.length}` : "–"}
           </span>
           <span className="stat-label">{t.statReady}</span>
         </li>
@@ -120,15 +226,18 @@ export function ControlCenter({
           <span className="stat-value">{scan ? runsToday : "–"}</span>
           <span className="stat-label">{t.statRuns}</span>
         </li>
-        <li
-          onClick={onOpenQuota}
-          style={{ cursor: onOpenQuota ? "pointer" : "default" }}
-          title={language === "pl" ? "Przejdź do panelu OpenQuota" : "Open Quota Dashboard"}
-        >
-          <span className="stat-value" style={{ color: "var(--accent)" }}>OpenQuota ⚡</span>
-          <span className="stat-label">
-            {language === "pl" ? "Limity i tokeny live" : "Live token limits"}
-          </span>
+        <li>
+          <button className="quota-stat-button" onClick={onOpenQuota}>
+            <span className="stat-value">
+              <Icon name="tokens" />
+              OpenQuota
+            </span>
+            <span className="stat-label">
+              {language === "pl"
+                ? "Zobacz limity i budżety →"
+                : "View limits & budgets →"}
+            </span>
+          </button>
         </li>
       </ul>
       {steps.length > 0 && (
@@ -154,7 +263,8 @@ export function ControlCenter({
         <div className="fleet">
           {connectors.map((c) => {
             const usage = usageOf(c.id);
-            const hasRuns = c.adapter === "available" || c.adapter === "requires-bridge";
+            const hasRuns =
+              c.adapter === "available" || c.adapter === "requires-bridge";
             return (
               <article
                 className={`connector-card ${TONES[c.state]}`}
@@ -162,9 +272,7 @@ export function ControlCenter({
                 data-connector={c.id}
               >
                 <header>
-                  <span className="connector-avatar" aria-hidden="true">
-                    {initials(c.name)}
-                  </span>
+                  <ProviderIcon provider={c.id} />
                   <div className="connector-title">
                     <h3>{c.name}</h3>
                     <span>{t.kinds[c.kind]}</span>
@@ -236,6 +344,15 @@ export function ControlCenter({
                     <Icon name="info" />
                     {t.smokeNote}
                   </p>
+                )}
+                {c.adapter === "available" && (
+                  <button className="connector-configure" onClick={onConfigure}>
+                    <Icon name="connections" />
+                    {language === "pl"
+                      ? "Ustaw połączenie"
+                      : "Configure connection"}
+                    <Icon name="chevron" />
+                  </button>
                 )}
               </article>
             );

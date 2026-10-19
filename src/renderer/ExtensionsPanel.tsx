@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { Extension, McpTool } from "../shared";
-import { Modal, SelectField } from "./ui";
+import { Modal, SelectField, Icon } from "./ui";
 const sample = JSON.stringify(
   {
     kind: "skill",
@@ -25,6 +25,7 @@ export function ExtensionsPanel({
   const api = window.agenting!,
     pl = language === "pl";
   const [items, setItems] = useState<Extension[]>([]),
+    [query, setQuery] = useState(""),
     [manifest, setManifest] = useState(sample),
     [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
@@ -70,6 +71,11 @@ export function ExtensionsPanel({
       setBusy(false);
     }
   }
+  const filtered = items.filter((item) =>
+    `${item.name} ${item.kind} ${item.instructions ?? ""}`
+      .toLocaleLowerCase()
+      .includes(query.toLocaleLowerCase().trim()),
+  );
   return (
     <section className="extensions-panel">
       <div className="section-heading">
@@ -77,11 +83,30 @@ export function ExtensionsPanel({
           <h2>{pl ? "Rozszerzenia projektu" : "Project extensions"}</h2>
           <p>
             {pl
-              ? "Jawny kontekst i narzędzia uruchamiane na żądanie."
-              : "Explicit context and tools you run on demand."}
+              ? "Biblioteka umiejętności Twojego zespołu. Wybierz skille w szczegółach zadania."
+              : "Your team's capability library. Select skills in task details."}
           </p>
         </div>
       </div>
+      <label className="skill-library-search">
+        <Icon name="search" />
+        <span className="sr-only">
+          {pl ? "Szukaj skilla lub narzędzia" : "Search skills or tools"}
+        </span>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={
+            pl
+              ? "Szukaj: design, research, memory…"
+              : "Search: design, research, memory…"
+          }
+        />
+        <span className="helper">
+          {items.filter((item) => item.kind === "skill").length} skills
+        </span>
+      </label>
       {error && (
         <p className="inline-error" role="alert">
           {pl
@@ -93,10 +118,21 @@ export function ExtensionsPanel({
         <p role="status">{pl ? "Wczytywanie…" : "Loading…"}</p>
       ) : (
         <ul className="extension-list">
-          {items.map((item) => (
+          {filtered.map((item) => (
             <li key={item.id}>
               <div>
-                <strong>{item.name}</strong>
+                <strong className="skill-name">
+                  <Icon
+                    name={
+                      item.kind === "mcp"
+                        ? "connections"
+                        : item.id.includes("memory")
+                          ? "memory"
+                          : "spark"
+                    }
+                  />
+                  {item.name}
+                </strong>
                 <span className="helper">
                   {" "}
                   {item.version} · {item.kind.toUpperCase()}
@@ -123,6 +159,13 @@ export function ExtensionsPanel({
             </li>
           ))}
         </ul>
+      )}
+      {!loading && !filtered.length && (
+        <p role="status">
+          {pl
+            ? "Brak pasujących skilli lub narzędzi."
+            : "No matching skills or tools."}
+        </p>
       )}
       <p className="helper">
         {pl

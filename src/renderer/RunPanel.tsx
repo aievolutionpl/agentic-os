@@ -214,6 +214,7 @@ export function RunPanel({
   }
   const mayStart = ["draft", "queued"].includes(task.status) && !run;
   const mayResume =
+    task.implementer !== "antigravity" &&
     ["failed", "queued"].includes(task.status) &&
     !!run &&
     ["failed", "interrupted"].includes(run.state) &&
@@ -396,7 +397,7 @@ export function RunPanel({
               {w.stop}
             </button>
           )}
-          {run.state === "running" && (
+          {run.state === "running" && run.provider === "codex" && (
             <form
               className="steer-form"
               onSubmit={(event) => {
@@ -463,7 +464,7 @@ export function RunPanel({
               )}
             </details>
           )}
-          {run.state === "awaiting_review" && (
+          {["awaiting_review", "completed"].includes(run.state) && (
             <>
               <p className="helper">{w.reviewHint}</p>
               <button

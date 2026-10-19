@@ -65,7 +65,7 @@ export const ccWords: Record<"en" | "pl", Copy> = {
     providerLimit: "Provider limit",
     limitUnknown: "Unknown",
     limitUnknownNote:
-      "No verified official source yet. Nothing is estimated or invented.",
+      "Open the limits panel for provider readings and manual budgets.",
     localRuns: "Runs in Agenting OS",
     localRunsNote: "today · local count, not the provider's quota",
     install: "Install",
@@ -82,6 +82,8 @@ export const ccWords: Record<"en" | "pl", Copy> = {
       degraded: "Needs repair",
     },
     reasons: {
+      connection_required:
+        "Detected. Save an execution connection to run tasks with this provider.",
       ok: "Detected and signed in. Supervised runs are available.",
       not_found: "Not found on this computer.",
       auth_missing: "Installed, but you are not signed in.",
@@ -111,6 +113,8 @@ export const ccWords: Record<"en" | "pl", Copy> = {
       none: "Not used for runs",
     },
     steps: {
+      connection_required: "Connect {name} in Connections & models.",
+      configure_api: "Add your {name} API key in Connections & models.",
       "needs-auth": "Sign in to {name} using its own login command.",
       auth_unknown:
         "Confirm that {name} is signed in; it cannot report this safely.",
@@ -148,7 +152,7 @@ export const ccWords: Record<"en" | "pl", Copy> = {
     providerLimit: "Limit dostawcy",
     limitUnknown: "Nieznany",
     limitUnknownNote:
-      "Brak zweryfikowanego oficjalnego źródła. Nic nie jest szacowane ani zmyślane.",
+      "Odczyty dostawców i ręczne budżety znajdziesz w panelu limitów.",
     localRuns: "Uruchomienia w Agenting OS",
     localRunsNote: "dziś · lokalny licznik, nie limit dostawcy",
     install: "Instalacja",
@@ -165,6 +169,8 @@ export const ccWords: Record<"en" | "pl", Copy> = {
       degraded: "Wymaga naprawy",
     },
     reasons: {
+      connection_required:
+        "Wykryto program. Zapisz połączenie wykonawcze, aby uruchamiać zadania.",
       ok: "Wykryty i zalogowany. Nadzorowane uruchomienia są dostępne.",
       not_found: "Nie znaleziono na tym komputerze.",
       auth_missing: "Zainstalowany, ale nie jesteś zalogowany.",
@@ -195,6 +201,8 @@ export const ccWords: Record<"en" | "pl", Copy> = {
       none: "Nie służy do uruchomień",
     },
     steps: {
+      connection_required: "Podłącz {name} w zakładce Połączenia i modele.",
+      configure_api: "Dodaj klucz API {name} w zakładce Połączenia i modele.",
       "needs-auth": "Zaloguj się w {name} jego własnym poleceniem logowania.",
       auth_unknown:
         "Potwierdź, że jesteś zalogowany w {name}; narzędzie nie potrafi tego bezpiecznie zgłosić.",

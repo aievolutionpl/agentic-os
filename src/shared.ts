@@ -1,4 +1,67 @@
-export type Agent = "codex" | "claude";
+export const AGENTS = [
+  "codex",
+  "claude",
+  "gemini",
+  "hermes",
+  "opencode",
+  "local",
+  "antigravity",
+] as const;
+export type Agent = (typeof AGENTS)[number];
+export const READ_ONLY_AGENTS: readonly Agent[] = [
+  "codex",
+  "claude",
+  "gemini",
+  "opencode",
+  "local",
+];
+export interface LocalModelSetting {
+  configured: boolean;
+  baseURL: string;
+  model: string;
+}
+export interface MissionStep {
+  key: string;
+  title: string;
+  acceptance: string;
+  implementer: Agent;
+  reviewer: Agent;
+  dependsOn: string[];
+  workflow: "implementation" | "research";
+  taskId: string | null;
+}
+export interface Mission {
+  id: string;
+  projectId: string;
+  goal: string;
+  master: Agent;
+  workers: Agent[];
+  status:
+    | "planning"
+    | "ready"
+    | "running"
+    | "evaluating"
+    | "blocked"
+    | "completed"
+    | "needs_changes"
+    | "failed"
+    | "stopped"
+    | "interrupted";
+  summary: string;
+  steps: MissionStep[];
+  contextIds: string[];
+  skillIds: string[];
+  runId: string | null;
+  reason: string | null;
+  evaluation: {
+    verdict: "complete" | "needs_changes";
+    summary: string;
+    nextSteps: string;
+  } | null;
+  events: { at: number; message: string }[];
+  createdAt: number;
+  updatedAt: number;
+}
 export interface Project {
   id: string;
   name: string;
@@ -60,6 +123,7 @@ export interface Memory {
   content: string;
   source: string;
   createdAt: string;
+  scope?: "project" | "workspace";
 }
 export interface Preferences {
   language: "pl" | "en";
@@ -119,6 +183,7 @@ export type ConnectorReason =
   | "server_down"
   | "probe_failed"
   | "vault_missing"
+  | "connection_required"
   | "no_verified_integration";
 export interface ConnectorStatus {
   id: string;
@@ -179,8 +244,11 @@ export interface ProviderQuotaCard {
   status: "active" | "warning" | "exhausted" | "offline" | "not_configured";
   metrics: QuotaMetric[];
   usageTrend: number[];
+  trendLabels?: string[];
   isCustom?: boolean;
   updatedAt: string;
+  source?: "codex-app-server" | "openrouter-api" | "manual" | "unavailable";
+  detail?: string;
 }
 export interface CustomSubscriptionInput {
   id?: string;
@@ -191,7 +259,24 @@ export interface CustomSubscriptionInput {
   tokensUsed: number;
   period: "session" | "daily" | "weekly" | "monthly";
   resetAt?: string | null;
-  apiKey?: string | null;
+}
+export interface OpenRouterModel {
+  id: string;
+  name: string;
+  contextLength: number | null;
+}
+export interface OpenRouterSetting {
+  configured: boolean;
+  model: string;
+  encryptionAvailable: boolean;
+}
+export interface OrchestrationState {
+  projectId: string;
+  status: "idle" | "running" | "completed" | "blocked" | "stopped" | "failed";
+  taskIds: string[];
+  finished: number;
+  runId: string | null;
+  reason: string | null;
 }
 export interface LocalUsage {
   provider: string;
@@ -215,6 +300,52 @@ export interface ProjectData {
   events: TaskEvent[];
 }
 export interface API {
+  missionPlan?(input: {
+    projectId: string;
+    goal: string;
+    master: Agent;
+    workers: Agent[];
+    contextIds: string[];
+    skillIds: string[];
+    consent: true;
+  }): Promise<Mission>;
+  missionList?(input: { projectId: string }): Promise<Mission[]>;
+  missionAction?(input: {
+    projectId: string;
+    id: string;
+    action: "execute" | "stop";
+    consent: true;
+  }): Promise<Mission>;
+  missionRemember?(input: {
+    projectId: string;
+    id: string;
+    scope: "project" | "workspace";
+  }): Promise<Memory>;
+  localModelSettings?(): Promise<LocalModelSetting>;
+  localModelSave?(input: {
+    baseURL: string;
+    model: string;
+  }): Promise<LocalModelSetting>;
+  localModelRemove?(): Promise<void>;
+  orchestrationStart?(input: {
+    projectId: string;
+    taskIds: string[];
+    contextIds: string[];
+    consent: true;
+  }): Promise<OrchestrationState>;
+  orchestrationState?(input: {
+    projectId: string;
+  }): Promise<OrchestrationState>;
+  orchestrationStop?(input: { projectId: string }): Promise<void>;
+  openRouterSettings?(): Promise<OpenRouterSetting>;
+  openRouterSave?(input: {
+    apiKey?: string;
+    model: string;
+    consent: true;
+  }): Promise<OpenRouterSetting>;
+  openRouterRemove?(): Promise<void>;
+  openRouterModels?(): Promise<OpenRouterModel[]>;
+  providerDetect?(): Promise<Partial<Record<Agent, string>>>;
   extensionList(input: { projectId: string }): Promise<Extension[]>;
   extensionImport(input: {
     projectId: string;
@@ -295,7 +426,8 @@ export interface API {
     agent: Agent;
     command: string;
     args: string[];
-    protocol: "codex" | "acp";
+    protocol: "codex" | "acp" | "claude-cli" | "antigravity-cli";
+    profile?: "isolated" | "existing";
     consent: true;
   }): Promise<void>;
   providerSettings(): Promise<ProviderSetting[]>;
@@ -319,7 +451,7 @@ export interface API {
     input: Pick<Task, "projectId" | "title" | "implementer" | "reviewer">,
   ): Promise<Task>;
   createMemory(
-    input: Pick<Memory, "projectId" | "content" | "source">,
+    input: Pick<Memory, "projectId" | "content" | "source" | "scope">,
   ): Promise<Memory>;
   deleteMemory(input: { projectId: string; id: string }): Promise<void>;
   setPreferences(input: Preferences): Promise<Preferences>;
@@ -403,6 +535,7 @@ export interface ProviderSetting {
   command: string;
   args: string[];
   protocol: string;
+  profile?: "isolated" | "existing";
 }
 export interface RuntimeView {
   runs: Run[];

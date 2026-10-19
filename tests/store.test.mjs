@@ -276,7 +276,7 @@ test("approval v2 migration preserves data; SQLite rejects mutation and malforme
     db.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 8);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 10);
   assert.equal(s.tasks(p.id)[0].title, "Keep task");
   assert.equal(s.memory(p.id)[0].content, "Keep memory");
   const input = {
@@ -515,7 +515,7 @@ test("v4 migration preserves unbound history and rolls back failed schema change
     db.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 8);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 10);
   assert.deepEqual(Object.values(s.approvals.list(p.id, task.id)[0]), [
     ...legacy,
     null,

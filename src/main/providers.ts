@@ -1,5 +1,33 @@
 import { RpcProcess, type ProcessSpec } from "./rpc.js";
 import { object, text, redact } from "./validate.js";
+/** Per-thread overrides preserve sign-in while excluding inherited external tool runtimes. */
+export function boundedCodexConfig(
+  effective: unknown,
+): Record<string, unknown> {
+  const config = object(effective);
+  const servers = Object.fromEntries(
+    Object.entries(object(config.mcp_servers ?? {})).map(([name, value]) => {
+      const server = object(value);
+      const transport =
+        typeof server.command === "string"
+          ? { command: server.command }
+          : typeof server.url === "string"
+            ? { url: server.url }
+            : null;
+      if (!transport) throw Error("CODEX_TOOL_POLICY_UNSUPPORTED");
+      // Disabled transports still need a valid schema. Do not copy env, headers or credentials.
+      return [name, { ...transport, enabled: false }];
+    }),
+  );
+  return {
+    web_search: "disabled",
+    "features.apps": false,
+    "features.plugins": false,
+    "features.hooks": false,
+    "features.multi_agent": false,
+    mcp_servers: servers,
+  };
+}
 export interface AgentInput {
   cwd: string;
   prompt: string;
@@ -45,6 +73,11 @@ export class CodexAdapter implements AgentAdapter {
   }
   async run(input: AgentInput): Promise<AgentResult> {
     await this.initialize();
+    const effective = await this.rpc.request("config/read", {
+      includeLayers: false,
+      cwd: input.cwd,
+    });
+    const config = boundedCodexConfig(effective.config);
     const thread = await this.rpc.request(
       input.threadId ? "thread/resume" : "thread/start",
       {
@@ -52,10 +85,23 @@ export class CodexAdapter implements AgentAdapter {
         cwd: input.cwd,
         approvalPolicy: "never",
         sandbox: input.readOnly ? "read-only" : "workspace-write",
-        config: { web_search: "disabled" },
+        config,
       },
     );
     this.threadId = text(object(thread.thread).id);
+    const tools = await this.rpc.request("mcpServerStatus/list", {
+      threadId: this.threadId,
+      limit: 100,
+    });
+    if (
+      !Array.isArray(tools.data) ||
+      tools.nextCursor ||
+      tools.data.some(
+        (s: any) =>
+          s.runtimeStatus !== "disabled" || Object.keys(s.tools ?? {}).length,
+      )
+    )
+      throw Error("CODEX_TOOL_POLICY_UNSUPPORTED");
     input.session(this.threadId, null);
     let summary = "";
     const done = new Promise<AgentResult>((resolve, reject) => {

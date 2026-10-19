@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Store } from "../dist/main/store.js";
 const profile = mkdtempSync(join(tmpdir(), "agenting-tools-")),
-  output = resolve("docs/evidence/release-04/tools");
+  output = resolve(process.env.AGENTING_QA_OUTPUT || "docs/evidence/release-04/tools");
 mkdirSync(output, { recursive: true });
 const db = new Store(join(profile, "agenting.sqlite"));
 const a = db.createProject({
@@ -168,19 +168,13 @@ try {
     );
     await page.reload();
     // A reload returns to the Control Center; reopen the project at desktop width.
-    await desktop.evaluate(({ BrowserWindow }) =>
-      BrowserWindow.getAllWindows()[0].setContentSize(1440, 960),
-    );
+    await page.setViewportSize({ width: 1440, height: 960 });
     await page.waitForFunction(() => innerWidth >= 1000);
     await page.locator(".project-link", { hasText: a.name }).click();
     await page.getByRole("button", { name: "Extensions", exact: true }).click();
     await page.getByText("Evidence-based review", { exact: true }).waitFor();
     for (const width of [1440, 390]) {
-      await desktop.evaluate(
-        ({ BrowserWindow }, width) =>
-          BrowserWindow.getAllWindows()[0].setContentSize(width, 960),
-        width,
-      );
+      await page.setViewportSize({ width, height: 960 });
       await page.screenshot({
         path: join(output, `extensions-${theme}-${width}.png`),
       });

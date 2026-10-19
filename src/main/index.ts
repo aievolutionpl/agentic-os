@@ -6,6 +6,7 @@ import {
   session,
   dialog,
   shell,
+  safeStorage,
 } from "electron";
 import { join, dirname } from "node:path";
 import { mkdirSync } from "node:fs";
@@ -13,17 +14,25 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
 import { trustedSender } from "./security.js";
 import { probeProviders, withProviderProbes } from "./adapters.js";
-import { scanConnectors } from "./connectors.js";
+import { scanConnectors, withExecutionSettings } from "./connectors.js";
 import { Supervisor } from "./supervisor.js";
 import { CodexAdapter } from "./providers.js";
 import { exact, text } from "./validate.js";
 import { Applications } from "./applications.js";
 import { McpTools } from "./extensions.js";
 import { ProjectBrowser } from "./browser.js";
+import { OpenRouterConnection } from "./openrouter.js";
+import { detectExecutables } from "./provider-discovery.js";
+import { Orchestrator } from "./orchestrator.js";
+import { MasterAgent } from "./master-agent.js";
+import { LocalModelConnection } from "./local-model.js";
 import {
   scanAllQuotas,
   saveCustomSubscription,
   deleteCustomSubscription,
+  codexQuota,
+  openRouterQuota,
+  unavailable,
 } from "./quota.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const page = join(here, "../renderer/index.html");
@@ -34,6 +43,8 @@ if (process.env.AGENTING_DATA_DIR)
 app.setName("Agenting OS");
 let store: Store;
 let supervisor: Supervisor;
+let orchestrator: Orchestrator | undefined;
+let masterAgent: MasterAgent | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
 let browser: ProjectBrowser | undefined;
@@ -74,7 +85,71 @@ app
     Menu.setApplicationMenu(null);
     mkdirSync(app.getPath("userData"), { recursive: true });
     store = new Store(join(app.getPath("userData"), "agenting.sqlite"));
-    supervisor = new Supervisor(store, app.getPath("userData"));
+    const router = new OpenRouterConnection(app.getPath("userData"), {
+      available: () =>
+        safeStorage.isEncryptionAvailable() &&
+        (process.platform !== "linux" ||
+          safeStorage.getSelectedStorageBackend() !== "basic_text"),
+      encrypt: (value) => safeStorage.encryptString(value),
+      decrypt: (value) => safeStorage.decryptString(value),
+    });
+    const localModel = new LocalModelConnection(app.getPath("userData"));
+    supervisor = new Supervisor(
+      store,
+      app.getPath("userData"),
+      undefined,
+      (agent) =>
+        agent === "local"
+          ? localModel.environment()
+          : agent === "opencode"
+            ? router.environment()
+            : {},
+    );
+    orchestrator = new Orchestrator(store, supervisor);
+    const quotas = () =>
+      scanAllQuotas(app.getPath("userData"), {
+        codex: async () => {
+          const config = store.runs.provider("codex");
+          if (!config?.consent)
+            return unavailable("codex", "Codex", "CONFIGURE_CODEX");
+          const home = join(app.getPath("userData"), "providers", "codex");
+          mkdirSync(home, { recursive: true });
+          const client = new CodexAdapter({
+            command: config.command,
+            args: ["app-server", "--listen", "stdio://"],
+            cwd: app.getPath("userData"),
+            env: config.profile === "existing" ? {} : { CODEX_HOME: home },
+          });
+          try {
+            await client.initialize();
+            const [limits, account, usage] = await Promise.all([
+              client.rpc.request("account/rateLimits/read", {}, 10000),
+              client.account(),
+              client.rpc
+                .request("account/usage/read", {}, 10000)
+                .catch(() => null),
+            ]);
+            return codexQuota(limits, account, usage);
+          } finally {
+            client.close();
+            await client.stopped();
+          }
+        },
+        openrouter: async () =>
+          router.settings().configured
+            ? openRouterQuota(await router.quota())
+            : unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
+      });
+    masterAgent = new MasterAgent(
+      store,
+      supervisor,
+      quotas,
+      (agent) =>
+        agent === "opencode" && router.settings().configured
+          ? "openrouter"
+          : agent,
+      (projectId) => orchestrator!.state({ projectId }).status === "running",
+    );
     mcp = new McpTools(store.extensions, app.getPath("userData"));
     browser = new ProjectBrowser(store, () => window);
     const applications = new Applications(store, supervisor.worktrees);
@@ -91,6 +166,21 @@ app
       }),
     );
     const handlers: Record<string, (input: unknown) => unknown> = {
+      missionPlan: (input) => masterAgent!.plan(input),
+      missionList: (input) => masterAgent!.list(input),
+      missionAction: (input) => masterAgent!.action(input),
+      missionRemember: (input) => masterAgent!.remember(input),
+      localModelSettings: () => localModel.settings(),
+      localModelSave: (input) => localModel.save(input),
+      localModelRemove: () => localModel.remove(),
+      orchestrationStart: (input) => orchestrator!.start(input),
+      orchestrationState: (input) => orchestrator!.state(input),
+      orchestrationStop: (input) => orchestrator!.stop(input),
+      providerDetect: () => detectExecutables(),
+      openRouterSettings: () => router.settings(),
+      openRouterSave: (input) => router.save(input),
+      openRouterRemove: () => router.remove(),
+      openRouterModels: () => router.models(),
       browserAction: (input) => browser!.action(input),
       extensionList: (input) => {
         const p = exact(input, ["projectId"]);
@@ -166,7 +256,7 @@ app
           command: config.command,
           args: [...config.args, "app-server", "--listen", "stdio://"],
           cwd: app.getPath("userData"),
-          env: { CODEX_HOME: home },
+          env: config.profile === "existing" ? {} : { CODEX_HOME: home },
         }));
         try {
           await client.initialize();
@@ -220,7 +310,11 @@ app
         startOfDay.setHours(0, 0, 0, 0);
         return {
           observedAt: new Date().toISOString(),
-          connectors: await scanConnectors(),
+          connectors: withExecutionSettings(
+            await scanConnectors(),
+            supervisor.settings(),
+            router.settings().configured,
+          ),
           usage: store.runs.usage(startOfDay.getTime()),
         };
       },
@@ -232,14 +326,13 @@ app
       deleteMemory: (input) => store.deleteMemory(input),
       setPreferences: (input) => store.setPreferences(input),
       setMaster: (input) => store.setMaster(input),
-      quotaScan: () => scanAllQuotas(app.getPath("userData")),
+      quotaScan: quotas,
       quotaSaveCustom: (input) =>
-        saveCustomSubscription(app.getPath("userData"), input as any),
+        saveCustomSubscription(app.getPath("userData"), input),
       quotaDeleteCustom: (input) => {
-        const id = typeof input === "string" ? input : (input as any)?.id;
-        if (id) deleteCustomSubscription(app.getPath("userData"), id);
+        deleteCustomSubscription(app.getPath("userData"), input);
       },
-      quotaRefresh: () => scanAllQuotas(app.getPath("userData")),
+      quotaRefresh: quotas,
     };
     for (const [name, handler] of Object.entries(handlers))
       ipcMain.handle(`app:${name}`, async (event, input: unknown) => {
@@ -255,7 +348,24 @@ app
           throw Error("FORBIDDEN");
         try {
           return await handler(input);
-        } catch {
+        } catch (error) {
+          const code = error instanceof Error ? error.message : "";
+          if (
+            name.startsWith("mission") &&
+            [
+              "PROVIDER_NOT_CONFIGURED",
+              "SELECT_TWO_WORKERS",
+              "READ_ONLY_PROVIDER_REQUIRED",
+              "STOP_PREVIOUS_MISSION",
+              "MISSION_ALREADY_ACTIVE",
+              "INVALID_CONTEXT",
+              "CONTEXT_BUDGET_EXCEEDED",
+              "MISSION_NOT_FOUND",
+              "INVALID_TRANSITION",
+              "MISSION_NOT_EVALUATED",
+            ].includes(code)
+          )
+            throw Error(code);
           throw Error("REQUEST_REJECTED");
         }
       });
@@ -282,7 +392,12 @@ app.on("before-quit", (event) => {
   if (shuttingDown) return;
   event.preventDefault();
   shuttingDown = true;
-  void Promise.all([supervisor?.close(), mcp?.close()]).finally(() => {
+  orchestrator?.close();
+  void Promise.all([
+    masterAgent?.close(),
+    supervisor?.close(),
+    mcp?.close(),
+  ]).finally(() => {
     browser?.close();
     login?.close();
     store?.close();

@@ -102,7 +102,7 @@ export const words = {
     implementer: "Implementer / master",
     reviewer: "Independent reviewer",
     roleNote:
-      "These roles are used for explicit, supervised runs. Configure providers in Integrations.",
+      "Choose different providers for implementation and review. Configure them in Connections & models. Antigravity cannot be a reviewer in this version.",
     noTasks: "No tasks yet. Save your first draft above.",
     draftState: "Draft · not executed",
     knowledge: "Project knowledge",
@@ -137,7 +137,7 @@ export const words = {
     loading: "Loading local data…",
     desktopOnly:
       "Open the Electron desktop app to access local data. Run npm start.",
-    scope: "Private to this project",
+    scope: "Project knowledge and explicitly shared workspace memory",
     draftNote:
       "Drafts are stored locally. Execution, isolated changes and diff approval arrive in the next slice.",
     addKnowledge: "Add knowledge",
@@ -258,7 +258,7 @@ export const words = {
     implementer: "Wykonawca / agent główny",
     reviewer: "Niezależny recenzent",
     roleNote:
-      "Te role obowiązują przy jawnym uruchomieniu. Skonfiguruj providerów w Integracjach.",
+      "Wybierz różnych dostawców do wykonania i przeglądu. Skonfiguruj ich w Połączeniach i modelach. Antigravity nie może być recenzentem w tej wersji.",
     noTasks: "Brak zadań. Zapisz pierwszy szkic powyżej.",
     draftState: "Szkic · niewykonany",
     knowledge: "Wiedza projektu",
@@ -293,7 +293,7 @@ export const words = {
     loading: "Wczytywanie danych lokalnych…",
     desktopOnly:
       "Otwórz aplikację Electron, aby uzyskać dostęp do danych. Uruchom npm start.",
-    scope: "Prywatne dla tego projektu",
+    scope: "Wiedza projektu i jawnie udostępniona pamięć workspace",
     draftNote:
       "Szkice są zapisywane lokalnie. Wykonywanie zadań, izolowane zmiany i zatwierdzanie różnic pojawią się w kolejnym etapie.",
     addKnowledge: "Dodaj wiedzę",

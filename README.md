@@ -33,7 +33,7 @@ npm ci
 npm start
 ```
 
-`npm start` builds the TypeScript/React application and opens Electron. Electron's upstream install script downloads the runtime for your platform. No API key or model request is needed to explore the workspace.
+`npm start` builds the TypeScript/React application, ensures the pinned Electron runtime and opens the app. The `runtime:install` step invokes Electron's upstream installer with its bundled checksums; it also handles environments that skipped dependency install scripts. No API key or model request is needed to explore the workspace.
 
 For a Windows x64 installer:
 

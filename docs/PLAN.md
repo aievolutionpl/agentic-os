@@ -1,5 +1,11 @@
 # Implementation plan
 
+## Current version: 0.4.0
+
+The owner's three-stage continuation is implemented: supervised execution (0.2), scoped context/ACP/exact apply (0.3), and MCP/skills/browser/distribution (0.4). See [authoritative scope](ROADMAP_IMPLEMENTATION.md), [README](../README.md) and [0.4 verification](evidence/release-04/README.md). The earlier sequence below is retained as history.
+
+Next: authenticated compatibility runs against actual providers; signed Windows builds with install/upgrade/uninstall testing; OS-level isolation for third-party executable adapters. No background schedule, automatic paid fallback, cloud account sync or automatic publishing has been added to the application.
+
 ## Current continuation — 2026-10-19
 Workspace UI refresh and native Windows verification implemented. Keep the existing architecture; use local Inter and semantic CSS tokens. Task search/status filters, per-project session input, expandable details/journal and compact project navigation are working. Lockfile, Windows canonical paths, test cleanup and initial preference loading were repaired. See `docs/evidence/workspace-refresh/README.md` for exact checks and limits.
 

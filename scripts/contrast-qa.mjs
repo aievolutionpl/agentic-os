@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 import { collectContrast } from "./contrast-dom.mjs";
 import { measure, threshold } from "./contrast-math.mjs";
 
-const out = resolve("docs/evidence/ui-polish/contrast");
+const out = resolve("docs/evidence/release-04/contrast");
 mkdirSync(out, { recursive: true });
 const profile = mkdtempSync(join(tmpdir(), "agenting-contrast-"));
 const env = { ...process.env, AGENTING_DATA_DIR: profile };
@@ -119,6 +119,7 @@ try {
       await page.keyboard.press("Escape");
       await page.locator(".task-title button").click();
       await page.locator(".task-panel[open]").waitFor();
+      await page.locator(".task-panel .context-preview").waitFor();
       await capture(`${theme}-${width}-task-panel`);
       await page
         .locator(".task-panel")
@@ -132,6 +133,12 @@ try {
       await capture(`${theme}-${width}-memory`);
       await page.locator(".tabs button").nth(2).click();
       await capture(`${theme}-${width}-integrations`);
+      await page.getByRole("button",{name:"Extensions",exact:true}).click();
+      await page.getByText("Evidence-based review",{exact:true}).waitFor();
+      await page.getByText("Import JSON manifest",{exact:true}).click();
+      await capture(`${theme}-${width}-extensions`);
+      await page.getByRole("button",{name:"Browser",exact:true}).click();
+      await capture(`${theme}-${width}-browser`);
       if (await page.locator(".projects-toggle").isVisible()) {
         await page.locator(".projects-toggle").click();
         await page.locator(".projects-drawer[open]").waitFor();

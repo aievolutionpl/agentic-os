@@ -1,3 +1,9 @@
+# Stage 0.4 — extensions and distribution — 2026-10-19
+
+Completed the requested three-stage implementation. Added project-scoped versioned skills, explicitly trusted/manual MCP stdio tools, isolated persistent project browsers, unsigned Windows x64 NSIS packaging, CI and open-source guidance. Current documentation starts at the root README. Native Windows: full **43/43** regression suite, typecheck/build, Electron UI and browser isolation checks passed. Package and contrast details are recorded in [0.4 evidence](evidence/release-04/README.md). No authenticated model call was needed for these checks; signed release and installer lifecycle testing remain future work.
+
+---
+
 # Stage 0.3 — collaboration and context — 2026-10-19
 
 Implemented scoped FTS5 retrieval, provenance-backed bounded context snapshots/preview, four workflow profiles, ACP v1 integration, independent review checks and explicit exact-artifact approval/application. Read-only recovery inspects committed state without replaying operations. Native Windows: typecheck/build PASS, **40/40 tests PASS**, real Electron smoke PASS with the host clipboard availability limitation reported separately. See [stage evidence](evidence/stage-03/README.md). Stage 0.4 follows: MCP/skills, browser, open-source documentation and distribution.

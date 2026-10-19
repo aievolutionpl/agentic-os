@@ -264,9 +264,12 @@ export class Supervisor {
     workflow: unknown,
     skills: unknown,
   ) {
-    if (skills !== undefined && (!Array.isArray(skills) || skills.length))
-      throw Error("SKILLS_NOT_CONFIGURED");
-    return this.store.knowledge.build(projectId, ids ?? [], workflow);
+    return this.store.knowledge.build(
+      projectId,
+      ids ?? [],
+      workflow,
+      this.store.extensions.skills(projectId, skills ?? []),
+    );
   }
   private async execute(
     run: Run,

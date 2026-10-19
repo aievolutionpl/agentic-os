@@ -1,5 +1,21 @@
 # Agenting OS — przekazanie projektu
 
+## Bieżący stan: 0.4.0 — 2026-10-19
+
+Zrealizowano trzy uzgodnione etapy po dopracowaniu UI:
+
+1. **0.2:** zarządzane worktree, supervisor, Codex app-server, strumieniowany wynik, przerwanie i jawne wznowienie, zapis artefaktu oraz panel wykonania/review.
+2. **0.3:** pamięć FTS5 w zakresie projektu, źródła i zamrożony kontekst, szablony workflow, adapter ACP v1 oraz niezależne review → decyzja człowieka → zastosowanie dokładnego artefaktu.
+3. **0.4:** katalog wersjonowanych skilli, ręczne narzędzia MCP stdio, osobne sesje przeglądarki, instalator Windows x64, CI Windows/Linux oraz dokumentacja open source Apache-2.0.
+
+Aktualna instrukcja uruchomienia, architektura i ograniczenia są w [README](README.md). Weryfikacja oraz zakres dowodów: [0.2](docs/evidence/stage-02/README.md), [0.3](docs/evidence/stage-03/README.md), [0.4](docs/evidence/release-04/README.md). Baza ma migracje do v8. Zmiany źródłowe trafiają do pierwotnego repozytorium dopiero po review, zatwierdzeniu i osobnym zastosowaniu.
+
+Testy protokołów używają lokalnych fixture; nie wykonano płatnych zapytań do modeli ani logowania do kont. ACP/MCP to zaufane programy lokalne — protokół nie zapewnia im izolacji systemowej. Instalator jest niepodpisany, z domyślną ikoną Electrona; podpis i test rzeczywistej instalacji/aktualizacji/deinstalacji pozostają kolejną pracą.
+
+Właściciel wyraźnie zlecił push i merge całości. Starsze informacje o pauzie, zakazie publikacji lub wyłączonym wykonywaniu niżej są historią wcześniejszych wycinków i nie opisują obecnej wersji.
+
+---
+
 ## Status: wznowiono rozwój na polecenie właściciela (2026-10-19)
 Drugi etap kontynuacji wdrożył brief UI właściciela: pełny sidebar ze stopką, top bar ze statusem zapisu, tokeny obu motywów, własne dropdowny, zwarty composer, wiersze zadań z panelem szczegółów, potwierdzenie anulowania, toasty i timeline. Zachowano model, backend, IPC i zależności. Nie dodano fikcyjnych statusów, Undo ani wykonywania agentów.
 

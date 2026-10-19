@@ -268,7 +268,7 @@ test("approval v2 migration preserves data; SQLite rejects mutation and malforme
   const db = new DatabaseSync(file);
   // Reconstruct the previous schema by removing only this slice's objects.
   db.exec(
-    "DROP TRIGGER memory_search_insert; DROP TRIGGER memory_search_delete; DROP TRIGGER memory_search_update; DROP TABLE memory_search; DROP TABLE run_events; DROP TABLE runs; DROP TABLE provider_settings; DROP TABLE approval_records; DROP TABLE diff_artifacts; PRAGMA user_version=2",
+    "DROP TABLE extension_events; DROP TABLE extensions; DROP TRIGGER memory_search_insert; DROP TRIGGER memory_search_delete; DROP TRIGGER memory_search_update; DROP TABLE memory_search; DROP TABLE run_events; DROP TABLE runs; DROP TABLE provider_settings; DROP TABLE approval_records; DROP TABLE diff_artifacts; PRAGMA user_version=2",
   );
   s = new Store(file, () => 1000);
   t.after(() => {
@@ -276,7 +276,7 @@ test("approval v2 migration preserves data; SQLite rejects mutation and malforme
     db.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 7);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 8);
   assert.equal(s.tasks(p.id)[0].title, "Keep task");
   assert.equal(s.memory(p.id)[0].content, "Keep memory");
   const input = {
@@ -476,7 +476,7 @@ test("v4 migration preserves unbound history and rolls back failed schema change
   s.close();
   let db = new DatabaseSync(file);
   db.exec(
-    "DROP TRIGGER memory_search_insert; DROP TRIGGER memory_search_delete; DROP TRIGGER memory_search_update; DROP TABLE memory_search; DROP TABLE run_events; DROP TABLE runs; DROP TABLE provider_settings; DROP TRIGGER approval_artifact_scope; ALTER TABLE approval_records DROP COLUMN artifactId; PRAGMA user_version=4",
+    "DROP TABLE extension_events; DROP TABLE extensions; DROP TRIGGER memory_search_insert; DROP TRIGGER memory_search_delete; DROP TRIGGER memory_search_update; DROP TABLE memory_search; DROP TABLE run_events; DROP TABLE runs; DROP TABLE provider_settings; DROP TRIGGER approval_artifact_scope; ALTER TABLE approval_records DROP COLUMN artifactId; PRAGMA user_version=4",
   );
   const { createHash } = await import("node:crypto");
   const legacy = [
@@ -515,7 +515,7 @@ test("v4 migration preserves unbound history and rolls back failed schema change
     db.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 7);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 8);
   assert.deepEqual(Object.values(s.approvals.list(p.id, task.id)[0]), [
     ...legacy,
     null,

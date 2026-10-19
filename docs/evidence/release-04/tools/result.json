@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "at": "2026-10-19T16:50:03.947Z",
+  "electron": "43.8.0",
+  "checks": [
+    "scoped manifest import",
+    "real WebContentsView: no Node/preload API",
+    "geolocation denied",
+    "native view hidden for modal",
+    "separate persistent project cookie jars",
+    "extensions responsive light/dark at 1440/390"
+  ],
+  "modelCalls": 0
+}

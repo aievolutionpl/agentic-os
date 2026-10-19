@@ -17,6 +17,8 @@ import { Supervisor } from "./supervisor.js";
 import { CodexAdapter } from "./providers.js";
 import { exact, text } from "./validate.js";
 import { Applications } from "./applications.js";
+import { McpTools } from "./extensions.js";
+import { ProjectBrowser } from "./browser.js";
 const here = dirname(fileURLToPath(import.meta.url));
 const page = join(here, "../renderer/index.html");
 const expectedUrl = pathToFileURL(page).href;
@@ -27,6 +29,8 @@ app.setName("Agenting OS");
 let store: Store;
 let supervisor: Supervisor;
 let login: CodexAdapter | undefined;
+let mcp: McpTools | undefined;
+let browser: ProjectBrowser | undefined;
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 let window: BrowserWindow | null = null;
@@ -52,6 +56,7 @@ function openWindow() {
     event.preventDefault(),
   );
   window.on("closed", () => {
+    browser?.close();
     window = null;
   });
   void window.loadFile(page);
@@ -64,6 +69,8 @@ app
     mkdirSync(app.getPath("userData"), { recursive: true });
     store = new Store(join(app.getPath("userData"), "agenting.sqlite"));
     supervisor = new Supervisor(store, app.getPath("userData"));
+    mcp = new McpTools(store.extensions, app.getPath("userData"));
+    browser = new ProjectBrowser(store, () => window);
     const applications = new Applications(store, supervisor.worktrees);
     await applications.reconcile();
     session.defaultSession.setPermissionRequestHandler(
@@ -78,6 +85,29 @@ app
       }),
     );
     const handlers: Record<string, (input: unknown) => unknown> = {
+      browserAction: (input) => browser!.action(input),
+      extensionList: (input) => {
+        const p = exact(input, ["projectId"]);
+        return store.extensions.list(text(p.projectId));
+      },
+      extensionImport: (input) => store.extensions.import(input),
+      extensionRemove: async (input) => {
+        const p = exact(input, ["projectId", "id"]),
+          projectId = text(p.projectId),
+          id = text(p.id);
+        store.extensions.get(projectId, id);
+        await mcp!.disconnect(projectId, id);
+        store.extensions.remove(projectId, id);
+      },
+      mcpConnect: (input) => mcp!.connect(input),
+      mcpCall: (input) => mcp!.call(input),
+      mcpDisconnect: (input) => {
+        const p = exact(input, ["projectId", "id"]),
+          projectId = text(p.projectId),
+          id = text(p.id);
+        store.extensions.get(projectId, id);
+        return mcp!.disconnect(projectId, id);
+      },
       runDecision: (input) => applications.decide(input),
       memorySearch: (input) => {
         const p = exact(input, ["projectId", "query"]);
@@ -93,12 +123,11 @@ app
           "workflow",
           "skillIds",
         ]);
-        if (p.skillIds && (!Array.isArray(p.skillIds) || p.skillIds.length))
-          throw Error("SKILLS_NOT_CONFIGURED");
         return store.knowledge.build(
           text(p.projectId),
           p.contextIds,
           p.workflow,
+          store.extensions.skills(text(p.projectId), p.skillIds ?? []),
         );
       },
       runtimeView: (input) => supervisor.view(input),
@@ -230,7 +259,8 @@ app.on("before-quit", (event) => {
   if (shuttingDown) return;
   event.preventDefault();
   shuttingDown = true;
-  void Promise.resolve(supervisor?.close()).finally(() => {
+  void Promise.all([supervisor?.close(), mcp?.close()]).finally(() => {
+    browser?.close();
     login?.close();
     store?.close();
     app.quit();

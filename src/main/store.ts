@@ -3,6 +3,7 @@ import { Approvals } from "./approvals.js";
 import { Lifecycle } from "./lifecycle.js";
 import { Runs } from "./runs.js";
 import { Knowledge } from "./knowledge.js";
+import { Extensions } from "./extensions.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import type {
@@ -39,6 +40,7 @@ export class Store {
   readonly artifacts: Artifacts;
   readonly runs: Runs;
   readonly knowledge: Knowledge;
+  readonly extensions: Extensions;
   constructor(file: string, clock: () => number = Date.now) {
     this.db = new DatabaseSync(file);
     this.db.exec(
@@ -87,6 +89,7 @@ export class Store {
         this.approvals.migrateArtifactBinding();
       this.runs = new Runs(this.db, clock);
       this.knowledge = new Knowledge(this.db);
+      this.extensions = new Extensions(this.db);
     } catch (error) {
       this.db.close();
       throw error;

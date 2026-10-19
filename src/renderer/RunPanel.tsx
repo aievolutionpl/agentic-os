@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { Task, Memory, RuntimeView, Run } from "../shared";
+import type { Task, Memory, RuntimeView, Run, Extension } from "../shared";
 import { Icon, Modal, SelectField } from "./ui";
 const copy = {
   en: {
@@ -137,6 +137,23 @@ export function RunPanel({
       null,
     );
   const alive = useRef(true);
+  const [skills, setSkills] = useState<Extension[]>([]),
+    [skillIds, setSkillIds] = useState<string[]>([]);
+  useEffect(() => {
+    let valid = true;
+    if (api.extensionList)
+      void api
+        .extensionList({ projectId: task.projectId })
+        .then((items) => {
+          if (valid) setSkills(items.filter((item) => item.kind === "skill"));
+        })
+        .catch(() => {
+          if (valid) setContextError(true);
+        });
+    return () => {
+      valid = false;
+    };
+  }, [task.projectId]);
   const [preview, setPreview] = useState<{
       body: string;
       characters: number;
@@ -207,7 +224,12 @@ export function RunPanel({
     setContextError(false);
     setPreview(null);
     void api
-      .contextPreview({ projectId: task.projectId, contextIds: ids, workflow })
+      .contextPreview({
+        projectId: task.projectId,
+        contextIds: ids,
+        workflow,
+        skillIds,
+      })
       .then((value) => {
         if (valid) setPreview(value);
       })
@@ -217,7 +239,7 @@ export function RunPanel({
     return () => {
       valid = false;
     };
-  }, [task.id, ids.join(","), workflow]);
+  }, [task.id, ids.join(","), workflow, skillIds.join(",")]);
   return (
     <section className="run-panel" aria-labelledby="run-section-title">
       <div className="section-heading">
@@ -277,6 +299,36 @@ export function RunPanel({
               ))}
             </details>
           )}
+          {!!skills.length && (
+            <details className="context-picker">
+              <summary>
+                {language === "pl" ? "Skille projektu" : "Project skills"}{" "}
+                <span className="count">{skillIds.length}</span>
+              </summary>
+              {skills.map((skill) => (
+                <label className="dependency-choice" key={skill.id}>
+                  <input
+                    type="checkbox"
+                    checked={skillIds.includes(skill.id)}
+                    disabled={busy}
+                    onChange={(event) =>
+                      setSkillIds((current) =>
+                        event.target.checked
+                          ? [...current, skill.id]
+                          : current.filter((id) => id !== skill.id),
+                      )
+                    }
+                  />
+                  <span>
+                    {skill.name}
+                    <small>
+                      {skill.version} · {skill.license}
+                    </small>
+                  </span>
+                </label>
+              ))}
+            </details>
+          )}
           <label className="dependency-choice consent">
             <input
               type="checkbox"
@@ -318,6 +370,7 @@ export function RunPanel({
                   taskId: task.id,
                   consent: true,
                   contextIds: ids,
+                  skillIds,
                   workflow,
                   ...(mayResume ? { resumeRunId: run!.id } : {}),
                 }),

@@ -13,6 +13,8 @@ import { words } from "./i18n";
 import { agentName, Icon, Modal, SelectField, useNarrow } from "./ui";
 import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
+import { ExtensionsPanel } from "./ExtensionsPanel";
+import { BrowserPanel } from "./BrowserPanel";
 import "./style.css";
 
 const api = window.agenting;
@@ -28,7 +30,9 @@ function App() {
     memory: [],
     events: [],
   });
-  const [tab, setTab] = useState<"tasks" | "memory" | "agents">("tasks");
+  const [tab, setTab] = useState<
+    "tasks" | "memory" | "agents" | "extensions" | "browser"
+  >("tasks");
   const [error, setError] = useState(false),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
@@ -497,7 +501,15 @@ function App() {
                   </span>
                 </div>
                 <nav className="tabs" aria-label={w.work}>
-                  {(["tasks", "memory", "agents"] as const).map((item) => (
+                  {(
+                    [
+                      "tasks",
+                      "memory",
+                      "agents",
+                      "extensions",
+                      "browser",
+                    ] as const
+                  ).map((item) => (
                     <button
                       key={item}
                       className={tab === item ? "active" : ""}
@@ -505,7 +517,7 @@ function App() {
                       onClick={() => setTab(item)}
                     >
                       {w[item]}{" "}
-                      {item !== "agents" && (
+                      {(item === "tasks" || item === "memory") && (
                         <span className="count">
                           {item === "tasks"
                             ? data.tasks.length
@@ -515,6 +527,21 @@ function App() {
                     </button>
                   ))}
                 </nav>
+                {tab === "extensions" && (
+                  <ExtensionsPanel
+                    key={projectId}
+                    projectId={projectId}
+                    language={prefs.language}
+                  />
+                )}
+                {tab === "browser" && (
+                  <BrowserPanel
+                    key={projectId}
+                    projectId={projectId}
+                    language={prefs.language}
+                    hidden={projectOpen || projectsExpanded}
+                  />
+                )}
                 {tab === "tasks" && (
                   <>
                     <section className="composer">

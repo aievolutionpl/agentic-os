@@ -109,6 +109,39 @@ export interface ProjectData {
   events: TaskEvent[];
 }
 export interface API {
+  extensionList(input: { projectId: string }): Promise<Extension[]>;
+  extensionImport(input: {
+    projectId: string;
+    manifest: string;
+    consent: true;
+  }): Promise<Extension>;
+  extensionRemove(input: { projectId: string; id: string }): Promise<void>;
+  mcpConnect(input: {
+    projectId: string;
+    id: string;
+    consent: true;
+  }): Promise<McpTool[]>;
+  mcpCall(input: {
+    projectId: string;
+    id: string;
+    name: string;
+    arguments: Record<string, unknown>;
+    consent: true;
+  }): Promise<{ isError: boolean; text: string }>;
+  mcpDisconnect(input: { projectId: string; id: string }): Promise<void>;
+  browserAction(input: {
+    projectId: string;
+    action:
+      | "navigate"
+      | "back"
+      | "forward"
+      | "reload"
+      | "state"
+      | "bounds"
+      | "hide";
+    url?: string;
+    bounds?: { x: number; y: number; width: number; height: number };
+  }): Promise<BrowserState | null>;
   runDecision?(input: {
     projectId: string;
     runId: string;
@@ -163,10 +196,7 @@ export interface API {
   chooseExecutable(): Promise<string | null>;
   chooseRepository(): Promise<string | null>;
   providerLogin(): Promise<void>;
-  runArtifact(input: {
-    projectId: string;
-    runId: string;
-  }): Promise<{
+  runArtifact(input: { projectId: string; runId: string }): Promise<{
     id: string;
     diffHash: string;
     diff: string;
@@ -187,6 +217,31 @@ export interface API {
   deleteMemory(input: { projectId: string; id: string }): Promise<void>;
   setPreferences(input: Preferences): Promise<Preferences>;
   setMaster(input: { projectId: string; master: Agent }): Promise<void>;
+}
+export interface Extension {
+  id: string;
+  kind: "skill" | "mcp";
+  name: string;
+  version: string;
+  author: string;
+  license: string;
+  source: string;
+  instructions?: string;
+  command?: string;
+  args?: string[];
+}
+export interface McpTool {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+}
+export interface BrowserState {
+  url: string;
+  title: string;
+  loading: boolean;
+  error: boolean;
+  back: boolean;
+  forward: boolean;
 }
 export type RunState =
   | "preparing"

@@ -112,7 +112,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
             value={args}
             maxLength={12000}
             onChange={(event) => setArgs(event.target.value)}
-            disabled={busy}
+            disabled={busy || agent === "codex"}
             spellCheck={false}
           />
         </label>

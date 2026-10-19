@@ -1,4 +1,13 @@
-# Current continuation — product UI polish (2026-10-19)
+# Current continuation — 0.4.0 (2026-10-19)
+
+- Done: product UI polish, supervised worktrees/Codex runs, scoped FTS/context/workflows, ACP review, exact approval/application, skills, explicit MCP tools and isolated persistent browser.
+- Done: Apache-2.0, contribution/security guidance, issue/PR templates, Windows packaging and Windows/Linux CI definition.
+- Evidence: [0.4 checks and limitations](evidence/release-04/README.md), [stage scope](ROADMAP_IMPLEMENTATION.md).
+- Next: actual authenticated provider compatibility runs, signed installer lifecycle tests and OS-level isolation for third-party executable adapters.
+
+---
+
+# Historical continuation — product UI polish (2026-10-19)
 
 - Done: presentation-only product polish, reusable listbox/modal/icon primitives, responsive task details panel, timeline, confirmations, toasts, composer shortcuts and copy path.
 - Verified on native Windows: typecheck, build, 30/30 tests, Electron CRUD/restart/keyboard/copy/cancel smoke, 2533 text measurements on 75 screens without failures or horizontal overflow.

@@ -115,6 +115,7 @@ try {
       "runDecision",
       "memorySearch",
       "contextPreview",
+      "extensionList","extensionImport","extensionRemove","mcpConnect","mcpCall","mcpDisconnect","browserAction",
     ].sort(),
   );
   const settings = await desktop.evaluate(({ BrowserWindow }) => {

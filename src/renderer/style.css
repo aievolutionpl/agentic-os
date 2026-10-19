@@ -481,13 +481,16 @@ main {
   white-space: nowrap;
 }
 .tabs {
-  height: 40px;
+  min-height: 40px;
+  height: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: var(--s-6);
   border-bottom: 1px solid var(--border);
   margin-bottom: var(--s-6);
 }
 .tabs button {
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: var(--s-2);
@@ -1732,5 +1735,102 @@ dd {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+/* Project tools reuse the workbench's typography, surfaces and focus states. */
+.extension-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+.extension-list > li {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+.extension-list > li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.extensions-panel pre,
+.extensions-panel textarea {
+  max-width: 100%;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.extension-import {
+  margin: 1.5rem 0;
+}
+.extension-import summary,
+.mcp-console summary {
+  cursor: pointer;
+  font-weight: 600;
+  padding: 0.5rem 0;
+}
+.extension-import form,
+.mcp-console form {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+.code-input {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.mcp-console {
+  margin-top: 2rem;
+}
+.button-row {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+.browser-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.browser-toolbar input {
+  min-width: 0;
+  flex: 1;
+}
+.browser-surface {
+  height: max(260px, calc(100dvh - 370px));
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  margin-top: 1rem;
+}
+.browser-surface p {
+  max-width: 30rem;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+@media (max-width: 700px) {
+  .tabs {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .tabs button {
+    padding: 0.6rem 0.7rem;
+  }
+  .browser-toolbar {
+    flex-wrap: wrap;
+  }
+  .browser-toolbar input {
+    flex-basis: 55%;
+  }
+  .extension-list > li {
+    gap: 0.5rem;
+  }
+  .browser-surface {
+    height: 360px;
   }
 }

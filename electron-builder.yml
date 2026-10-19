@@ -1,0 +1,26 @@
+appId: pl.aievolution.agentingos
+productName: Agenting OS
+copyright: Copyright © 2026 AI Evolution Polska
+asar: true
+directories:
+  output: release
+electronDist: node_modules/electron/dist
+files:
+  - dist/**/*
+  - package.json
+  - LICENSE
+  - NOTICE
+  - licenses/**/*
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  signAndEditExecutable: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  artifactName: Agenting-OS-${version}-windows-x64-setup.${ext}
+  shortcutName: Agenting OS

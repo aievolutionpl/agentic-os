@@ -1,6 +1,13 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  extensionList: (input) => ipcRenderer.invoke("app:extensionList", input),
+  extensionImport: (input) => ipcRenderer.invoke("app:extensionImport", input),
+  extensionRemove: (input) => ipcRenderer.invoke("app:extensionRemove", input),
+  mcpConnect: (input) => ipcRenderer.invoke("app:mcpConnect", input),
+  mcpCall: (input) => ipcRenderer.invoke("app:mcpCall", input),
+  mcpDisconnect: (input) => ipcRenderer.invoke("app:mcpDisconnect", input),
+  browserAction: (input) => ipcRenderer.invoke("app:browserAction", input),
   runDecision: (input) => ipcRenderer.invoke("app:runDecision", input),
   memorySearch: (input) => ipcRenderer.invoke("app:memorySearch", input),
   contextPreview: (input) => ipcRenderer.invoke("app:contextPreview", input),

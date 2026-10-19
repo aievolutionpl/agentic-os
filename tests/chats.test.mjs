@@ -5,6 +5,7 @@ import {
   mkdirSync,
   writeFileSync,
   readFileSync,
+  realpathSync,
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -102,7 +103,7 @@ test("chat retains multi-turn history, freezes selected context per turn and sup
     settings: () => [{ id: "codex", configured: true }],
     conversation: async (agent, cwd, prompt, readOnly, signal, activity) => {
       assert.equal(readOnly, true);
-      assert.equal(cwd, root);
+      assert.equal(cwd, realpathSync.native(root));
       prompts.push(prompt);
       activity("message", "Draft");
       return `Answer ${prompts.length}`;
@@ -125,9 +126,11 @@ test("chat retains multi-turn history, freezes selected context per turn and sup
     contextIds: [memory.id],
     skillIds: ["builtin:review"],
   });
-  await settled(chats, chat.id);
+  const first = await settled(chats, chat.id);
+  assert.equal(first.status, "idle", first.error);
   chats.send(sender(chat.id, "Second question"));
   const final = await settled(chats, chat.id);
+  assert.equal(final.status, "idle", final.error);
   assert.match(prompts[0], /Selected context/);
   assert.match(prompts[0], /Evidence-based|Review correctness/);
   assert.match(prompts[1], /First question/);

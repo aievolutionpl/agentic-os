@@ -238,6 +238,7 @@ try {
     }
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForFunction(() => !document.querySelector(".projects-toggle"));
   await nav("Czaty");
   await page.locator(".chat-history>button").first().click();
   await page.screenshot({

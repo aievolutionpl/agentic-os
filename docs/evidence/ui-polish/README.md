@@ -34,7 +34,7 @@ Contrast measurement uses actual rendered foreground/background colors, alpha an
 
 ## Before / after
 
-Captured before production UI edits and after the final build, from the same temporary SQLite fixture. Fixtures contain draft, queued and cancelled tasks; they do not represent agent execution. Each image is 960px high. Actual event timestamps differ between capture runs.
+Captured before production UI edits and after the final build, from the same temporary SQLite fixture. Fixtures contain draft, queued and cancelled tasks; they do not represent agent execution. The capture viewport is 960px high; full-page images are taller where the document scrolls. Actual event timestamps differ between capture runs.
 
 | Theme / width | Before | After |
 | --- | --- | --- |

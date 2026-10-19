@@ -102,6 +102,7 @@ try {
       "deleteMemory",
       "setPreferences",
       "setMaster",
+      "runtimeView", "runtimeStart", "runtimeAction", "runtimeReview", "configureProvider", "providerSettings", "chooseExecutable", "chooseRepository", "providerLogin", "runArtifact",
     ].sort(),
   );
   const settings = await desktop.evaluate(({ BrowserWindow }) => {

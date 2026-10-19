@@ -4,6 +4,8 @@ import { realpathSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { inputObject } from './lifecycle.js';
+import { git as safeGit } from './git.js';
+export interface DiffArtifact {id:string;projectId:string;taskId:string;attempt:number;repository:string;worktree:string;base:string;target:string;diff:Buffer;diffHash:string;createdAt:number}
 
 const exec = promisify(execFile);
 // The native Windows resolver expands DOS 8.3 aliases as well as junctions.
@@ -16,12 +18,8 @@ function label(v: unknown): string {
 }
 // Read-only Git plumbing. No shell, hooks, external diff or text conversion.
 async function git(cwd: string, ...args: string[]): Promise<Buffer> {
-  const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
   try {
-    return (await exec('git', ['--no-pager', ...args], {
-      cwd, timeout: 5000, maxBuffer: limit, encoding: 'buffer',
-      env: { ...env, GIT_OPTIONAL_LOCKS: '0', GIT_NO_REPLACE_OBJECTS: '1', GIT_CONFIG_COUNT: '0', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null' },
-    })).stdout;
+    return await safeGit(cwd,args);
   } catch { throw Error('ARTIFACT_GIT_FAILED'); }
 }
 export class Artifacts {
@@ -75,6 +73,6 @@ export class Artifacts {
   }
   get(projectId: unknown,taskId: unknown,id: unknown) {
     const row = this.db.prepare('SELECT * FROM diff_artifacts WHERE projectId=? AND taskId=? AND id=?').get(label(projectId),label(taskId),label(id));
-    return row ? {...row,diff:Buffer.from(row.diff as Uint8Array)} : null;
+    return row ? {...row,diff:Buffer.from(row.diff as Uint8Array)} as unknown as DiffArtifact : null;
   }
 }

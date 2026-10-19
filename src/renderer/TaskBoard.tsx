@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { Task, TaskAction, TaskEvent } from "../shared";
+import type { Task, TaskAction, TaskEvent, Memory } from "../shared";
+import { RunPanel } from "./RunPanel";
 import { words } from "./i18n";
 import {
   AgentAvatar,
@@ -11,6 +12,8 @@ import {
 } from "./ui";
 
 type Props = {
+  memory?:Memory[];
+  onRunChanged?:()=>void;
   tasks: Task[];
   events: TaskEvent[];
   language: "pl" | "en";
@@ -495,6 +498,7 @@ export function TaskBoard(props: Props) {
                 </button>
               ))}
             </div>
+            <RunPanel task={selected} memory={props.memory} language={language} onChanged={props.onRunChanged??props.onRefresh}/>
           </>
         )}
       </Modal>

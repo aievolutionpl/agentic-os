@@ -1,3 +1,11 @@
+# Stage 0.2 — supervised execution — 2026-10-19
+
+Implemented managed worktrees, Codex app-server, durable runs, streaming summary/activity, real process cancellation, explicit recovery, artifact capture and a task execution/review panel. Existing source repositories remain unchanged until the later apply step. Native Windows: build/typecheck PASS, full 33/33 suite PASS, runtime cancellation/dead-PID checks PASS, real Electron smoke PASS and installed app-server handshake/account-read PASS without inference. See [stage evidence](evidence/stage-02/README.md).
+
+Current owner authorization includes all three roadmap stages, GitHub publication/merge and README. Earlier no-push/pause notes below are historical. ACP/context/apply and extensibility/distribution follow in stages 0.3 and 0.4. No paid model run or login was performed during implementation.
+
+---
+
 # Product UI polish — 2026-10-19
 
 Implemented the owner's presentation-only brief. Full-height 256px sidebar, fixed 56px top bar, shared theme/spacing/type tokens, custom listboxes, compact composer and task rows, native modal task drawer, cancellation confirmation, feedback toasts, timeline, mobile navigation, keyboard shortcuts and copy-path action. No backend, data-model, IPC or dependency changes in this increment. Existing provider execution remains disabled.

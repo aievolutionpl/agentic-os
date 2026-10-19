@@ -1,0 +1,7 @@
+{
+  "status": "passed",
+  "platform": "win32",
+  "at": "2026-10-19T16:01:03.218Z",
+  "scope": "Initialize + account/read using a new empty CODEX_HOME. No login, thread or turn start, model inference or paid call.",
+  "account": "absent"
+}

@@ -37,7 +37,7 @@ export class Lifecycle {
       const version = Number(
         this.db.prepare("PRAGMA user_version").get()!.user_version,
       );
-      if (version === 2 || version === 3 || version === 4 || version === 5) return;
+      if (version >= 2 && version <= 8) return;
       if (version !== 1) throw Error("UNSUPPORTED_SCHEMA");
       this.db.exec(`ALTER TABLE tasks RENAME TO tasks_v1;
         CREATE TABLE tasks(id TEXT PRIMARY KEY,projectId TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,implementer TEXT NOT NULL,reviewer TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('draft','queued','running','completed','failed','cancelled')),createdAt TEXT NOT NULL,
@@ -241,7 +241,7 @@ export class Lifecycle {
   }
   private end(
     t: Task,
-    status: "failed" | "completed",
+    status: "failed" | "completed" | "cancelled",
     failure: FailureCode | null,
     actor: string,
   ) {
@@ -271,6 +271,13 @@ export class Lifecycle {
         t.owner!,
       );
     });
+  }
+  cancelOwned(input: unknown) {
+    const p=inputObject(input);
+    return this.transaction(()=>{const task=this.owned(p);this.end(task,"cancelled",null,task.owner!);});
+  }
+  interrupt(projectId: string,taskId: string) {
+    return this.transaction(()=>{const task=this.row(projectId,taskId);if(task.status==="running")this.end(task,"failed","worker_error","recovery");});
   }
   recover(projectId: unknown): number {
     return this.transaction(() => {

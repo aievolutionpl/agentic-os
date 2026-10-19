@@ -152,7 +152,7 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
         .textContent.includes("Retry queued"),
     );
     assert.ok(
-      dom.window.document.body.textContent.includes("Execution is disabled"),
+      dom.window.document.body.textContent.includes("Supervised execution"),
     );
   } finally {
     dom?.window.close();

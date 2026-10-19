@@ -189,10 +189,10 @@ test("approval v2 migration preserves data; SQLite rejects mutation and malforme
   s.close();
   const db = new DatabaseSync(file);
   // Reconstruct the previous schema by removing only this slice's objects.
-  db.exec("DROP TABLE approval_records; DROP TABLE diff_artifacts; PRAGMA user_version=2");
+  db.exec("DROP TABLE run_events; DROP TABLE runs; DROP TABLE provider_settings; DROP TABLE approval_records; DROP TABLE diff_artifacts; PRAGMA user_version=2");
   s = new Store(file,()=>1000);
   t.after(()=>{s.close();db.close();rmSync(dir,{recursive:true,force:true});});
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version,5);
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version,6);
   assert.equal(s.tasks(p.id)[0].title,"Keep task");
   assert.equal(s.memory(p.id)[0].content,"Keep memory");
   const input = {projectId:p.id,taskId:task.id,attempt:0,diff:Buffer.from("bytes"),decision:"approved",approver:"user",expiresAt:3000};
@@ -279,7 +279,7 @@ test('v4 migration preserves unbound history and rolls back failed schema change
   const artifactId = await storedArtifact(file,p.id,task.id,bytes);
   s.close();
   let db = new DatabaseSync(file);
-  db.exec('DROP TRIGGER approval_artifact_scope; ALTER TABLE approval_records DROP COLUMN artifactId; PRAGMA user_version=4');
+  db.exec('DROP TABLE run_events; DROP TABLE runs; DROP TABLE provider_settings; DROP TRIGGER approval_artifact_scope; ALTER TABLE approval_records DROP COLUMN artifactId; PRAGMA user_version=4');
   const {createHash} = await import('node:crypto');
   const legacy = ['legacy',p.id,task.id,0,createHash('sha256').update(bytes).digest('hex'),'approved','local',1000,2000];
   db.prepare('INSERT INTO approval_records VALUES(?,?,?,?,?,?,?,?,?)').run(...legacy);
@@ -292,7 +292,7 @@ test('v4 migration preserves unbound history and rolls back failed schema change
   s = new Store(file,()=>1000);
   db.close(); db = new DatabaseSync(file);
   t.after(()=>{s.close();db.close();rmSync(dir,{recursive:true,force:true});});
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version,5);
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version,6);
   assert.deepEqual(Object.values(s.approvals.list(p.id,task.id)[0]),[...legacy,null]);
   assert.equal(s.approvals.matches({id:'legacy',projectId:p.id,taskId:task.id,attempt:0,artifactId,diff:bytes}),false);
   assert.deepEqual(s.artifacts.get(p.id,task.id,artifactId).diff,bytes);

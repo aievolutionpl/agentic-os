@@ -1,6 +1,7 @@
 import { Artifacts } from "./artifacts.js";
 import { Approvals } from "./approvals.js";
 import { Lifecycle } from "./lifecycle.js";
+import { Runs } from "./runs.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import type {
@@ -35,6 +36,7 @@ export class Store {
   readonly lifecycle: Lifecycle;
   readonly approvals: Approvals;
   readonly artifacts: Artifacts;
+  readonly runs: Runs;
   constructor(file: string, clock: () => number = Date.now) {
     this.db = new DatabaseSync(file);
     this.db.exec(
@@ -45,7 +47,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 5) {
+      if (version.user_version > 8) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -75,6 +77,7 @@ export class Store {
         this.artifacts.migrate();
       if (Number(this.db.prepare("PRAGMA user_version").get()!.user_version) === 4)
         this.approvals.migrateArtifactBinding();
+      this.runs = new Runs(this.db, clock);
     } catch (error) {
       this.db.close();
       throw error;

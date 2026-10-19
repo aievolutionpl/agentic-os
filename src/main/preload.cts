@@ -1,6 +1,16 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  runtimeView: input => ipcRenderer.invoke("app:runtimeView",input),
+  runtimeStart: input => ipcRenderer.invoke("app:runtimeStart",input),
+  runtimeAction: input => ipcRenderer.invoke("app:runtimeAction",input),
+  runtimeReview: input => ipcRenderer.invoke("app:runtimeReview",input),
+  configureProvider: input => ipcRenderer.invoke("app:configureProvider",input),
+  providerSettings: () => ipcRenderer.invoke("app:providerSettings"),
+  chooseExecutable: () => ipcRenderer.invoke("app:chooseExecutable"),
+  chooseRepository: () => ipcRenderer.invoke("app:chooseRepository"),
+  providerLogin: () => ipcRenderer.invoke("app:providerLogin"),
+  runArtifact: input => ipcRenderer.invoke("app:runArtifact",input),
   taskAction: (input) => ipcRenderer.invoke("app:taskAction", input),
   snapshot: () => ipcRenderer.invoke("app:snapshot"),
   projectData: (id) => ipcRenderer.invoke("app:projectData", id),

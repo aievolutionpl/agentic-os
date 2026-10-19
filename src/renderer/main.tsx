@@ -12,6 +12,7 @@ import type {
 import { words } from "./i18n";
 import { agentName, Icon, Modal, SelectField, useNarrow } from "./ui";
 import { TaskBoard } from "./TaskBoard";
+import { ProviderSetup } from "./ProviderSetup";
 import "./style.css";
 
 const api = window.agenting;
@@ -585,6 +586,7 @@ function App() {
                     <TaskBoard
                       key={projectId}
                       tasks={data.tasks}
+                      memory={data.memory}
                       events={data.events ?? []}
                       language={prefs.language}
                       busy={busy}
@@ -598,6 +600,7 @@ function App() {
                         void mutate(() => reloadProject(projectId))
                       }
                       onAction={taskAction}
+                      onRunChanged={()=>void reloadProject(projectId).catch(()=>setError(true))}
                     />
                   </>
                 )}
@@ -777,6 +780,7 @@ function App() {
                         </article>
                       ))}
                     </div>
+                    <ProviderSetup language={prefs.language}/>
                   </section>
                 )}
               </>

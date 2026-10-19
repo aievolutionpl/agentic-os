@@ -9,6 +9,7 @@ This stage completes the owner's three-stage continuation. Earlier stage evidenc
 - Electron WebContentsView with no preload/Node/app bridge; separate persistent partition per project; explicit URL validation; denied device permissions, downloads and popups; native view hidden behind app dialogs and project navigation.
 - Electron 43.8.0, Vite 7.3.7 and electron-builder 26.17.0, with refreshed lockfile and third-party notices. Clean installation verifies actual package identities and versions. npm audit reports no known vulnerabilities for this lockfile at verification time.
 - Unsigned per-user Windows x64 NSIS package, ASAR executable smoke, open-source documentation and pinned official Windows/Linux GitHub Actions.
+- Clean-runner packaging explicitly installs the pinned Electron runtime through its upstream checksum-verified installer. It does not depend on downloads performed by a previous test job.
 
 ## Evidence
 

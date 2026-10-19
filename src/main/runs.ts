@@ -165,15 +165,25 @@ export class Runs {
           command: String(row.command),
           args: JSON.parse(String(row.args)) as string[],
           protocol: String(row.protocol),
+          profile:
+            row.profile === "existing"
+              ? ("existing" as const)
+              : ("isolated" as const),
           consent: row.consent === 1,
         }
       : null;
   }
-  configure(id: string, command: string, args: string[], protocol: string) {
+  configure(
+    id: string,
+    command: string,
+    args: string[],
+    protocol: string,
+    profile: "isolated" | "existing" = "isolated",
+  ) {
     this.db
       .prepare(
-        "INSERT INTO provider_settings VALUES(?,?,?,?,1) ON CONFLICT(id) DO UPDATE SET command=excluded.command,args=excluded.args,protocol=excluded.protocol,consent=1",
+        "INSERT INTO provider_settings(id,command,args,protocol,consent,profile) VALUES(?,?,?,?,1,?) ON CONFLICT(id) DO UPDATE SET command=excluded.command,args=excluded.args,protocol=excluded.protocol,consent=1,profile=excluded.profile",
       )
-      .run(id, command, JSON.stringify(args), protocol);
+      .run(id, command, JSON.stringify(args), protocol, profile);
   }
 }

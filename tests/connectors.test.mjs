@@ -57,15 +57,15 @@ test("scan classifies real-world outputs honestly and never leaks credentials", 
   assert.equal(c.codex.state, "ready");
   assert.equal(c.codex.authMethod, "ChatGPT");
   assert.equal(c.codex.version, "0.163.0");
-  assert.equal(c.claude.state, "experimental");
-  assert.equal(c.claude.reason, "bridge_required");
+  assert.equal(c.claude.state, "ready");
+  assert.equal(c.claude.reason, "ok");
   assert.equal(c.claude.plan, "pro");
   assert.equal(c.claude.authMethod, "claude.ai");
   assert.equal(c.gemini.reason, "auth_unknown");
   assert.equal(c.hermes.version, "0.22.2");
   assert.equal(c.github.state, "ready");
   assert.equal(c.github.account, "octo-user");
-  assert.equal(c.antigravity.state, "unsupported");
+  assert.equal(c.antigravity.state, "experimental");
   assert.equal(c.opencode.state, "needs-install");
   assert.equal(c.api.state, "unsupported");
   assert.equal(c.api.reason, "vault_missing");

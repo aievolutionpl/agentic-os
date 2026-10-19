@@ -1,0 +1,5 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 typecheck
+> tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit
+

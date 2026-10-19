@@ -1,5 +1,19 @@
 # Agenting OS — przekazanie projektu
 
+## Aktualizacja workspace — 2026-10-19
+
+Bieżący zakres: premium UI AI Evolution Polska; połączenia Codex, natywny Claude, OpenCode/OpenRouter i eksperymentalny Antigravity; systemowe szyfrowanie klucza OpenRouter; wspólna pamięć z jawnym zakresem; wbudowany skill zespołu; kolejka do 10 zadań z zatrzymaniem przed zgodą człowieka. Lokalne projekty wymagają Git, lecz nie wymagają GitHuba. Migracja bazy do v9 zachowuje prywatność istniejących wpisów.
+
+Limity mają wskazane źródło. Codex korzysta z oficjalnego app-server, OpenRouter z budżetu klucza API. Dla Claude/Antigravity automatyczny odczyt pozostaje niedostępny. Nie są pokazywane zmyślone trendy ani domniemane pełne limity. Subskrypcje i rozliczenia API są oddzielne.
+
+Instrukcja i macierz integracji: [README](README.md). Weryfikacja, naprawione problemy i ograniczenia: [audyt workspace](docs/WORKSPACE_AUDIT.md). Podstawy wyboru rozwiązań: [research](docs/research/agent-workspace-2026-10-19.md).
+
+Ta aktualizacja jest przygotowana do osobnego PR. Zlecenie obejmuje push; nie obejmuje merge do `main`. Starsze wzmianki o zgodzie na merge poniżej dotyczą wcześniejszych prac i nie są upoważnieniem dla tej aktualizacji.
+
+---
+
+## Historia wcześniejszych etapów
+
 ## Bieżący stan: 0.4.0 — 2026-10-19
 
 Zrealizowano trzy uzgodnione etapy po dopracowaniu UI:

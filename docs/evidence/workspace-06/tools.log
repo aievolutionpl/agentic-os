@@ -1,0 +1,6 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 qa:tools
+> node scripts/tools-qa.mjs
+
+Project browser and extension Electron QA passed

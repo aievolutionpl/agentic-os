@@ -1,55 +1,122 @@
 import React, { useEffect, useState } from "react";
-import type { Agent, ProviderSetting } from "../shared";
-import { SelectField } from "./ui";
+import type {
+  Agent,
+  ProviderSetting,
+  OpenRouterModel,
+  OpenRouterSetting,
+  API,
+} from "../shared";
+import { SelectField, Icon, agentName } from "./ui";
+import { ProviderIcon } from "./ProviderIcon";
+
+const defaults = {
+  codex: "codex",
+  claude: "claude-cli",
+  opencode: "acp",
+  antigravity: "antigravity-cli",
+} as const;
 export function ProviderSetup({ language }: { language: "pl" | "en" }) {
   const pl = language === "pl",
     api = window.agenting!;
   const [settings, setSettings] = useState<ProviderSetting[]>([]),
-    [agent, setAgent] = useState<Agent>("codex"),
+    [detected, setDetected] = useState<Partial<Record<Agent, string>>>({});
+  const [agent, setAgent] = useState<Agent>("codex"),
     [command, setCommand] = useState(""),
-    [args, setArgs] = useState("[]"),
-    [consent, setConsent] = useState(false),
+    [args, setArgs] = useState("[]");
+  const [protocol, setProtocol] =
+    useState<Parameters<API["configureProvider"]>[0]["protocol"]>("codex");
+  const [profile, setProfile] = useState<"existing" | "isolated">("existing");
+  const [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
-    [status, setStatus] = useState<"saved" | "error" | "login" | null>(null);
+    [status, setStatus] = useState("");
   async function load() {
-    if (api.providerSettings) setSettings(await api.providerSettings());
+    setSettings(await api.providerSettings());
   }
   useEffect(() => {
     void load().catch(() => setStatus("error"));
+    void api
+      .providerDetect?.()
+      .then(setDetected)
+      .catch(() => setStatus("error"));
   }, []);
   useEffect(() => {
     const config = settings.find((p) => p.id === agent);
-    setCommand(config?.command ?? "");
-    setArgs(JSON.stringify(config?.args ?? []));
+    setCommand(config?.command || detected[agent] || "");
+    setProtocol((config?.protocol || defaults[agent]) as typeof protocol);
+    setArgs(
+      JSON.stringify(
+        config?.args?.length
+          ? config.args
+          : agent === "opencode"
+            ? ["acp"]
+            : [],
+      ),
+    );
+    setProfile(
+      config?.configured ? (config.profile ?? "isolated") : "existing",
+    );
     setConsent(false);
-  }, [agent, settings]);
-  if (!api.providerSettings) return null;
-  async function act(
-    fn: () => Promise<unknown>,
-    status: "saved" | "login" | null = "saved",
-  ) {
+    setStatus("");
+  }, [agent, settings, detected]);
+  async function act(fn: () => Promise<unknown>, message = "saved") {
     setBusy(true);
-    setStatus(null);
+    setStatus("");
     try {
       await fn();
-      if (status === "saved") await load();
-      setStatus(status);
+      if (message === "saved") await load();
+      setStatus(message);
     } catch {
       setStatus("error");
     } finally {
       setBusy(false);
     }
   }
+  if (!api.providerSettings) return null;
   return (
     <section className="provider-setup" aria-labelledby="provider-setup-title">
+      <div className="section-eyebrow">AI EVOLUTION POLSKA / CONNECTIONS</div>
       <h2 id="provider-setup-title">
-        {pl ? "Połączenia wykonawcze" : "Execution connections"}
+        {pl
+          ? "Twoi agenci. Twoje subskrypcje."
+          : "Your agents. Your subscriptions."}
       </h2>
       <p className="helper">
         {pl
-          ? "Codex używa app-server z osobnym profilem aplikacji. Claude wymaga zaufanego mostu ACP. Sondy CLI powyżej nie mierzą limitów konta."
-          : "Codex uses app-server with a separate application profile. Claude requires a trusted ACP bridge. CLI probes above do not measure account limits."}
+          ? "Podłącz lokalne CLI. Zalogowane konta pozostają pod kontrolą dostawcy, a każdy agent pracuje na wybranym lokalnym projekcie."
+          : "Connect local CLIs. Providers manage their own sign-ins; each agent works in your selected local project."}
       </p>
+      <div
+        className="provider-picker"
+        role="group"
+        aria-label={pl ? "Wybierz agenta" : "Choose agent"}
+      >
+        {(Object.keys(defaults) as Agent[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            className={agent === id ? "chosen" : ""}
+            aria-pressed={agent === id}
+            onClick={() => setAgent(id)}
+            disabled={busy}
+          >
+            <ProviderIcon provider={id} />
+            <strong>{agentName(id)}</strong>
+            <small>
+              {settings.find((p) => p.id === id)?.configured
+                ? pl
+                  ? "Zapisane połączenie"
+                  : "Connection saved"
+                : detected[id]
+                  ? pl
+                    ? "Wykryto na urządzeniu"
+                    : "Detected on device"
+                  : pl
+                    ? "Wybierz program"
+                    : "Choose executable"}
+            </small>
+          </button>
+        ))}
+      </div>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -57,36 +124,66 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
             api.configureProvider({
               agent,
               command,
-              args: JSON.parse(args),
-              protocol: agent === "codex" ? "codex" : "acp",
+              args: protocol === "acp" ? JSON.parse(args) : [],
+              protocol,
+              profile,
               consent: true,
             }),
           );
         }}
       >
-        <label className="field-label">{pl ? "Agent" : "Agent"}</label>
-        <SelectField
-          label={pl ? "Konfiguracja agenta" : "Agent connection"}
-          value={agent}
-          onChange={(value) => setAgent(value as Agent)}
-          options={[
-            { value: "codex", label: "Codex app-server" },
-            { value: "claude", label: "Claude · ACP" },
-          ]}
-          disabled={busy}
-        />
+        {agent === "claude" && (
+          <SelectField
+            label={pl ? "Sposób połączenia" : "Connection method"}
+            value={protocol}
+            onChange={(v) => {
+              setProtocol(v as typeof protocol);
+              setConsent(false);
+            }}
+            options={[
+              { value: "claude-cli", label: "Claude Code CLI" },
+              { value: "acp", label: "ACP bridge" },
+            ]}
+            disabled={busy}
+          />
+        )}
+        {agent === "codex" && (
+          <SelectField
+            label={pl ? "Konto Codex" : "Codex account"}
+            value={profile}
+            onChange={(v) => {
+              setProfile(v as typeof profile);
+              setConsent(false);
+            }}
+            options={[
+              {
+                value: "existing",
+                label: pl
+                  ? "Użyj istniejącego logowania CLI"
+                  : "Use existing CLI sign-in",
+              },
+              {
+                value: "isolated",
+                label: pl
+                  ? "Osobny profil Agenting OS"
+                  : "Separate Agenting OS profile",
+              },
+            ]}
+            disabled={busy}
+          />
+        )}
         <label>
-          {pl ? "Zaufany plik wykonywalny" : "Trusted executable"}
+          {pl ? "Plik wykonywalny agenta" : "Agent executable"}
           <div className="path-input">
             <input
               value={command}
-              maxLength={4096}
               required
-              onChange={(event) => {
-                setCommand(event.target.value);
+              maxLength={4096}
+              disabled={busy}
+              onChange={(e) => {
+                setCommand(e.target.value);
                 setConsent(false);
               }}
-              disabled={busy}
             />
             <button
               type="button"
@@ -99,34 +196,55 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
                     setCommand(path);
                     setConsent(false);
                   }
-                }, null)
+                }, "")
               }
             >
               {pl ? "Wybierz" : "Browse"}
             </button>
           </div>
         </label>
-        <label>
-          {pl ? "Argumenty (tablica JSON)" : "Arguments (JSON array)"}
-          <input
-            value={args}
-            maxLength={12000}
-            onChange={(event) => setArgs(event.target.value)}
-            disabled={busy || agent === "codex"}
-            spellCheck={false}
-          />
-        </label>
+        {protocol === "acp" && agent === "claude" && (
+          <label>
+            {pl ? "Argumenty mostu ACP (JSON)" : "ACP bridge arguments (JSON)"}
+            <input
+              value={args}
+              onChange={(e) => {
+                setArgs(e.target.value);
+                setConsent(false);
+              }}
+              disabled={busy}
+            />
+          </label>
+        )}
+        <p className="connection-note">
+          <Icon name="info" />
+          {agent === "codex"
+            ? pl
+              ? "Limity będą odczytywane z tego samego profilu, który wykonuje zadania."
+              : "Limits are read from the same profile that runs tasks."
+            : agent === "claude"
+              ? pl
+                ? "Zaloguj CLI poleceniem claude auth login. Tryb natywny udostępnia odczyt i edycję plików; polecenia powłoki są wyłączone."
+                : "Sign in using claude auth login. Native mode exposes file reading and editing; shell commands are disabled."
+              : agent === "opencode"
+                ? pl
+                  ? "OpenCode uruchamia się przez ACP. Wybierz model OpenRouter poniżej lub użyj konfiguracji własnego OpenCode."
+                  : "OpenCode runs through ACP. Select an OpenRouter model below or use your own OpenCode configuration."
+                : pl
+                  ? "Wymaga CLI agy i jego logowania. Adapter wykonawczy jest eksperymentalny; przeglądy tylko do odczytu i wznowienia są niedostępne."
+                  : "Requires agy CLI and its sign-in. Execution is experimental; read-only reviews and resume are unavailable."}
+        </p>
         <label className="dependency-choice consent">
           <input
             type="checkbox"
             checked={consent}
-            onChange={(event) => setConsent(event.target.checked)}
             disabled={busy}
+            onChange={(e) => setConsent(e.target.checked)}
           />
           <span>
             {pl
-              ? "Ufam temu lokalnemu programowi i zezwalam aplikacji na uruchamianie go po mojej akcji. ACP wymaga własnej izolacji po stronie serwera."
-              : "I trust this local program and allow the app to launch it on my action. ACP requires server-side isolation."}
+              ? "Ufam wybranemu programowi i zezwalam na jego uruchamianie przy wykonywaniu zadań oraz odczycie konta. Program używa własnych uprawnień systemowych."
+              : "I trust this executable and allow task execution and account reads. It runs with its own operating system permissions."}
           </span>
         </label>
         <div className="panel-actions">
@@ -134,6 +252,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
             className="primary"
             disabled={busy || !consent || !command.trim()}
           >
+            <Icon name="check" />
             {pl ? "Zapisz połączenie" : "Save connection"}
           </button>
           {agent === "codex" &&
@@ -148,25 +267,194 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
               </button>
             )}
         </div>
-      </form>
-      {status && (
-        <p
-          role={status === "error" ? "alert" : "status"}
-          className={status === "error" ? "inline-error" : "helper"}
-        >
-          {status === "error"
-            ? pl
-              ? "Nie udało się zapisać połączenia. Sprawdź ścieżkę, JSON i uprawnienia."
-              : "Connection failed. Check the executable, JSON arguments and permissions."
-            : status === "login"
+        {status && (
+          <p role={status === "error" ? "alert" : "status"}>
+            {status === "error"
               ? pl
-                ? "Dokończ logowanie w przeglądarce. Dane logowania obsługuje Codex."
-                : "Finish signing in through your browser. Codex manages the credentials."
+                ? "Operacja nie powiodła się. Sprawdź program, argumenty i dostęp do konta."
+                : "Operation failed. Check executable, arguments and account access."
+              : status === "login"
+                ? pl
+                  ? "Dokończ logowanie w przeglądarce."
+                  : "Finish signing in through your browser."
+                : pl
+                  ? "Zapisano lokalnie."
+                  : "Saved locally."}
+          </p>
+        )}
+      </form>
+      <OpenRouterSetup language={language} />
+    </section>
+  );
+}
+
+function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
+  const pl = language === "pl",
+    api = window.agenting!;
+  const [setting, setSetting] = useState<OpenRouterSetting | null>(null),
+    [models, setModels] = useState<OpenRouterModel[]>([]);
+  const [key, setKey] = useState(""),
+    [model, setModel] = useState(""),
+    [busy, setBusy] = useState(false),
+    [message, setMessage] = useState("");
+  useEffect(() => {
+    void api
+      .openRouterSettings?.()
+      .then((s) => {
+        setSetting(s);
+        setModel(s.model);
+      })
+      .catch(() => setMessage("error"));
+  }, []);
+  if (!api.openRouterSettings) return null;
+  async function act(fn: () => Promise<void>) {
+    setBusy(true);
+    setMessage("");
+    try {
+      await fn();
+      setMessage("saved");
+    } catch {
+      setMessage("error");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="router-setup" aria-labelledby="router-title">
+      <div className="router-heading">
+        <ProviderIcon provider="openrouter" />
+        <div>
+          <h3 id="router-title">OpenRouter</h3>
+          <p>
+            {pl
+              ? "Jeden klucz. Modele w Twoim workspace."
+              : "One key. Models in your workspace."}
+          </p>
+        </div>
+        <span className="state-badge">
+          {setting?.configured
+            ? pl
+              ? "Klucz zapisany"
+              : "Key saved"
+            : pl
+              ? "API"
+              : "API"}
+        </span>
+      </div>
+      <p className="helper">
+        {pl
+          ? "To osobne rozliczenie API. Klucz jest szyfrowany przez system operacyjny i przekazywany wyłącznie lokalnemu OpenCode oraz API OpenRouter."
+          : "This uses separate API billing. Your key is encrypted by the operating system and passed only to local OpenCode and the OpenRouter API."}
+      </p>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void act(async () => {
+            const s = await api.openRouterSave!({
+              ...(key ? { apiKey: key } : {}),
+              model,
+              consent: true,
+            });
+            setKey("");
+            setSetting(s);
+          });
+        }}
+      >
+        <label>
+          {pl ? "Klucz API" : "API key"}
+          <input
+            type="password"
+            autoComplete="off"
+            value={key}
+            maxLength={4096}
+            placeholder={
+              setting?.configured
+                ? pl
+                  ? "Zapisany · wpisz, aby wymienić"
+                  : "Saved · enter to replace"
+                : "sk-or-…"
+            }
+            onChange={(e) => setKey(e.target.value)}
+            required={!setting?.configured}
+            disabled={busy}
+          />
+        </label>
+        <label>
+          {pl ? "Model (identyfikator OpenRouter)" : "Model (OpenRouter ID)"}
+          <input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            list="router-models"
+            placeholder="provider/model"
+            required
+            maxLength={200}
+            disabled={busy}
+          />
+          <datalist id="router-models">
+            {models.map((m) => (
+              <option value={m.id} key={m.id}>
+                {m.name}
+                {m.contextLength
+                  ? ` · ${m.contextLength.toLocaleString()} context`
+                  : ""}
+              </option>
+            ))}
+          </datalist>
+        </label>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() =>
+              void act(async () => setModels(await api.openRouterModels!()))
+            }
+          >
+            <Icon name="refresh" />
+            {pl ? "Pobierz katalog modeli" : "Load model catalog"}
+          </button>
+          <button
+            className="primary"
+            disabled={busy || !setting?.encryptionAvailable}
+          >
+            {pl ? "Zapisz OpenRouter" : "Save OpenRouter"}
+          </button>
+          {setting?.configured && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy}
+              onClick={() =>
+                void act(async () => {
+                  await api.openRouterRemove!();
+                  setSetting(await api.openRouterSettings!());
+                  setKey("");
+                })
+              }
+            >
+              {pl ? "Usuń klucz" : "Remove key"}
+            </button>
+          )}
+        </div>
+        {setting && !setting.encryptionAvailable && (
+          <p role="alert">
+            {pl
+              ? "Systemowy magazyn szyfrowania jest niedostępny."
+              : "Operating system encryption is unavailable."}
+          </p>
+        )}
+        {message && (
+          <p role={message === "error" ? "alert" : "status"}>
+            {message === "error"
+              ? pl
+                ? "Operacja nie powiodła się. Sprawdź model, klucz i połączenie."
+                : "Operation failed. Check the model, key and connection."
               : pl
-                ? "Zapisano lokalnie."
-                : "Saved locally."}
-        </p>
-      )}
+                ? "Gotowe. Nie wykonano płatnego zapytania do modelu."
+                : "Done. No paid model request was made."}
+          </p>
+        )}
+      </form>
     </section>
   );
 }

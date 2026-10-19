@@ -1,848 +1,342 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import {
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  renameSync,
+} from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
-import { exec } from "node:child_process";
-import https from "node:https";
-import http from "node:http";
+import { randomUUID } from "node:crypto";
 import type {
   ProviderQuotaCard,
   QuotaMetric,
   CustomSubscriptionInput,
 } from "../shared.js";
+import { exact, text } from "./validate.js";
 
-const httpsAgent = new https.Agent({ rejectUnauthorized: false });
-
-export function formatTimeRemaining(target: string | number | null | undefined): string {
-  if (!target) return "Reset unavailable";
-  const targetMs =
-    typeof target === "number"
-      ? target > 1e11
-        ? target
-        : target * 1000
-      : new Date(target).getTime();
-  if (isNaN(targetMs)) return "Reset unavailable";
-  const diffMs = targetMs - Date.now();
-  if (diffMs <= 0) return "Resetting soon";
-
-  const totalMinutes = Math.floor(diffMs / 60000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
-
-  if (days > 0) return `Resets in ${days}d ${hours}h`;
-  if (hours > 0) return `Resets in ${hours}h ${minutes}m`;
-  return `Resets in ${minutes}m`;
+const finite = (v: unknown): v is number =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0;
+const date = (v: unknown): string | null => {
+  if (typeof v !== "string" && typeof v !== "number") return null;
+  const d = new Date(typeof v === "number" ? v * 1000 : v);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+};
+export function formatTimeRemaining(
+  target: string | number | null | undefined,
+): string {
+  const at = date(target);
+  if (!at) return "Reset unavailable";
+  const minutes = Math.max(0, Math.ceil((Date.parse(at) - Date.now()) / 60000));
+  return minutes >= 1440
+    ? `${Math.floor(minutes / 1440)}d ${Math.floor((minutes % 1440) / 60)}h`
+    : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
-
-function calculateBurnNotice(
-  usedPercent: number,
-  resetsAt: string | number | null | undefined,
-  periodSeconds: number,
-): string | null {
-  if (usedPercent >= 95) return "🔥 Exhausted";
-  if (usedPercent < 50 || !resetsAt) return null;
-
-  const targetMs =
-    typeof resetsAt === "number"
-      ? resetsAt > 1e11
-        ? resetsAt
-        : resetsAt * 1000
-      : new Date(resetsAt).getTime();
-  if (isNaN(targetMs)) return null;
-
-  const remainingFraction = (100 - usedPercent) / 100;
-  const timeRemainingSeconds = Math.max(1, (targetMs - Date.now()) / 1000);
-  const timeElapsedSeconds = Math.max(1, periodSeconds - timeRemainingSeconds);
-  const ratePerSecond = (usedPercent / 100) / timeElapsedSeconds;
-
-  if (ratePerSecond > 0) {
-    const secondsToDepletion = remainingFraction / ratePerSecond;
-    if (secondsToDepletion < timeRemainingSeconds) {
-      const minutes = Math.floor(secondsToDepletion / 60);
-      const hours = Math.floor(minutes / 60);
-      const days = Math.floor(hours / 24);
-      if (days > 0) return `🔥 Limit in ${days}d ${hours % 24}h`;
-      if (hours > 0) return `🔥 Limit in ${hours}h ${minutes % 60}m`;
-      return `🔥 Limit in ${minutes}m`;
-    }
-  }
-
-  if (usedPercent >= 75) {
-    const approxSec = Math.floor(timeRemainingSeconds * (remainingFraction / (usedPercent / 100)));
-    const minutes = Math.max(1, Math.floor(approxSec / 60));
-    const hours = Math.floor(minutes / 60);
-    if (hours > 0) return `🔥 Limit in ${hours}h ${minutes % 60}m`;
-    return `🔥 Limit in ${minutes}m`;
-  }
-
-  return null;
-}
-
-function sampleTrend(points: number, seed: number): number[] {
-  const result: number[] = [];
-  let current = Math.abs(Math.sin(seed)) * 40;
-  for (let i = 0; i < points; i++) {
-    const delta = Math.sin(seed + i * 0.7) * 35 + (Math.cos(seed * 2 + i) * 20);
-    current = Math.max(4, Math.min(100, Math.round(current + delta)));
-    result.push(current);
-  }
-  return result;
-}
-
-/* ========================================================================= */
-/* CLAUDE QUOTA                                                              */
-/* ========================================================================= */
-async function fetchClaudeLive(): Promise<ProviderQuotaCard | null> {
-  const credPath = join(homedir(), ".claude", ".credentials.json");
-  if (!existsSync(credPath)) return null;
-
-  try {
-    const content = JSON.parse(readFileSync(credPath, "utf8"));
-    const oauth = content.claudeAiOauth || content.claude_ai_oauth;
-    const token = oauth?.accessToken || oauth?.access_token;
-    if (!token) return null;
-
-    const res = await new Promise<{ status: number; body: any }>((resolve, reject) => {
-      const req = https.request(
-        "https://api.anthropic.com/api/oauth/usage",
-        {
-          method: "GET",
-          agent: httpsAgent,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-            "anthropic-beta": "oauth-2025-04-20",
-            "User-Agent": "claude-code/2.1.69",
-          },
-          timeout: 10000,
-        },
-        (response) => {
-          let data = "";
-          response.on("data", (chunk) => (data += chunk));
-          response.on("end", () => {
-            try {
-              resolve({ status: response.statusCode || 0, body: JSON.parse(data) });
-            } catch (err) {
-              reject(err);
-            }
-          });
-        },
-      );
-      req.on("error", reject);
-      req.on("timeout", () => {
-        req.destroy();
-        reject(new Error("Timeout"));
-      });
-      req.end();
-    });
-
-    if (res.status !== 200 || !res.body) return null;
-    const body = res.body;
-
-    const metrics: QuotaMetric[] = [];
-
-    // 1. Session (5-hour window)
-    if (body.five_hour) {
-      const used = Math.round(body.five_hour.utilization || 0);
-      const remaining = Math.max(0, 100 - used);
-      const resetAt = body.five_hour.resets_at;
-      metrics.push({
-        id: "session",
-        label: "Session",
-        usedPercent: used,
-        remainingPercent: remaining,
-        resetsAt: resetAt,
-        resetNotice: formatTimeRemaining(resetAt),
-        burnNotice: calculateBurnNotice(used, resetAt, 5 * 3600),
-        periodSeconds: 5 * 3600,
-        format: "percent",
-        usedValue: used,
-        limitValue: 100,
-        unit: "%",
-      });
-    }
-
-    // 2. Weekly (7-day window)
-    if (body.seven_day) {
-      const used = Math.round(body.seven_day.utilization || 0);
-      const remaining = Math.max(0, 100 - used);
-      const resetAt = body.seven_day.resets_at;
-      metrics.push({
-        id: "weekly",
-        label: "Weekly",
-        usedPercent: used,
-        remainingPercent: remaining,
-        resetsAt: resetAt,
-        resetNotice: formatTimeRemaining(resetAt),
-        burnNotice: calculateBurnNotice(used, resetAt, 7 * 86400),
-        periodSeconds: 7 * 86400,
-        format: "percent",
-        usedValue: used,
-        limitValue: 100,
-        unit: "%",
-      });
-    }
-
-    // 3. Extra Usage
-    const extra = body.extra_usage;
-    if (extra && extra.is_enabled && extra.monthly_limit) {
-      const used = extra.used_credits || 0;
-      const limit = extra.monthly_limit || 100;
-      const usedPct = Math.min(100, Math.round((used / limit) * 100));
-      metrics.push({
-        id: "extra",
-        label: "Extra Usage",
-        usedPercent: usedPct,
-        remainingPercent: 100 - usedPct,
-        resetsAt: null,
-        resetNotice: "Reset unavailable",
-        burnNotice: null,
-        periodSeconds: 30 * 86400,
-        format: "usd",
-        usedValue: used,
-        limitValue: limit,
-        unit: extra.currency || "USD",
-      });
-    } else {
-      metrics.push({
-        id: "extra",
-        label: "Extra Usage",
-        usedPercent: 0,
-        remainingPercent: 100,
-        resetsAt: null,
-        resetNotice: "Reset unavailable",
-        burnNotice: null,
-        periodSeconds: 30 * 86400,
-        format: "percent",
-        usedValue: null,
-        limitValue: null,
-        unit: null,
-      });
-    }
-
-    const planType = (oauth?.subscriptionType || "Pro").toUpperCase();
-    const planFormatted = planType.startsWith("PRO") ? "Pro" : planType.startsWith("MAX") ? "Max" : planType;
-
-    return {
-      id: "claude",
-      name: "Claude",
-      plan: planFormatted,
-      account: null,
-      icon: "claude",
-      status: metrics.some((m) => m.burnNotice) ? "warning" : "active",
-      metrics,
-      usageTrend: sampleTrend(24, 42),
-      updatedAt: new Date().toISOString(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-/* ========================================================================= */
-/* CODEX QUOTA                                                               */
-/* ========================================================================= */
-async function fetchCodexLive(): Promise<ProviderQuotaCard | null> {
-  const authPath = join(homedir(), ".codex", "auth.json");
-  if (!existsSync(authPath)) return null;
-
-  try {
-    const auth = JSON.parse(readFileSync(authPath, "utf8"));
-    const token = auth?.tokens?.access_token;
-    const accountId = auth?.tokens?.account_id || "";
-    if (!token) return null;
-
-    const res = await new Promise<{ status: number; body: any }>((resolve, reject) => {
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-        "User-Agent": "OpenQuota/1.0.0",
-      };
-      if (accountId) headers["ChatGPT-Account-Id"] = accountId;
-
-      const req = https.request(
-        "https://chatgpt.com/backend-api/wham/usage",
-        {
-          method: "GET",
-          agent: httpsAgent,
-          headers,
-          timeout: 10000,
-        },
-        (response) => {
-          let data = "";
-          response.on("data", (chunk) => (data += chunk));
-          response.on("end", () => {
-            try {
-              resolve({ status: response.statusCode || 0, body: JSON.parse(data) });
-            } catch (err) {
-              reject(err);
-            }
-          });
-        },
-      );
-      req.on("error", reject);
-      req.on("timeout", () => {
-        req.destroy();
-        reject(new Error("Timeout"));
-      });
-      req.end();
-    });
-
-    if (res.status !== 200 || !res.body) return null;
-    const body = res.body;
-
-    const metrics: QuotaMetric[] = [];
-    const rateLimit = body.rate_limit || {};
-    const primary = rateLimit.primary_window;
-    const secondary = rateLimit.secondary_window;
-
-    // 1. Session Window (if available)
-    if (secondary) {
-      const used = Math.round(secondary.used_percent || 0);
-      const remaining = Math.max(0, 100 - used);
-      const resetAt = secondary.reset_at ? new Date(secondary.reset_at * 1000).toISOString() : null;
-      metrics.push({
-        id: "session",
-        label: "Session",
-        usedPercent: used,
-        remainingPercent: remaining,
-        resetsAt: resetAt,
-        resetNotice: formatTimeRemaining(resetAt),
-        burnNotice: calculateBurnNotice(used, resetAt, secondary.limit_window_seconds || 5 * 3600),
-        periodSeconds: secondary.limit_window_seconds || 5 * 3600,
-        format: "percent",
-        usedValue: used,
-        limitValue: 100,
-        unit: "%",
-      });
-    } else {
-      metrics.push({
-        id: "session",
-        label: "Session",
-        usedPercent: 0,
-        remainingPercent: 100,
-        resetsAt: null,
-        resetNotice: "Reset unavailable",
-        burnNotice: null,
-        periodSeconds: 5 * 3600,
-        format: "percent",
-        usedValue: null,
-        limitValue: null,
-        unit: null,
-      });
-    }
-
-    // 2. Weekly Window
-    if (primary) {
-      const used = Math.round(primary.used_percent || 0);
-      const remaining = Math.max(0, 100 - used);
-      const resetAt = primary.reset_at ? new Date(primary.reset_at * 1000).toISOString() : null;
-      metrics.push({
-        id: "weekly",
-        label: "Weekly",
-        usedPercent: used,
-        remainingPercent: remaining,
-        resetsAt: resetAt,
-        resetNotice: formatTimeRemaining(resetAt),
-        burnNotice: calculateBurnNotice(used, resetAt, primary.limit_window_seconds || 7 * 86400),
-        periodSeconds: primary.limit_window_seconds || 7 * 86400,
-        format: "percent",
-        usedValue: used,
-        limitValue: 100,
-        unit: "%",
-      });
-    }
-
-    let plan = "Pro 5x";
-    if (body.plan_type) {
-      if (body.plan_type === "prolite") plan = "Pro 5x";
-      else if (body.plan_type === "pro") plan = "Pro";
-      else plan = body.plan_type.charAt(0).toUpperCase() + body.plan_type.slice(1);
-    }
-
-    return {
-      id: "codex",
-      name: "Codex",
-      plan,
-      account: body.email || null,
-      icon: "codex",
-      status: metrics.some((m) => m.burnNotice) ? "warning" : "active",
-      metrics,
-      usageTrend: sampleTrend(24, 88),
-      updatedAt: new Date().toISOString(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-/* ========================================================================= */
-/* ANTIGRAVITY QUOTA                                                         */
-/* ========================================================================= */
-interface LanguageServerInfo {
-  port: number;
-  csrf: string;
-}
-
-function findAntigravityServer(): Promise<LanguageServerInfo | null> {
-  return new Promise((resolve) => {
-    const psScript = `
-[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
-$proc = Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'language_server|^agy(\\.exe)?$' } | Select-Object -First 1
-if (-not $proc) { exit }
-$pidVal = $proc.ProcessId
-$cmd = $proc.CommandLine
-$csrf = ''
-if ($cmd -match '--csrf_token\\s+([0-9a-fA-F-]+)') {
-    $csrf = $Matches[1]
-}
-$conn = Get-NetTCPConnection -OwningProcess $pidVal -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty LocalPort
-ConvertTo-Json -Compress -InputObject @{ ports=@($conn); csrf=$csrf }
-    `;
-
-    exec(
-      `powershell -NoLogo -NoProfile -NonInteractive -Command "${psScript.replace(/\r?\n/g, " ")}"`,
-      { timeout: 4000 },
-      (err, stdout) => {
-        if (err || !stdout.trim()) return resolve(null);
-        try {
-          const parsed = JSON.parse(stdout);
-          const ports = Array.isArray(parsed.ports) ? parsed.ports : [parsed.ports];
-          const csrf = parsed.csrf || "";
-          if (ports.length > 0 && csrf) {
-            // port with higher number or 52418
-            const preferredPort = ports.find((p: number) => p % 2 === 0) || ports[0];
-            return resolve({ port: preferredPort, csrf });
-          }
-          resolve(null);
-        } catch {
-          resolve(null);
-        }
-      },
-    );
-  });
-}
-
-async function fetchAntigravityLive(): Promise<ProviderQuotaCard | null> {
-  try {
-    const server = await findAntigravityServer();
-    if (!server) {
-      // Fallback: If IDE is active with default quota
-      return {
-        id: "antigravity",
-        name: "Antigravity",
-        plan: "Pro",
-        account: null,
-        icon: "antigravity",
-        status: "active",
-        metrics: [
-          {
-            id: "session",
-            label: "Session",
-            usedPercent: 0,
-            remainingPercent: 100,
-            resetsAt: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
-            resetNotice: "Not started",
-            burnNotice: null,
-            periodSeconds: 5 * 3600,
-            format: "percent",
-            usedValue: 0,
-            limitValue: 100,
-            unit: "%",
-          },
-          {
-            id: "weekly",
-            label: "Weekly",
-            usedPercent: 0,
-            remainingPercent: 100,
-            resetsAt: new Date(Date.now() + 7 * 86400 * 1000).toISOString(),
-            resetNotice: "Resets in 6d 23h",
-            burnNotice: null,
-            periodSeconds: 7 * 86400,
-            format: "percent",
-            usedValue: 0,
-            limitValue: 100,
-            unit: "%",
-          },
-        ],
-        usageTrend: sampleTrend(24, 15),
-        updatedAt: new Date().toISOString(),
-      };
-    }
-
-    const payload = JSON.stringify({
-      metadata: {
-        ideName: "antigravity",
-        extensionName: "antigravity",
-        ideVersion: "2.24.0",
-        locale: "en",
-      },
-    });
-
-    const responseData = await new Promise<any>((resolve, reject) => {
-      const req = http.request(
-        {
-          hostname: "127.0.0.1",
-          port: server.port,
-          path: "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary",
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Connect-Protocol-Version": "1",
-            "x-codeium-csrf-token": server.csrf,
-            "Content-Length": Buffer.byteLength(payload),
-          },
-          timeout: 4000,
-        },
-        (res) => {
-          let body = "";
-          res.on("data", (chunk) => (body += chunk));
-          res.on("end", () => {
-            try {
-              resolve(JSON.parse(body));
-            } catch (e) {
-              reject(e);
-            }
-          });
-        },
-      );
-      req.on("error", reject);
-      req.on("timeout", () => {
-        req.destroy();
-        reject(new Error("Timeout"));
-      });
-      req.write(payload);
-      req.end();
-    });
-
-    const metrics: QuotaMetric[] = [];
-    const groups = responseData?.response?.groups || [];
-
-    for (const group of groups) {
-      const buckets = group.buckets || [];
-      for (const bucket of buckets) {
-        const id = bucket.bucketId;
-        const remainingFraction = typeof bucket.remainingFraction === "number" ? bucket.remainingFraction : 1.0;
-        const remainingPercent = Math.max(0, Math.min(100, Math.round(remainingFraction * 100)));
-        const usedPercent = 100 - remainingPercent;
-        const resetTime = bucket.resetTime || null;
-
-        if (id === "gemini-5h") {
-          metrics.push({
-            id: "session",
-            label: "Session",
-            usedPercent,
-            remainingPercent,
-            resetsAt: resetTime,
-            resetNotice: remainingPercent === 100 ? "Not started" : formatTimeRemaining(resetTime),
-            burnNotice: calculateBurnNotice(usedPercent, resetTime, 5 * 3600),
-            periodSeconds: 5 * 3600,
-            format: "percent",
-            usedValue: usedPercent,
-            limitValue: 100,
-            unit: "%",
-          });
-        } else if (id === "gemini-weekly") {
-          metrics.push({
-            id: "weekly",
-            label: "Weekly",
-            usedPercent,
-            remainingPercent,
-            resetsAt: resetTime,
-            resetNotice: formatTimeRemaining(resetTime),
-            burnNotice: calculateBurnNotice(usedPercent, resetTime, 7 * 86400),
-            periodSeconds: 7 * 86400,
-            format: "percent",
-            usedValue: usedPercent,
-            limitValue: 100,
-            unit: "%",
-          });
-        } else if (id === "3p-5h") {
-          metrics.push({
-            id: "claude-session",
-            label: "Claude Pool",
-            usedPercent,
-            remainingPercent,
-            resetsAt: resetTime,
-            resetNotice: remainingPercent === 100 ? "Not started" : formatTimeRemaining(resetTime),
-            burnNotice: calculateBurnNotice(usedPercent, resetTime, 5 * 3600),
-            periodSeconds: 5 * 3600,
-            format: "percent",
-            usedValue: usedPercent,
-            limitValue: 100,
-            unit: "%",
-          });
-        }
-      }
-    }
-
-    return {
-      id: "antigravity",
-      name: "Antigravity",
-      plan: "Pro",
-      account: null,
-      icon: "antigravity",
-      status: metrics.some((m) => m.burnNotice) ? "warning" : "active",
-      metrics: metrics.length > 0 ? metrics : [
-        {
-          id: "session",
-          label: "Session",
-          usedPercent: 0,
-          remainingPercent: 100,
-          resetsAt: new Date(Date.now() + 5 * 3600 * 1000).toISOString(),
-          resetNotice: "Not started",
-          burnNotice: null,
-          periodSeconds: 5 * 3600,
-          format: "percent",
-          usedValue: 0,
-          limitValue: 100,
-          unit: "%",
-        },
-        {
-          id: "weekly",
-          label: "Weekly",
-          usedPercent: 0,
-          remainingPercent: 100,
-          resetsAt: new Date(Date.now() + 7 * 86400 * 1000).toISOString(),
-          resetNotice: "Resets in 6d 23h",
-          burnNotice: null,
-          periodSeconds: 7 * 86400,
-          format: "percent",
-          usedValue: 0,
-          limitValue: 100,
-          unit: "%",
-        },
-      ],
-      usageTrend: sampleTrend(24, 15),
-      updatedAt: new Date().toISOString(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-/* ========================================================================= */
-/* CUSTOM SUBSCRIPTIONS STORAGE                                              */
-/* ========================================================================= */
-function getCustomSubscriptionsPath(userDataPath: string): string {
-  return join(userDataPath, "quota_subscriptions.json");
-}
-
-export function loadCustomSubscriptions(userDataPath: string): CustomSubscriptionInput[] {
-  const filePath = getCustomSubscriptionsPath(userDataPath);
-  if (!existsSync(filePath)) return [];
-  try {
-    const raw = readFileSync(filePath, "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveCustomSubscription(
-  userDataPath: string,
-  input: CustomSubscriptionInput,
+export function unavailable(
+  id: string,
+  name: string,
+  detail: string,
 ): ProviderQuotaCard {
-  const filePath = getCustomSubscriptionsPath(userDataPath);
-  mkdirSync(userDataPath, { recursive: true });
-  const items = loadCustomSubscriptions(userDataPath);
-  const id = input.id || `custom-${Date.now()}`;
-  const record: CustomSubscriptionInput = {
-    ...input,
+  return {
     id,
-    tokensUsed: Number(input.tokensUsed) || 0,
-    tokenLimit: Math.max(1, Number(input.tokenLimit) || 1000000),
+    name,
+    icon: id,
+    plan: "—",
+    account: null,
+    status: "not_configured",
+    metrics: [],
+    usageTrend: [],
+    source: "unavailable",
+    detail,
+    updatedAt: new Date().toISOString(),
   };
-
-  const existingIdx = items.findIndex((i) => i.id === id);
-  if (existingIdx >= 0) {
-    items[existingIdx] = record;
-  } else {
+}
+function status(metrics: QuotaMetric[]): ProviderQuotaCard["status"] {
+  const known = metrics.filter(
+    (m) => m.usedValue !== null && m.limitValue !== null,
+  );
+  return known.some((m) => m.usedValue! >= m.limitValue!)
+    ? "exhausted"
+    : known.some((m) => m.usedPercent >= 90)
+      ? "warning"
+      : "active";
+}
+/** Percent windows are not token allowances. Keep all reported buckets and their actual duration. */
+export function codexQuota(
+  response: any,
+  account?: any,
+  usage?: any,
+): ProviderQuotaCard {
+  const buckets =
+    response?.rateLimitsByLimitId &&
+    typeof response.rateLimitsByLimitId === "object"
+      ? Object.entries(response.rateLimitsByLimitId)
+      : [["codex", response?.rateLimits]];
+  const metrics: QuotaMetric[] = [];
+  for (const [id, raw] of buckets.slice(0, 20)) {
+    const bucket = raw as any;
+    for (const key of ["primary", "secondary"]) {
+      const window = bucket?.[key];
+      if (
+        !finite(window?.usedPercent) ||
+        !finite(window?.windowDurationMins) ||
+        window.windowDurationMins <= 0
+      )
+        continue;
+      const used = window.usedPercent;
+      metrics.push({
+        id: `${id}-${key}`,
+        label: `${String(bucket?.limitName ?? id).slice(0, 80)} · ${window.windowDurationMins / 60}h`,
+        usedPercent: Math.min(100, used),
+        remainingPercent: Math.max(0, 100 - used),
+        resetsAt: date(window.resetsAt),
+        periodSeconds: window.windowDurationMins * 60,
+        format: "percent",
+        usedValue: used,
+        limitValue: 100,
+        unit: "%",
+      });
+    }
+  }
+  if (!metrics.length)
+    return unavailable("codex", "Codex", "CODEX_LIMITS_UNAVAILABLE");
+  const daily = Array.isArray(usage?.dailyUsageBuckets)
+    ? usage.dailyUsageBuckets
+        .filter((d: any) => finite(d.tokens) && date(d.startDate))
+        .slice(-30)
+    : [];
+  return {
+    id: "codex",
+    name: "Codex",
+    icon: "codex",
+    plan:
+      typeof account?.account?.planType === "string"
+        ? account.account.planType.slice(0, 80)
+        : "ChatGPT",
+    account: null,
+    status: status(metrics),
+    metrics,
+    usageTrend: daily.map((d: any) => d.tokens),
+    trendLabels: daily.map((d: any) => d.startDate),
+    source: "codex-app-server",
+    updatedAt: new Date().toISOString(),
+  };
+}
+export function openRouterQuota(response: any): ProviderQuotaCard {
+  const d = response?.data;
+  if (!d || !finite(d.usage))
+    return unavailable(
+      "openrouter",
+      "OpenRouter",
+      "OPENROUTER_RESPONSE_INVALID",
+    );
+  const metrics: QuotaMetric[] = [];
+  const add = (
+    id: string,
+    label: string,
+    used: unknown,
+    limit: unknown,
+    reset: unknown,
+  ) => {
+    if (!finite(used)) return;
+    const cap = finite(limit) ? limit : null;
+    metrics.push({
+      id,
+      label,
+      usedValue: used,
+      limitValue: cap,
+      usedPercent:
+        cap === null ? 0 : cap === 0 ? 100 : Math.min(100, (used / cap) * 100),
+      remainingPercent:
+        cap === null
+          ? 0
+          : cap === 0
+            ? 0
+            : Math.max(0, 100 - (used / cap) * 100),
+      resetsAt: date(reset),
+      periodSeconds: 0,
+      format: "usd",
+      unit: "USD",
+    });
+  };
+  // limit_remaining is authoritative for resetting keys; lifetime usage is not window spend.
+  if (
+    finite(d.limit) &&
+    typeof d.limit_remaining === "number" &&
+    Number.isFinite(d.limit_remaining)
+  )
+    add(
+      "key",
+      "API key",
+      Math.max(0, d.limit - d.limit_remaining),
+      d.limit,
+      null,
+    );
+  else add("usage", "Lifetime usage", d.usage, null, null);
+  if (Array.isArray(d.budgets))
+    for (const [i, b] of d.budgets.slice(0, 10).entries())
+      add(
+        `budget-${i}`,
+        String(b.scope ?? "Budget").slice(0, 80),
+        b.spend_usd,
+        b.limit_usd,
+        b.resets_at,
+      );
+  return {
+    id: "openrouter",
+    name: "OpenRouter",
+    icon: "openrouter",
+    plan: "API",
+    account: null,
+    status: status(metrics),
+    metrics,
+    usageTrend: [],
+    source: "openrouter-api",
+    detail: "API_KEY_BUDGET_NOT_ACCOUNT_BALANCE",
+    updatedAt: new Date().toISOString(),
+  };
+}
+function validateCustom(
+  input: unknown,
+  legacy = false,
+): CustomSubscriptionInput {
+  const p = legacy
+    ? (input as Record<string, unknown>)
+    : exact(input, [
+        "id",
+        "name",
+        "provider",
+        "plan",
+        "tokenLimit",
+        "tokensUsed",
+        "period",
+        "resetAt",
+      ]);
+  if (
+    !p ||
+    !finite(p.tokenLimit) ||
+    p.tokenLimit <= 0 ||
+    !Number.isSafeInteger(p.tokenLimit) ||
+    !finite(p.tokensUsed) ||
+    !Number.isSafeInteger(p.tokensUsed)
+  )
+    throw Error("INVALID_BUDGET");
+  if (!["session", "daily", "weekly", "monthly"].includes(String(p.period)))
+    throw Error("INVALID_PERIOD");
+  if (p.resetAt && !date(p.resetAt)) throw Error("INVALID_RESET");
+  const id = p.id === undefined ? `custom-${randomUUID()}` : text(p.id, 100);
+  if (!/^custom-[A-Za-z0-9-]+$/.test(id)) throw Error("INVALID_ID");
+  return {
+    id,
+    name: text(p.name, 100),
+    provider: text(p.provider, 100),
+    plan: text(p.plan, 100),
+    tokenLimit: p.tokenLimit,
+    tokensUsed: p.tokensUsed,
+    period: p.period as CustomSubscriptionInput["period"],
+    resetAt: date(p.resetAt),
+  };
+}
+const file = (directory: string) => join(directory, "quota_subscriptions.json");
+function persist(directory: string, items: CustomSubscriptionInput[]) {
+  mkdirSync(directory, { recursive: true });
+  writeFileSync(file(directory) + ".tmp", JSON.stringify(items, null, 2), {
+    mode: 0o600,
+  });
+  renameSync(file(directory) + ".tmp", file(directory));
+}
+export function loadCustomSubscriptions(
+  directory: string,
+): CustomSubscriptionInput[] {
+  if (!existsSync(file(directory))) return [];
+  const parsed = JSON.parse(readFileSync(file(directory), "utf8"));
+  if (!Array.isArray(parsed) || parsed.length > 100)
+    throw Error("INVALID_SUBSCRIPTIONS");
+  const items = parsed.map((p) => validateCustom(p, true));
+  // Migrate legacy records: the old schema accepted plaintext apiKey. Never return or retain that field.
+  if (parsed.some((p) => Object.hasOwn(p, "apiKey"))) persist(directory, items);
+  return items;
+}
+export function saveCustomSubscription(
+  directory: string,
+  input: unknown,
+): ProviderQuotaCard {
+  const record = validateCustom(input),
+    items = loadCustomSubscriptions(directory);
+  const index = items.findIndex((i) => i.id === record.id);
+  if (index >= 0) items[index] = record;
+  else {
+    if (items.length >= 100) throw Error("SUBSCRIPTION_LIMIT");
     items.push(record);
   }
-  writeFileSync(filePath, JSON.stringify(items, null, 2), "utf8");
-
+  persist(directory, items);
   return mapCustomToCard(record);
 }
-
-export function deleteCustomSubscription(userDataPath: string, id: string): void {
-  const filePath = getCustomSubscriptionsPath(userDataPath);
-  if (!existsSync(filePath)) return;
-  const items = loadCustomSubscriptions(userDataPath).filter((i) => i.id !== id);
-  writeFileSync(filePath, JSON.stringify(items, null, 2), "utf8");
+export function deleteCustomSubscription(directory: string, id: unknown) {
+  const value = text(id, 100);
+  if (!/^custom-[A-Za-z0-9-]+$/.test(value)) throw Error("INVALID_ID");
+  persist(
+    directory,
+    loadCustomSubscriptions(directory).filter((s) => s.id !== value),
+  );
 }
-
 function mapCustomToCard(sub: CustomSubscriptionInput): ProviderQuotaCard {
-  const used = Math.min(sub.tokensUsed, sub.tokenLimit);
-  const usedPercent = Math.min(100, Math.round((used / sub.tokenLimit) * 100));
-  const remainingPercent = 100 - usedPercent;
-  const resetsAt = sub.resetAt || new Date(Date.now() + 7 * 86400 * 1000).toISOString();
-  const periodSeconds =
-    sub.period === "session"
-      ? 5 * 3600
-      : sub.period === "daily"
-        ? 86400
-        : sub.period === "weekly"
-          ? 7 * 86400
-          : 30 * 86400;
-
+  const pct = Math.min(100, (sub.tokensUsed / sub.tokenLimit) * 100);
+  const metrics: QuotaMetric[] = [
+    {
+      id: "tokens",
+      label: sub.period,
+      usedPercent: pct,
+      remainingPercent: 100 - pct,
+      usedValue: sub.tokensUsed,
+      limitValue: sub.tokenLimit,
+      resetsAt: sub.resetAt ?? null,
+      periodSeconds: {
+        session: 18000,
+        daily: 86400,
+        weekly: 604800,
+        monthly: 2592000,
+      }[sub.period],
+      format: "tokens",
+      unit: "tokens",
+    },
+  ];
   return {
     id: sub.id!,
     name: sub.name,
+    icon: sub.provider,
     plan: sub.plan,
     account: null,
-    icon: sub.provider,
-    status: remainingPercent <= 10 ? "warning" : "active",
-    metrics: [
-      {
-        id: "tokens",
-        label: sub.period === "weekly" ? "Weekly Tokens" : sub.period === "session" ? "Session" : "Token Budget",
-        usedPercent,
-        remainingPercent,
-        resetsAt,
-        resetNotice: formatTimeRemaining(resetsAt),
-        burnNotice: calculateBurnNotice(usedPercent, resetsAt, periodSeconds),
-        periodSeconds,
-        format: "tokens",
-        usedValue: sub.tokensUsed,
-        limitValue: sub.tokenLimit,
-        unit: "tokens",
-      },
-    ],
-    usageTrend: sampleTrend(24, (sub.name.charCodeAt(0) || 10) * 3),
+    metrics,
+    status: status(metrics),
+    usageTrend: [],
+    source: "manual",
     isCustom: true,
     updatedAt: new Date().toISOString(),
   };
 }
-
-/* ========================================================================= */
-/* SCAN ALL QUOTAS                                                           */
-/* ========================================================================= */
-export async function scanAllQuotas(userDataPath: string): Promise<ProviderQuotaCard[]> {
-  const [claudeCard, codexCard, antigravityCard] = await Promise.all([
-    fetchClaudeLive().catch(() => null),
-    fetchCodexLive().catch(() => null),
-    fetchAntigravityLive().catch(() => null),
+export interface QuotaSources {
+  codex?: () => Promise<ProviderQuotaCard>;
+  openrouter?: () => Promise<ProviderQuotaCard>;
+}
+export async function scanAllQuotas(
+  directory: string,
+  sources: QuotaSources = {},
+): Promise<ProviderQuotaCard[]> {
+  const [codex, router] = await Promise.all([
+    sources
+      .codex?.()
+      .catch(() => unavailable("codex", "Codex", "CODEX_LIMITS_UNAVAILABLE")),
+    sources
+      .openrouter?.()
+      .catch(() =>
+        unavailable("openrouter", "OpenRouter", "OPENROUTER_UNAVAILABLE"),
+      ),
   ]);
-
-  const cards: ProviderQuotaCard[] = [];
-
-  // Claude
-  if (claudeCard) {
-    cards.push(claudeCard);
-  } else {
-    cards.push({
-      id: "claude",
-      name: "Claude",
-      plan: "Not detected",
-      account: null,
-      icon: "claude",
-      status: "not_configured",
-      metrics: [
-        {
-          id: "session",
-          label: "Session",
-          usedPercent: 0,
-          remainingPercent: 100,
-          resetsAt: null,
-          resetNotice: "Sign in with `claude`",
-          burnNotice: null,
-          periodSeconds: 5 * 3600,
-          format: "percent",
-          usedValue: null,
-          limitValue: null,
-          unit: null,
-        },
-      ],
-      usageTrend: [],
-      updatedAt: new Date().toISOString(),
-    });
-  }
-
-  // Codex
-  if (codexCard) {
-    cards.push(codexCard);
-  } else {
-    cards.push({
-      id: "codex",
-      name: "Codex",
-      plan: "Not detected",
-      account: null,
-      icon: "codex",
-      status: "not_configured",
-      metrics: [
-        {
-          id: "weekly",
-          label: "Weekly",
-          usedPercent: 0,
-          remainingPercent: 100,
-          resetsAt: null,
-          resetNotice: "Sign in with `codex`",
-          burnNotice: null,
-          periodSeconds: 7 * 86400,
-          format: "percent",
-          usedValue: null,
-          limitValue: null,
-          unit: null,
-        },
-      ],
-      usageTrend: [],
-      updatedAt: new Date().toISOString(),
-    });
-  }
-
-  // Antigravity
-  if (antigravityCard) {
-    cards.push(antigravityCard);
-  } else {
-    cards.push({
-      id: "antigravity",
-      name: "Antigravity",
-      plan: "Pro",
-      account: null,
-      icon: "antigravity",
-      status: "active",
-      metrics: [
-        {
-          id: "session",
-          label: "Session",
-          usedPercent: 0,
-          remainingPercent: 100,
-          resetsAt: null,
-          resetNotice: "Not started",
-          burnNotice: null,
-          periodSeconds: 5 * 3600,
-          format: "percent",
-          usedValue: 0,
-          limitValue: 100,
-          unit: "%",
-        },
-        {
-          id: "weekly",
-          label: "Weekly",
-          usedPercent: 0,
-          remainingPercent: 100,
-          resetsAt: null,
-          resetNotice: "Resets in 7d",
-          burnNotice: null,
-          periodSeconds: 7 * 86400,
-          format: "percent",
-          usedValue: 0,
-          limitValue: 100,
-          unit: "%",
-        },
-      ],
-      usageTrend: sampleTrend(24, 15),
-      updatedAt: new Date().toISOString(),
-    });
-  }
-
-  // Custom subscriptions
-  const customSubs = loadCustomSubscriptions(userDataPath);
-  for (const sub of customSubs) {
-    cards.push(mapCustomToCard(sub));
-  }
-
-  return cards;
+  return [
+    codex ?? unavailable("codex", "Codex", "CONFIGURE_CODEX"),
+    unavailable("claude", "Claude Code", "CLAUDE_USE_OFFICIAL_USAGE"),
+    router ?? unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
+    unavailable("antigravity", "Antigravity", "ANTIGRAVITY_USE_OFFICIAL_USAGE"),
+    ...loadCustomSubscriptions(directory).map(mapCustomToCard),
+  ];
 }

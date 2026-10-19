@@ -1,6 +1,17 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  orchestrationStart: (input) =>
+    ipcRenderer.invoke("app:orchestrationStart", input),
+  orchestrationState: (input) =>
+    ipcRenderer.invoke("app:orchestrationState", input),
+  orchestrationStop: (input) =>
+    ipcRenderer.invoke("app:orchestrationStop", input),
+  providerDetect: () => ipcRenderer.invoke("app:providerDetect"),
+  openRouterSettings: () => ipcRenderer.invoke("app:openRouterSettings"),
+  openRouterSave: (input) => ipcRenderer.invoke("app:openRouterSave", input),
+  openRouterRemove: () => ipcRenderer.invoke("app:openRouterRemove"),
+  openRouterModels: () => ipcRenderer.invoke("app:openRouterModels"),
   extensionList: (input) => ipcRenderer.invoke("app:extensionList", input),
   extensionImport: (input) => ipcRenderer.invoke("app:extensionImport", input),
   extensionRemove: (input) => ipcRenderer.invoke("app:extensionRemove", input),

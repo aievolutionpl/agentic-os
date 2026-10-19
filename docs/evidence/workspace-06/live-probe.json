@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-19T20:03:56.783Z",
+  "scope": "Read-only installed CLI/account metadata and public catalog. No model inference; no raw credentials or personal account fields saved.",
+  "providers": {
+    "codex": {
+      "installed": true,
+      "handshake": "passed",
+      "signedIn": true,
+      "quotaSource": "codex-app-server",
+      "quotaWindows": 1
+    },
+    "claude": {
+      "installed": true,
+      "authProbe": "passed",
+      "signedIn": true,
+      "method": "claude.ai"
+    },
+    "opencode": {
+      "installed": false,
+      "inference": "not-run"
+    },
+    "antigravity": {
+      "installed": false,
+      "inference": "not-run"
+    },
+    "openrouter": {
+      "publicCatalog": "passed",
+      "modelCount": 470,
+      "authenticatedQuota": "not-run-no-key",
+      "inference": "not-run"
+    }
+  }
+}

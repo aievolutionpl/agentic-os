@@ -1,407 +1,564 @@
-import React, { useEffect, useState } from "react";
-import type { ProviderQuotaCard, CustomSubscriptionInput } from "../shared";
-import { Icon } from "./ui";
+import React, { useEffect, useRef, useState } from "react";
+import type {
+  ProviderQuotaCard,
+  CustomSubscriptionInput,
+  QuotaMetric,
+} from "../shared";
+import { Icon, Modal } from "./ui";
+import { ProviderIcon } from "./ProviderIcon";
 
-const api = window.agenting;
-
-const BRAND_ICONS: Record<string, React.ReactNode> = {
-  claude: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 2L14.2 9.8L22 12L14.2 14.2L12 22L9.8 14.2L2 12L9.8 9.8L12 2Z"
-        fill="#D97706"
-        stroke="#B45309"
-        strokeWidth="1.5"
-      />
-    </svg>
-  ),
-  codex: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M12 7V17M7 12H17M8.5 8.5L15.5 15.5M8.5 15.5L15.5 8.5"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
-  ),
-  antigravity: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3L21 19H3L12 3Z"
-        fill="#2563EB"
-        stroke="#1D4ED8"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="14" r="2.5" fill="#FFFFFF" />
-    </svg>
-  ),
-  openai: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" stroke="#10A37F" strokeWidth="1.5" />
-      <circle cx="12" cy="12" r="4" fill="#10A37F" />
-    </svg>
-  ),
-  openrouter: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="4" width="16" height="16" rx="4" stroke="#6366F1" strokeWidth="1.5" />
-      <path d="M9 12L12 15L15 9" stroke="#6366F1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  custom: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 3" />
-      <path d="M12 8V12L15 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
+const details: Record<string, [string, string]> = {
+  CONFIGURE_CODEX: [
+    "Podłącz Codex w Połączeniach. Odczyt użyje wybranego profilu CLI.",
+    "Connect Codex in Connections. Reads use the selected CLI profile.",
+  ],
+  CODEX_LIMITS_UNAVAILABLE: [
+    "CLI nie zwróciło limitów. Sprawdź logowanie i wersję Codexa.",
+    "The CLI did not return limits. Check sign-in and Codex version.",
+  ],
+  CLAUDE_USE_OFFICIAL_USAGE: [
+    "Sprawdź /usage w Claude Code. Automatyczny odczyt jest niedostępny. Możesz dodać ręczny budżet.",
+    "Check /usage in Claude Code. Automatic reading is unavailable. You can add a manual budget.",
+  ],
+  ANTIGRAVITY_USE_OFFICIAL_USAGE: [
+    "Sprawdź /usage w Antigravity. Brak zweryfikowanego odczytu limitów w tym adapterze.",
+    "Check /usage in Antigravity. This adapter has no verified quota reader.",
+  ],
+  CONFIGURE_OPENROUTER: [
+    "Dodaj klucz API w Połączeniach, aby odczytać jego rzeczywisty budżet.",
+    "Add an API key in Connections to read its actual budget.",
+  ],
+  OPENROUTER_UNAVAILABLE: [
+    "Nie udało się odczytać API. Sprawdź klucz i połączenie, a potem odśwież.",
+    "API read failed. Check the key and connection, then refresh.",
+  ],
+  API_KEY_BUDGET_NOT_ACCOUNT_BALANCE: [
+    "Budżet klucza API; nie jest saldem całego konta. Koszty w USD, nie w tokenach.",
+    "API key budget, not the entire account balance. Costs are in USD, not tokens.",
+  ],
 };
-
-export function OpenQuotaPanel({ language = "en" }: { language?: "pl" | "en" }) {
-  const [cards, setCards] = useState<ProviderQuotaCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
-
-  // Form state
-  const [formName, setFormName] = useState("");
-  const [formProvider, setFormProvider] = useState("claude");
-  const [formPlan, setFormPlan] = useState("Pro");
-  const [formLimit, setFormLimit] = useState("1000000");
-  const [formUsed, setFormUsed] = useState("150000");
-  const [formPeriod, setFormPeriod] = useState<"session" | "daily" | "weekly" | "monthly">("weekly");
-
-  const isPl = language === "pl";
-
-  const fetchQuotas = async (isManual = false) => {
-    if (!api?.quotaScan) return;
-    try {
-      if (isManual) setRefreshing(true);
-      else setLoading(true);
-      setError(null);
-      const data = isManual && api.quotaRefresh ? await api.quotaRefresh() : await api.quotaScan();
-      setCards(data);
-    } catch (e: any) {
-      setError(e?.message || (isPl ? "Nie udało się pobrać limitów" : "Failed to load quota limits"));
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    void fetchQuotas();
-    const interval = setInterval(() => {
-      void fetchQuotas();
-    }, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleSaveCustom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!api?.quotaSaveCustom) return;
-    try {
-      setRefreshing(true);
-      const sub: CustomSubscriptionInput = {
-        name: formName.trim() || "Custom Quota",
-        provider: formProvider,
-        plan: formPlan.trim() || "Custom",
-        tokenLimit: Number(formLimit) || 1000000,
-        tokensUsed: Number(formUsed) || 0,
-        period: formPeriod,
-      };
-      await api.quotaSaveCustom(sub);
-      setModalOpen(false);
-      // Reset form
-      setFormName("");
-      setFormLimit("1000000");
-      setFormUsed("0");
-      await fetchQuotas(true);
-    } catch (err: any) {
-      setError(err?.message || "Failed to save subscription");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!api?.quotaDeleteCustom) return;
-    try {
-      setRefreshing(true);
-      await api.quotaDeleteCustom(id);
-      await fetchQuotas(true);
-    } catch (err: any) {
-      setError(err?.message || "Failed to delete subscription");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
+const fresh = (): CustomSubscriptionInput => ({
+  name: "",
+  provider: "custom",
+  plan: "Manual",
+  tokenLimit: 1000000,
+  tokensUsed: 0,
+  period: "monthly",
+  resetAt: null,
+});
+function Gauge({ metric, pl }: { metric?: QuotaMetric; pl: boolean }) {
+  const known =
+    metric?.usedValue !== null && metric?.limitValue !== null && !!metric;
+  const value = known ? Math.round(metric.remainingPercent) : null;
   return (
-    <div className="openquota-container">
-      {/* Top Header */}
-      <header className="openquota-header">
-        <div className="openquota-titles">
-          <div className="openquota-brand-badge">
-            <span className="openquota-pulse-dot" />
-            <span>OpenQuota Live</span>
-          </div>
-          <h1>{isPl ? "Limity i tokeny subskrypcji" : "Subscription Quota & Limits"}</h1>
-          <p className="openquota-subtitle">
-            {isPl
-              ? "Bieżąca kontrola limitów sesyjnych, tygodniowych i puli tokenów w modelach AI."
-              : "Live session, weekly allowances and token monitoring across your AI subscriptions."}
+    <div className={`budget-gauge ${known ? "" : "unknown"}`}>
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle className="gauge-track" cx="60" cy="60" r="49" />
+        <circle
+          className="gauge-fill"
+          cx="60"
+          cy="60"
+          r="49"
+          strokeDasharray={`${(value ?? 0) * 3.079} 308`}
+          transform="rotate(-90 60 60)"
+        />
+      </svg>
+      <div>
+        <strong>{value === null ? "—" : `${value}%`}</strong>
+        <span>
+          {value === null
+            ? pl
+              ? "brak danych"
+              : "no data"
+            : pl
+              ? "pozostało"
+              : "remaining"}
+        </span>
+      </div>
+    </div>
+  );
+}
+export function OpenQuotaPanel({
+  language = "en",
+  onConfigure,
+}: {
+  language?: "pl" | "en";
+  onConfigure?: () => void;
+}) {
+  const pl = language === "pl",
+    api = window.agenting;
+  const [cards, setCards] = useState<ProviderQuotaCard[]>([]),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(false);
+  const [form, setForm] = useState<CustomSubscriptionInput | null>(null),
+    [deleting, setDeleting] = useState<ProviderQuotaCard | null>(null);
+  const mounted = useRef(true),
+    inFlight = useRef(false);
+  async function load() {
+    if (inFlight.current || !api?.quotaScan) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError(false);
+    try {
+      const data = await api.quotaScan();
+      if (mounted.current) setCards(data);
+    } catch {
+      if (mounted.current) setError(true);
+    } finally {
+      inFlight.current = false;
+      if (mounted.current) setBusy(false);
+    }
+  }
+  useEffect(() => {
+    mounted.current = true;
+    void load();
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const num = (n: number) =>
+    new Intl.NumberFormat(language, { maximumFractionDigits: 2 }).format(n);
+  const display = (m: QuotaMetric, n: number | null) =>
+    n === null
+      ? "—"
+      : `${num(n)}${m.format === "usd" ? " USD" : m.format === "percent" ? "%" : ""}`;
+  const source = (card: ProviderQuotaCard) =>
+    card.source === "manual"
+      ? pl
+        ? "Wpis ręczny"
+        : "Manual entry"
+      : card.source === "unavailable"
+        ? pl
+          ? "Brak odczytu"
+          : "No reading"
+        : pl
+          ? "Odczyt dostawcy"
+          : "Provider reading";
+  return (
+    <section className="quota-workspace" aria-labelledby="quota-title">
+      <header className="quota-page-head">
+        <div>
+          <span className="section-eyebrow">WORKSPACE / OPENQUOTA</span>
+          <h1 id="quota-title">
+            {pl ? "Energia Twoich agentów." : "Power behind your agents."}
+          </h1>
+          <p>
+            {pl
+              ? "Limity subskrypcji, budżety API i tokeny. Każda liczba ze swoim źródłem."
+              : "Subscription limits, API budgets and tokens. Every number has a source."}
           </p>
         </div>
-        <div className="openquota-actions">
+        <div className="panel-actions">
           <button
-            className="secondary openquota-refresh-btn"
-            onClick={() => void fetchQuotas(true)}
-            disabled={refreshing || loading}
-            title={isPl ? "Odśwież limity" : "Refresh quotas"}
+            className="secondary"
+            onClick={() => void load()}
+            disabled={busy}
           >
-            <Icon name="refresh" className={refreshing ? "spin" : ""} />
-            <span>{refreshing ? (isPl ? "Odświeżanie…" : "Refreshing…") : (isPl ? "Odśwież" : "Refresh")}</span>
+            <Icon name="refresh" className={busy ? "spin" : ""} />
+            {pl ? "Odśwież" : "Refresh"}
           </button>
           <button
-            className="primary openquota-add-btn"
-            onClick={() => setModalOpen(true)}
-            title={isPl ? "Dodaj własną subskrypcję" : "Add custom subscription"}
+            className="primary"
+            onClick={() => setForm(fresh())}
+            disabled={busy}
           >
             <Icon name="plus" />
-            <span>{isPl ? "Dodaj subskrypcję" : "Add Subscription"}</span>
+            {pl ? "Dodaj budżet" : "Add budget"}
           </button>
         </div>
       </header>
-
+      <div className="quota-summary">
+        <div>
+          <span>{pl ? "ODCZYTY DOSTAWCÓW" : "PROVIDER READINGS"}</span>
+          <strong>
+            {
+              cards.filter(
+                (c) => c.source !== "manual" && c.source !== "unavailable",
+              ).length
+            }
+            <small> / {cards.filter((c) => !c.isCustom).length}</small>
+          </strong>
+        </div>
+        <div>
+          <span>{pl ? "BUDŻETY RĘCZNE" : "MANUAL BUDGETS"}</span>
+          <strong>{cards.filter((c) => c.isCustom).length}</strong>
+        </div>
+        <p>
+          <Icon name="shield" />
+          {pl
+            ? "Procent limitu subskrypcji nie oznacza liczby tokenów. Brak danych nigdy nie oznacza 100% dostępności."
+            : "Subscription percentages are not token counts. Missing data never means 100% available."}
+        </p>
+      </div>
       {error && (
-        <div className="error" role="alert" style={{ margin: "16px 0" }}>
-          <Icon name="info" />
-          <span>{error}</span>
-        </div>
+        <p className="error" role="alert">
+          {pl
+            ? "Nie udało się odczytać danych. Spróbuj ponownie."
+            : "Could not read data. Please try again."}
+        </p>
       )}
-
-      {/* Cards Grid */}
-      {loading && cards.length === 0 ? (
-        <div className="openquota-grid">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="openquota-card skeleton-card" style={{ height: "260px" }} />
-          ))}
-        </div>
-      ) : (
-        <div className="openquota-grid">
-          {cards.map((card) => {
-            const brandIcon = BRAND_ICONS[card.icon] || BRAND_ICONS.custom;
-            return (
-              <div key={card.id} className={`openquota-card status-${card.status}`}>
-                {/* Card Header */}
-                <div className="openquota-card-header">
-                  <div className="openquota-card-identity">
-                    <span className="openquota-drag-handle" aria-hidden="true" title="Drag to reorder">
-                      ⠿
-                    </span>
-                    <h2 className="openquota-provider-name">{card.name}</h2>
-                    <span className="openquota-plan-tag">{card.plan}</span>
-                  </div>
-                  <div className="openquota-card-brand">
-                    {brandIcon}
-                    {card.isCustom && (
-                      <button
-                        className="openquota-delete-btn"
-                        onClick={() => void handleDelete(card.id)}
-                        title={isPl ? "Usuń" : "Delete"}
-                        aria-label="Delete"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Account info if present */}
-                {card.account && (
-                  <div className="openquota-card-account">
-                    <code>{card.account}</code>
-                  </div>
-                )}
-
-                {/* Metrics list */}
-                <div className="openquota-metrics">
-                  {card.metrics.map((metric) => {
-                    const hasBurn = Boolean(metric.burnNotice);
-                    const isExhausted = metric.remainingPercent <= 0;
-                    const isWarning = metric.remainingPercent <= 25 || hasBurn;
-                    const fillClass = isExhausted
-                      ? "fill-exhausted"
-                      : isWarning
-                        ? "fill-warning"
-                        : "fill-healthy";
-
-                    return (
-                      <div key={metric.id} className="openquota-metric-row">
-                        {/* Top metric row: label and burn warning */}
-                        <div className="openquota-metric-top">
-                          <span className="openquota-metric-label">{metric.label}</span>
-                          {metric.burnNotice && (
-                            <span className="openquota-burn-badge">{metric.burnNotice}</span>
-                          )}
-                        </div>
-
-                        {/* Progress bar track & fill */}
-                        <div className="openquota-bar-track">
-                          <div
-                            className={`openquota-bar-fill ${fillClass}`}
-                            style={{
-                              width: `${Math.max(0, Math.min(100, metric.remainingPercent))}%`,
-                            }}
-                          />
-                        </div>
-
-                        {/* Bottom metric row: % left and reset text */}
-                        <div className="openquota-metric-bottom">
-                          <span className="openquota-left-text">
-                            {metric.format === "tokens" && metric.usedValue !== null && metric.limitValue !== null
-                              ? `${metric.remainingPercent}% left (${((metric.limitValue - metric.usedValue) / 1000).toFixed(0)}k tk)`
-                              : metric.format === "usd" && metric.usedValue !== null
-                                ? `$${metric.usedValue.toFixed(2)} spent`
-                                : `${metric.remainingPercent}% left`}
-                          </span>
-                          <span className="openquota-reset-text">
-                            {metric.resetNotice || "Reset unavailable"}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Usage Trend Sparkline */}
-                {card.usageTrend && card.usageTrend.length > 0 && (
-                  <div className="openquota-trend-section">
-                    <span className="openquota-trend-label">
-                      {isPl ? "Trend użycia" : "Usage Trend"}
-                    </span>
-                    <div className="openquota-sparkline">
-                      {card.usageTrend.map((val, idx) => (
-                        <div
-                          key={idx}
-                          className="openquota-spark-bar"
-                          style={{
-                            height: `${Math.max(12, Math.min(100, val))}%`,
-                            opacity: val > 50 ? 1 : 0.45,
-                          }}
-                          title={`Period ${idx + 1}: ${val}%`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+      {busy && !cards.length && (
+        <p role="status">
+          {pl ? "Sprawdzam źródła limitów…" : "Reading quota sources…"}
+        </p>
+      )}
+      <div className="budget-grid">
+        {cards.map((card) => (
+          <article
+            className={`budget-card status-${card.status}`}
+            key={card.id}
+            data-quota={card.id}
+          >
+            <header>
+              <ProviderIcon provider={card.icon} />
+              <div>
+                <h2>{card.name}</h2>
+                <span>{card.plan}</span>
               </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Modal to add custom subscription */}
-      {modalOpen && (
-        <div className="openquota-modal-backdrop" onClick={() => setModalOpen(false)}>
-          <div className="openquota-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="openquota-modal-head">
-              <h2>{isPl ? "Dodaj subskrypcję do monitorowania" : "Add Subscription to Monitor"}</h2>
-              <button
-                className="icon-button"
-                onClick={() => setModalOpen(false)}
-                title={isPl ? "Zamknij" : "Close"}
+              <span className={`source-chip source-${card.source}`}>
+                {source(card)}
+              </span>
+            </header>
+            <div className="budget-main">
+              <Gauge metric={card.metrics[0]} pl={pl} />
+              <div className="budget-reading">
+                <span>
+                  {card.metrics[0]?.label ??
+                    (pl ? "LIMIT SUBSKRYPCJI" : "SUBSCRIPTION LIMIT")}
+                </span>
+                <strong>
+                  {card.metrics[0]
+                    ? display(
+                        card.metrics[0],
+                        card.metrics[0].limitValue === null
+                          ? card.metrics[0].usedValue
+                          : Math.max(
+                              0,
+                              card.metrics[0].limitValue -
+                                card.metrics[0].usedValue!,
+                            ),
+                      )
+                    : "—"}
+                </strong>
+                <small>
+                  {card.metrics[0]?.limitValue === null
+                    ? pl
+                      ? "zarejestrowane zużycie · limit nieznany"
+                      : "recorded usage · unknown limit"
+                    : card.metrics[0]
+                      ? `${pl ? "z" : "of"} ${display(card.metrics[0], card.metrics[0].limitValue)} ${pl ? "pozostało" : "remaining"}`
+                      : pl
+                        ? "oczekuje na dane"
+                        : "awaiting data"}
+                </small>
+              </div>
+            </div>
+            {card.metrics.length > 0 && (
+              <div className="budget-metrics">
+                {card.metrics.map((m) => (
+                  <div key={m.id} className="budget-metric">
+                    <div>
+                      <span>{m.label}</span>
+                      <strong>
+                        {display(m, m.usedValue)} / {display(m, m.limitValue)}
+                      </strong>
+                    </div>
+                    {m.limitValue !== null && (
+                      <progress
+                        max={100}
+                        value={m.usedPercent}
+                        aria-label={`${card.name} ${m.label} ${pl ? "zużycie" : "usage"}`}
+                      />
+                    )}
+                    <small>
+                      {m.resetsAt
+                        ? `${pl ? "Reset" : "Resets"}: ${new Date(m.resetsAt).toLocaleString(language)}`
+                        : pl
+                          ? "Termin resetu nieznany"
+                          : "Reset time unknown"}
+                    </small>
+                  </div>
+                ))}
+              </div>
+            )}
+            {card.usageTrend.length > 1 && (
+              <figure className="usage-chart">
+                <figcaption>
+                  {pl
+                    ? "Tokeny według dnia · dane dostawcy"
+                    : "Daily tokens · provider data"}
+                </figcaption>
+                <div>
+                  {card.usageTrend.map((value, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        height: `${Math.max(3, (value / Math.max(1, ...card.usageTrend)) * 66)}px`,
+                      }}
+                      title={`${card.trendLabels?.[i] ?? i + 1}: ${num(value)}`}
+                    />
+                  ))}
+                </div>
+                <p className="sr-only">
+                  {card.usageTrend
+                    .map(
+                      (v, i) => `${card.trendLabels?.[i] ?? i + 1}: ${num(v)}`,
+                    )
+                    .join("; ")}
+                </p>
+              </figure>
+            )}
+            {card.detail && (
+              <p className="quota-detail">
+                {details[card.detail]?.[pl ? 0 : 1] ??
+                  (pl
+                    ? "Dane dostawcy są niedostępne."
+                    : "Provider data is unavailable.")}
+              </p>
+            )}
+            {card.isCustom && (
+              <p className="quota-detail">
+                {pl
+                  ? "Aktualizowane ręcznie. Upływ terminu resetu nie zeruje tego wpisu."
+                  : "Updated manually. Passing a reset date does not reset this entry."}
+              </p>
+            )}
+            <footer>
+              <time dateTime={card.updatedAt}>
+                {new Date(card.updatedAt).toLocaleTimeString(language, {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </time>
+              {card.isCustom ? (
+                <div>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() =>
+                      setForm({
+                        id: card.id,
+                        name: card.name,
+                        provider: card.icon,
+                        plan: card.plan,
+                        tokensUsed: card.metrics[0].usedValue!,
+                        tokenLimit: card.metrics[0].limitValue!,
+                        period: card.metrics[0]
+                          .label as CustomSubscriptionInput["period"],
+                        resetAt: card.metrics[0].resetsAt,
+                      })
+                    }
+                  >
+                    {pl ? "Edytuj" : "Edit"}
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => setDeleting(card)}
+                  >
+                    {pl ? "Usuń" : "Remove"}
+                  </button>
+                </div>
+              ) : (
+                <button className="text-action" onClick={onConfigure}>
+                  {pl ? "Połączenia" : "Connections"}
+                  <Icon name="chevron" />
+                </button>
+              )}
+            </footer>
+          </article>
+        ))}
+      </div>
+      <Modal
+        open={!!form}
+        onClose={() => {
+          if (!busy) setForm(null);
+        }}
+        titleId="budget-form-title"
+        className="budget-dialog"
+      >
+        <h2 id="budget-form-title">
+          {pl ? "Ręczny budżet tokenów" : "Manual token budget"}
+        </h2>
+        <p className="helper">
+          {pl
+            ? "Wpis organizacyjny. Nie łączy się z dostawcą ani nie potwierdza limitu subskrypcji."
+            : "A planning entry. It neither connects to a provider nor confirms a subscription allowance."}
+        </p>
+        {form && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setBusy(true);
+              setError(false);
+              void api
+                ?.quotaSaveCustom?.(form)
+                .then((card) => {
+                  setCards((old) => [
+                    ...old.filter((c) => c.id !== card.id),
+                    card,
+                  ]);
+                  setForm(null);
+                })
+                .catch(() => setError(true))
+                .finally(() => setBusy(false));
+            }}
+          >
+            <label>
+              {pl ? "Nazwa budżetu" : "Budget name"}
+              <input
+                autoFocus
+                required
+                maxLength={100}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
+            </label>
+            <label>
+              {pl ? "Dostawca" : "Provider"}
+              <select
+                value={form.provider}
+                onChange={(e) => setForm({ ...form, provider: e.target.value })}
               >
-                <Icon name="close" />
+                {["custom", "claude", "codex", "antigravity", "openrouter"].map(
+                  (id) => (
+                    <option key={id}>{id}</option>
+                  ),
+                )}
+              </select>
+            </label>
+            <div className="budget-form-row">
+              <label>
+                {pl ? "Limit tokenów" : "Token limit"}
+                <input
+                  type="number"
+                  min={1}
+                  max={Number.MAX_SAFE_INTEGER}
+                  step={1}
+                  required
+                  value={form.tokenLimit}
+                  onChange={(e) =>
+                    setForm({ ...form, tokenLimit: Number(e.target.value) })
+                  }
+                />
+              </label>
+              <label>
+                {pl ? "Zużyte tokeny" : "Tokens used"}
+                <input
+                  type="number"
+                  min={0}
+                  max={Number.MAX_SAFE_INTEGER}
+                  step={1}
+                  required
+                  value={form.tokensUsed}
+                  onChange={(e) =>
+                    setForm({ ...form, tokensUsed: Number(e.target.value) })
+                  }
+                />
+              </label>
+            </div>
+            <label>
+              {pl ? "Okres" : "Period"}
+              <select
+                value={form.period}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    period: e.target.value as CustomSubscriptionInput["period"],
+                  })
+                }
+              >
+                {[
+                  ["session", pl ? "Sesja" : "Session"],
+                  ["daily", pl ? "Dzień" : "Day"],
+                  ["weekly", pl ? "Tydzień" : "Week"],
+                  ["monthly", pl ? "Miesiąc" : "Month"],
+                ].map(([id, label]) => (
+                  <option value={id} key={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {pl
+                ? "Data resetu (opcjonalnie, UTC)"
+                : "Reset date (optional, UTC)"}
+              <input
+                type="datetime-local"
+                value={form.resetAt?.slice(0, 16) ?? ""}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    resetAt: e.target.value
+                      ? new Date(e.target.value + "Z").toISOString()
+                      : null,
+                  })
+                }
+              />
+            </label>
+            {error && (
+              <p role="alert">
+                {pl
+                  ? "Nie udało się zapisać budżetu."
+                  : "Could not save budget."}
+              </p>
+            )}
+            <div className="panel-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setForm(null)}
+                disabled={busy}
+              >
+                {pl ? "Anuluj" : "Cancel"}
+              </button>
+              <button className="primary" disabled={busy}>
+                {pl ? "Zapisz budżet" : "Save budget"}
               </button>
             </div>
-            <form onSubmit={handleSaveCustom} className="openquota-form">
-              <div className="form-field">
-                <label>{isPl ? "Nazwa subskrypcji / konta" : "Subscription / Account Name"}</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Work Claude, OpenAI Team, OpenRouter"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                />
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label>{isPl ? "Dostawca / Typ" : "Provider / Icon"}</label>
-                  <select value={formProvider} onChange={(e) => setFormProvider(e.target.value)}>
-                    <option value="claude">Claude</option>
-                    <option value="codex">Codex / ChatGPT</option>
-                    <option value="antigravity">Antigravity</option>
-                    <option value="openai">OpenAI Direct</option>
-                    <option value="openrouter">OpenRouter</option>
-                    <option value="custom">Other / Custom</option>
-                  </select>
-                </div>
-                <div className="form-field">
-                  <label>{isPl ? "Plan / Pakiet" : "Plan / Tier"}</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Pro, Team, PayG"
-                    value={formPlan}
-                    onChange={(e) => setFormPlan(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-field">
-                  <label>{isPl ? "Limit tokenów" : "Token Limit"}</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="1000000"
-                    value={formLimit}
-                    onChange={(e) => setFormLimit(e.target.value)}
-                  />
-                </div>
-                <div className="form-field">
-                  <label>{isPl ? "Zużyte tokeny" : "Tokens Used"}</label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={formUsed}
-                    onChange={(e) => setFormUsed(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="form-field">
-                <label>{isPl ? "Okres odnawiania limitu" : "Reset Cycle"}</label>
-                <select
-                  value={formPeriod}
-                  onChange={(e) => setFormPeriod(e.target.value as any)}
-                >
-                  <option value="session">{isPl ? "Sesja (5 godzin)" : "Session (5 hours)"}</option>
-                  <option value="daily">{isPl ? "Dzienny (24h)" : "Daily (24h)"}</option>
-                  <option value="weekly">{isPl ? "Tygodniowy (7 dni)" : "Weekly (7 days)"}</option>
-                  <option value="monthly">{isPl ? "Miesięczny (30 dni)" : "Monthly (30 days)"}</option>
-                </select>
-              </div>
-
-              <div className="openquota-modal-actions">
-                <button type="button" className="secondary" onClick={() => setModalOpen(false)}>
-                  {isPl ? "Anuluj" : "Cancel"}
-                </button>
-                <button type="submit" className="primary">
-                  {isPl ? "Zapisz i monitoruj" : "Save & Monitor"}
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
+        )}
+      </Modal>
+      <Modal
+        open={!!deleting}
+        onClose={() => {
+          if (!busy) setDeleting(null);
+        }}
+        titleId="budget-delete-title"
+      >
+        <h2 id="budget-delete-title">
+          {pl ? "Usunąć budżet?" : "Remove budget?"}
+        </h2>
+        <p>{deleting?.name}</p>
+        <div className="panel-actions">
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={() => setDeleting(null)}
+          >
+            {pl ? "Anuluj" : "Cancel"}
+          </button>
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={() => {
+              if (!deleting) return;
+              setBusy(true);
+              void api
+                ?.quotaDeleteCustom?.(deleting.id)
+                .then(() => {
+                  setCards((old) => old.filter((c) => c.id !== deleting.id));
+                  setDeleting(null);
+                })
+                .catch(() => setError(true))
+                .finally(() => setBusy(false));
+            }}
+          >
+            {pl ? "Usuń budżet" : "Remove budget"}
+          </button>
         </div>
-      )}
-    </div>
+      </Modal>
+    </section>
   );
 }

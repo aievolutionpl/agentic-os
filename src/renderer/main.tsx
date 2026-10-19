@@ -18,6 +18,7 @@ import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
 import { OpenQuotaPanel } from "./OpenQuotaPanel";
+import { OrchestrationPanel } from "./OrchestrationPanel";
 import { ccWords } from "./cc-i18n";
 import "./style.css";
 
@@ -25,6 +26,8 @@ const api = window.agenting;
 const agentChoices = [
   { value: "codex", label: "Codex" },
   { value: "claude", label: "Claude Code" },
+  { value: "opencode", label: "OpenCode / OpenRouter" },
+  { value: "antigravity", label: "Antigravity" },
 ];
 function App() {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null),
@@ -37,9 +40,9 @@ function App() {
   const [tab, setTab] = useState<
     "tasks" | "memory" | "agents" | "extensions" | "browser"
   >("tasks");
-  const [view, setView] = useState<"center" | "project" | "quota">(
-    api?.connectorScan ? "center" : "project",
-  );
+  const [view, setView] = useState<
+    "center" | "project" | "quota" | "connections"
+  >(api?.connectorScan ? "center" : "project");
   const [scan, setScan] = useState<ConnectorScan | null>(null),
     [scanning, setScanning] = useState(false),
     [scanFailed, setScanFailed] = useState(false);
@@ -66,10 +69,14 @@ function App() {
   const [drafts, setDrafts] = useState<Record<string, string>>({}),
     [projectsExpanded, setProjectsExpanded] = useState(false);
   const selection = useRef(""),
+    contentPane = useRef<HTMLElement>(null),
     projectsToggle = useRef<HTMLButtonElement>(null),
     composer = useRef<HTMLTextAreaElement>(null),
     pendingFocus = useRef<HTMLElement | null>(null);
   const narrow = useNarrow();
+  useEffect(() => {
+    if (contentPane.current) contentPane.current.scrollTop = 0;
+  }, [view, projectId, tab]);
   const prefs = snapshot?.preferences ?? { language: "pl", theme: "dark" },
     w = words[prefs.language];
   const project = snapshot?.projects.find(
@@ -178,8 +185,7 @@ function App() {
     }
   }
   useEffect(() => {
-    if (view === "center" && !scan && !scanning && !scanFailed)
-      void runScan();
+    if (view === "center" && !scan && !scanning && !scanFailed) void runScan();
   }, [view]);
   async function refresh() {
     if (!api) return;
@@ -319,7 +325,10 @@ function App() {
           <span className="brand-mark">
             <Icon name="layers" />
           </span>
-          <strong>Agenting OS</strong>
+          <div>
+            <strong>Agenting OS</strong>
+            <small className="brand-byline">AI EVOLUTION POLSKA</small>
+          </div>
           {narrow && (
             <button
               className="icon-button drawer-close"
@@ -334,6 +343,21 @@ function App() {
         {api?.connectorScan && (
           <nav className="primary-nav" aria-label="Agenting OS">
             <button
+              className={`nav-item ${view === "connections" ? "selected" : ""}`}
+              aria-current={view === "connections" ? "page" : undefined}
+              onClick={() => {
+                setProjectsExpanded(false);
+                setView("connections");
+              }}
+            >
+              <Icon name="connections" />
+              <span>
+                {prefs.language === "pl"
+                  ? "Połączenia i modele"
+                  : "Connections & models"}
+              </span>
+            </button>
+            <button
               className={`nav-item ${view === "quota" ? "selected" : ""}`}
               aria-current={view === "quota" ? "page" : undefined}
               onClick={() => {
@@ -342,7 +366,9 @@ function App() {
               }}
             >
               <Icon name="layers" />
-              <span>{prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota"}</span>
+              <span>
+                {prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota"}
+              </span>
             </button>
             <button
               className={`nav-item ${view === "center" ? "selected" : ""}`}
@@ -454,8 +480,14 @@ function App() {
               {view === "center"
                 ? ccWords[prefs.language].nav
                 : view === "quota"
-                  ? (prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota")
-                  : (project?.name ?? "Agenting OS")}
+                  ? prefs.language === "pl"
+                    ? "Limity i tokeny"
+                    : "OpenQuota"
+                  : view === "connections"
+                    ? prefs.language === "pl"
+                      ? "Połączenia i modele"
+                      : "Connections & models"
+                    : (project?.name ?? "Agenting OS")}
             </strong>
           </div>
           <div className="settings">
@@ -508,7 +540,7 @@ function App() {
             </button>
           </div>
         </header>
-        <main aria-busy={busy || loading}>
+        <main ref={contentPane} aria-busy={busy || loading}>
           <div className="workspace-content">
             {error && (
               <div className="error" role="alert">
@@ -517,8 +549,13 @@ function App() {
                 <button onClick={() => void refresh()}>{w.retry}</button>
               </div>
             )}
-            {view === "quota" ? (
-              <OpenQuotaPanel language={prefs.language} />
+            {view === "connections" ? (
+              <ProviderSetup language={prefs.language} />
+            ) : view === "quota" ? (
+              <OpenQuotaPanel
+                language={prefs.language}
+                onConfigure={() => setView("connections")}
+              />
             ) : view === "center" ? (
               <ControlCenter
                 language={prefs.language}
@@ -527,6 +564,9 @@ function App() {
                 failed={scanFailed}
                 onRescan={() => void runScan()}
                 onOpenQuota={() => setView("quota")}
+                onConfigure={() => setView("connections")}
+                onNewProject={openProject}
+                projectCount={snapshot?.projects.length ?? 0}
               />
             ) : !snapshot && !error ? (
               <div className="loading-workspace" aria-label={w.loading}>
@@ -709,6 +749,18 @@ function App() {
                         </p>
                       </form>
                     </section>
+                    <OrchestrationPanel
+                      key={`queue-${projectId}`}
+                      projectId={projectId}
+                      tasks={data.tasks}
+                      memory={data.memory}
+                      language={prefs.language}
+                      onChanged={() => {
+                        void reloadProject(projectId).catch(() =>
+                          setError(true),
+                        );
+                      }}
+                    />
                     <TaskBoard
                       key={projectId}
                       tasks={data.tasks}
@@ -764,6 +816,7 @@ function App() {
                             projectId: id,
                             content: String(fd.get("content")),
                             source: String(fd.get("source")),
+                            scope: fd.get("shared") ? "workspace" : "project",
                           });
                           form.reset();
                           await reloadProject(id);
@@ -789,6 +842,18 @@ function App() {
                         />
                       </label>
                       <div className="form-footer">
+                        <label className="dependency-choice">
+                          <input
+                            type="checkbox"
+                            name="shared"
+                            disabled={busy}
+                          />
+                          <span>
+                            {prefs.language === "pl"
+                              ? "Udostępnij całemu workspace"
+                              : "Share across the workspace"}
+                          </span>
+                        </label>
                         <span className="helper">{w.noSecrets}</span>
                         <button className="primary" disabled={busy || loading}>
                           {w.saveMemory}
@@ -804,6 +869,15 @@ function App() {
                         {visibleMemory.map((memory) => (
                           <li key={memory.id}>
                             <p className="memory-content">{memory.content}</p>
+                            <span className="memory-scope">
+                              {memory.scope === "workspace"
+                                ? prefs.language === "pl"
+                                  ? "Wspólna pamięć · wszyscy agenci"
+                                  : "Shared memory · all agents"
+                                : prefs.language === "pl"
+                                  ? "Pamięć projektu"
+                                  : "Project memory"}
+                            </span>
                             <div className="memory-meta">
                               <span>
                                 {memory.source} ·{" "}

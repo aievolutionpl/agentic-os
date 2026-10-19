@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import type { Agent } from "../shared";
+import { ProviderIcon } from "./ProviderIcon";
 
 export function Icon({
   name,
@@ -10,6 +11,24 @@ export function Icon({
 }) {
   const paths: Record<string, React.ReactNode> = {
     layers: <path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" />,
+    connections: (
+      <>
+        <rect x="2" y="3" width="6" height="6" rx="2" />
+        <rect x="16" y="15" width="6" height="6" rx="2" />
+        <path d="M5 9v7a3 3 0 0 0 3 3h8M19 15V8a3 3 0 0 0-3-3H8" />
+      </>
+    ),
+    memory: (
+      <>
+        <ellipse cx="12" cy="5" rx="8" ry="3" />
+        <path d="M4 5v7c0 4 16 4 16 0V5M4 12v7c0 4 16 4 16 0v-7" />
+      </>
+    ),
+    tokens: (
+      <>
+        <path d="M4 20V10m5 10V4m6 16v-7m5 7V7" />
+      </>
+    ),
     plus: <path d="M12 5v14M5 12h14" />,
     chevron: <path d="m9 5 7 7-7 7" />,
     down: <path d="m6 9 6 6 6-6" />,
@@ -323,7 +342,12 @@ export function useNarrow() {
 }
 
 export const agentName = (agent: Agent) =>
-  agent === "codex" ? "Codex" : "Claude Code";
+  ({
+    codex: "Codex",
+    claude: "Claude Code",
+    opencode: "OpenCode",
+    antigravity: "Antigravity",
+  })[agent];
 export function AgentAvatar({ agent }: { agent: Agent }) {
   return (
     <span
@@ -331,7 +355,7 @@ export function AgentAvatar({ agent }: { agent: Agent }) {
       title={agentName(agent)}
       aria-label={agentName(agent)}
     >
-      {agent === "codex" ? "CX" : "CL"}
+      <ProviderIcon provider={agent} />
     </span>
   );
 }

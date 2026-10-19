@@ -9,6 +9,17 @@ import type { Extension, McpTool } from "../shared.js";
 
 const BUILTINS: Extension[] = [
   {
+    id: "builtin:teamwork",
+    kind: "skill",
+    name: "AI Evolution Polska · Team handoff",
+    version: "1.0.0",
+    author: "AI Evolution Polska",
+    license: "Apache-2.0",
+    source: "agenting-os/builtin",
+    instructions:
+      "Use the selected workspace memory as attributed reference material. Stay inside the assigned project and task. Reuse existing libraries and public protocols after checking licenses. Finish with a concise handoff: files changed, actual validation, unresolved questions and the next role's action. Do not claim deployment, live provider compatibility, or a passing test without evidence. Do not put credentials or private project facts into shared memory. Suggest memory updates for a human to review; do not change shared knowledge implicitly.",
+  },
+  {
     id: "builtin:review",
     kind: "skill",
     name: "Evidence-based review",
@@ -162,7 +173,7 @@ export class Extensions {
   }
 }
 export class McpTools {
-  private stopping = new Map<string,RpcProcess>();
+  private stopping = new Map<string, RpcProcess>();
   private clients = new Map<
     string,
     { rpc: RpcProcess; tools: McpTool[]; busy: boolean }
@@ -182,13 +193,14 @@ export class McpTools {
     const manifest = this.extensions.get(projectId, id);
     if (manifest.kind !== "mcp") throw Error("MCP_REQUIRED");
     const key = this.key(projectId, id);
-    if(this.stopping.has(key))throw Error("STOP_NOT_CONFIRMED");
+    if (this.stopping.has(key)) throw Error("STOP_NOT_CONFIRMED");
     if (this.clients.has(key)) {
       const existing = this.clients.get(key)!;
       if (existing.busy) throw Error("TOOL_NOT_READY");
       return existing.tools;
     }
-    if (this.clients.size+this.stopping.size >= 4) throw Error("CONNECTION_LIMIT");
+    if (this.clients.size + this.stopping.size >= 4)
+      throw Error("CONNECTION_LIMIT");
     const rpc = new RpcProcess({
       command: manifest.command!,
       args: manifest.args!,
@@ -202,7 +214,7 @@ export class McpTools {
         : rpc.reject(message.id),
     );
     rpc.on("closed", () => {
-      if(this.stopping.get(key)===rpc)this.stopping.delete(key);
+      if (this.stopping.get(key) === rpc) this.stopping.delete(key);
       if (this.clients.get(key) === client) this.clients.delete(key);
     });
     try {
@@ -309,15 +321,21 @@ export class McpTools {
     const key = this.key(projectId, id),
       client = this.clients.get(key);
     this.clients.delete(key);
-    const rpc=client?.rpc ?? this.stopping.get(key);
-    if(!rpc)return;
-    this.stopping.set(key,rpc);
+    const rpc = client?.rpc ?? this.stopping.get(key);
+    if (!rpc) return;
+    this.stopping.set(key, rpc);
     rpc.close();
-    if(!await rpc.waitClosed())throw Error("STOP_NOT_CONFIRMED");
-    if(this.stopping.get(key)===rpc)this.stopping.delete(key);
+    if (!(await rpc.waitClosed())) throw Error("STOP_NOT_CONFIRMED");
+    if (this.stopping.get(key) === rpc) this.stopping.delete(key);
   }
   async close() {
-    const clients = [...new Set([...this.clients.values()].map(c=>c.rpc).concat([...this.stopping.values()]))];
+    const clients = [
+      ...new Set(
+        [...this.clients.values()]
+          .map((c) => c.rpc)
+          .concat([...this.stopping.values()]),
+      ),
+    ];
     this.clients.clear();
     for (const rpc of clients) rpc.close();
     await Promise.all(clients.map((rpc) => rpc.waitClosed()));

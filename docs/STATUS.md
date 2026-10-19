@@ -1,4 +1,12 @@
-# Stage 0.5 (in progress) — Control Center and connector detection — 2026-10-19
+# Agent workspace upgrade — 2026-10-19
+
+Implemented a redesigned AI Evolution Polska Control Center, four execution provider configurations, native Claude/Antigravity adapters, optional OpenCode/OpenRouter integration, OS-encrypted API-key persistence, authoritative-or-unknown quota displays, explicitly shared FTS5 memory, a team skill and a finite supervised queue. Local Git projects work without a GitHub remote. Schema v9 preserves v1–v8 data and defaults old memory to private project scope.
+
+Current scope, evidence and limitations: [workspace audit](WORKSPACE_AUDIT.md), [research decisions](research/agent-workspace-2026-10-19.md), and the root README. Historical entries below describe earlier checkpoints. This increment is a separate branch/PR; earlier merge authorization does not apply to it.
+
+---
+
+# Stage 0.5 (historical checkpoint) — Control Center and connector detection — 2026-10-19
 
 First slice of plan v3 ([docs/plan-v3](plan-v3/AGENTING_OS_PLAN_V3.md)). Added a connector registry that detects Codex, Claude Code, Gemini CLI, Hermes, OpenCode, Antigravity, Ollama, LM Studio and the GitHub CLI on this computer, using only fixed read-only version/status commands and loopback HTTP probes. The new **Control Center** screen shows each connector's state (`ready`, `needs-auth`, `needs-install`, `experimental`, `unsupported`, `degraded`), version, sign-in method/plan where the official CLI states it, adapter status, local models, an exact local run counter, and suggested next steps. Provider limits are shown as **Unknown** — no verified official source exists yet, and nothing is estimated. `ready` means detected, signed in and backed by an execution adapter in this build; no smoke test has been run, and the UI says so. Fixed a Windows bug where npm-installed CLIs (`.cmd` shims) were reported as "not detected" by the older Integrations probe. Windows: typecheck PASS, **49/49** tests PASS (6 new), Electron smoke PASS, contrast QA PASS, `npm audit` 0 vulnerabilities. Captures with measured contrast (EN/PL, dark/light, 1440/1024/390) are in [docs/evidence/control-center](evidence/control-center). Not done yet: connection wizard/login actions, smoke tests per connector, quota readers, cost ledger, router, orchestrator, API-key vault, extended settings — see the plan roadmap.
 

@@ -137,7 +137,7 @@ export const words = {
     loading: "Loading local data…",
     desktopOnly:
       "Open the Electron desktop app to access local data. Run npm start.",
-    scope: "Private to this project",
+    scope: "Project knowledge and explicitly shared workspace memory",
     draftNote:
       "Drafts are stored locally. Execution, isolated changes and diff approval arrive in the next slice.",
     addKnowledge: "Add knowledge",
@@ -293,7 +293,7 @@ export const words = {
     loading: "Wczytywanie danych lokalnych…",
     desktopOnly:
       "Otwórz aplikację Electron, aby uzyskać dostęp do danych. Uruchom npm start.",
-    scope: "Prywatne dla tego projektu",
+    scope: "Wiedza projektu i jawnie udostępniona pamięć workspace",
     draftNote:
       "Szkice są zapisywane lokalnie. Wykonywanie zadań, izolowane zmiany i zatwierdzanie różnic pojawią się w kolejnym etapie.",
     addKnowledge: "Dodaj wiedzę",

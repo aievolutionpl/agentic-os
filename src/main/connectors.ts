@@ -7,6 +7,7 @@ import type {
   ConnectorState,
   ConnectorStatus,
   QuotaSnapshot,
+  ProviderSetting,
 } from "../shared.js";
 
 const TIMEOUT_MS = 8_000;
@@ -152,7 +153,7 @@ export const SPECS: readonly Spec[] = [
     versionArgs: ["--version"],
     authArgs: ["auth", "status"],
     parseAuth: parseClaude,
-    adapter: "requires-bridge",
+    adapter: "available",
     installHint: "npm install -g @anthropic-ai/claude-code",
   },
   {
@@ -179,7 +180,7 @@ export const SPECS: readonly Spec[] = [
     name: "OpenCode",
     bin: "opencode",
     versionArgs: ["--version"],
-    adapter: "planned",
+    adapter: "available",
     installHint: "npm install -g opencode-ai",
   },
   {
@@ -188,9 +189,8 @@ export const SPECS: readonly Spec[] = [
     name: "Antigravity",
     bin: "agy",
     versionArgs: ["--version"],
-    adapter: "none",
+    adapter: "available",
     installHint: "https://antigravity.google",
-    unverified: true,
   },
   {
     kind: "local-server",
@@ -359,7 +359,10 @@ export const defaultHttpJson: HttpJson = (url) =>
   });
 
 function status(
-  base: Pick<ConnectorStatus, "id" | "name" | "kind" | "adapter" | "installHint">,
+  base: Pick<
+    ConnectorStatus,
+    "id" | "name" | "kind" | "adapter" | "installHint"
+  >,
   observedAt: string,
   patch: Partial<ConnectorStatus> & {
     state: ConnectorState;
@@ -444,7 +447,11 @@ async function scanCli(
       reason: "no_verified_integration",
     });
   if (spec.adapter === "available" && info.auth === "authenticated")
-    return status(base, observedAt, { ...common, state: "ready", reason: "ok" });
+    return status(base, observedAt, {
+      ...common,
+      state: "ready",
+      reason: "ok",
+    });
   const reason: ConnectorReason =
     info.auth === "unknown"
       ? "auth_unknown"
@@ -492,6 +499,61 @@ export interface Deps {
   run: Runner;
   resolve: Resolver;
   http: HttpJson;
+}
+
+/** Detection and a configured execution profile are different facts. */
+export function withExecutionSettings(
+  connectors: ConnectorStatus[],
+  settings: ProviderSetting[],
+  routerConfigured = false,
+): ConnectorStatus[] {
+  return connectors.map((c) => {
+    if (c.id === "api")
+      return {
+        ...c,
+        id: "openrouter",
+        name: "OpenRouter",
+        installHint: "OpenRouter API + OpenCode ACP",
+        adapter: "available",
+        installed: routerConfigured,
+        auth: routerConfigured ? "unknown" : "unauthenticated",
+        state: routerConfigured ? "experimental" : "needs-auth",
+        reason: routerConfigured ? "auth_unknown" : "auth_missing",
+      };
+    if (c.adapter !== "available") return c;
+    const setting = settings.find((s) => s.id === c.id);
+    if (!setting?.configured)
+      return c.installed
+        ? { ...c, state: "experimental", reason: "connection_required" }
+        : c;
+    if (setting.id === "codex" && setting.profile !== "existing")
+      return {
+        ...c,
+        installed: true,
+        path: setting.command,
+        state: "experimental",
+        auth: "unknown",
+        reason: "auth_unknown",
+        authMethod: null,
+        plan: null,
+      };
+    if (
+      !c.installed ||
+      setting.command !== c.path ||
+      setting.protocol === "acp"
+    )
+      return {
+        ...c,
+        installed: true,
+        path: setting.command,
+        state: "experimental",
+        auth: "unknown",
+        reason: "auth_unknown",
+        authMethod: null,
+        plan: null,
+      };
+    return c;
+  });
 }
 
 export async function scanConnectors(

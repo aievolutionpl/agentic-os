@@ -95,6 +95,9 @@ try {
     [
       "snapshot",
       "connectorScan",
+      "orchestrationStart", "orchestrationState", "orchestrationStop",
+      "providerDetect", "openRouterSettings", "openRouterSave", "openRouterRemove", "openRouterModels",
+      "quotaScan", "quotaSaveCustom", "quotaDeleteCustom", "quotaRefresh",
       "projectData",
       "createProject",
       "createTask",

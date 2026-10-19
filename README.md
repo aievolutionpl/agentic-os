@@ -6,17 +6,19 @@ Agenting OS is an open-source, local-first workbench by **AI Evolution Polska**.
 
 [Getting started](#getting-started) · [Agent workflow](#agent-workflow) · [Provider support](#provider-support) · [Architecture](#architecture) · [Contributing](CONTRIBUTING.md) · [Polish handoff](HANDOFF_PL.md)
 
-![Agenting OS workspace](docs/evidence/release-04/smoke/desktop-light-1440.png)
+![AI Evolution Polska agent workspace](docs/evidence/workspace-06/ui/center-dark-1440.png)
 
 *Early release 0.4.0. The evidence folders contain real application captures. Model execution requires your own configured provider. Windows builds are unsigned.*
 
 ## What you can do
 
 - **See your whole fleet:** the Control Center detects installed agent CLIs, local model servers and GitHub sign-in, and states honestly what is ready, what needs a login and what is unknown. Provider limits stay *unknown* until a verified official source exists.
-- **Organize work:** persistent projects, task dependencies, execution history, retries, cancellation and restart recovery.
+- **Orchestrate a team:** explicitly launch up to ten queued tasks, share a frozen context, run a configured reviewer and pause for human approval. Dependencies, cancellation, retries and execution history persist locally.
 - **Run with a boundary:** explicit starts, managed Git worktrees, provider deadlines and a saved artifact instead of silent edits to the source checkout.
 - **Review before applying:** captured diff + SHA-256, a separate configured reviewer, expiring human approval and a second action to apply the exact approved commit.
-- **Choose context:** project-scoped full-text memory, source/date attribution, workflow templates and versioned skills. Preview the frozen context before sending it.
+- **Share knowledge:** one SQLite FTS5 memory with project-private or explicitly workspace-wide entries, source/date attribution, workflow templates and versioned skills. Only selected entries go to an agent.
+- **Connect your providers:** Codex with an existing or isolated CLI profile, native Claude Code, OpenCode ACP with OpenRouter models, and an experimental Antigravity CLI adapter. An installed CLI and a working authenticated connection are separate states.
+- **Understand usage:** official Codex rate-limit windows, OpenRouter per-key USD budgets, and clearly labeled manual token budgets. Unknown limits have no invented gauges or trends.
 - **Use your tools:** explicitly trusted MCP stdio servers, paginated tool discovery and a confirmation for every manual call.
 - **Browse per project:** separate persistent cookie sessions, no app bridge in remote pages, blocked downloads/popups/device permissions.
 - **Work comfortably:** Polish/English, dark/light themes, keyboard navigation, compact task rows and layouts for smaller windows.
@@ -28,8 +30,8 @@ There is no hosted account, telemetry service or cloud database. Local persisten
 Install **Node 26**, npm and Git. A graphical desktop is required to open the app.
 
 ```sh
-git clone https://github.com/aievolutionpl/agenting-os.git
-cd agenting-os
+git clone https://github.com/aievolutionpl/agentic-os.git
+cd agentic-os
 npm ci
 npm start
 ```
@@ -47,9 +49,9 @@ The output is `release/Agenting-OS-0.4.0-windows-x64-setup.exe`. The Windows CI 
 
 ## Agent workflow
 
-1. Create a project and choose an existing **clean Git repository** with a commit. Task and memory data are scoped to this project.
-2. In **Integrations**, select a trusted executable. Codex uses `app-server`; the Claude slot accepts a compatible ACP server. Save the connection with explicit consent. Codex sign-in is initiated by its own button and uses an app-owned profile.
-3. Save a task. In its details choose a workflow, memory entries and optional skills. Inspect the context preview and start the run. Queueing by itself does not start a process.
+1. Create a project and choose an existing **clean local Git repository** with a commit. No GitHub repository, remote or cloud workspace is required.
+2. In **Connections & models**, detect or select a trusted executable and save the connection. Codex can use its existing CLI login or a separate app profile. Claude uses `claude auth login`; Antigravity uses its own CLI login. For OpenRouter, install OpenCode, connect its native executable with ACP, then save an API key and model in the OpenRouter panel. API billing is separate from subscriptions.
+3. Save a task. In its details choose a workflow, memory entries and optional skills. Inspect the context preview and start the run. Alternatively, explicitly start the project queue and select up to ten queued tasks. Queueing a task alone does not start a process. The dispatcher processes eligible tasks sequentially and pauses at a failure, blocked dependency or human approval.
 4. Follow the activity and result. Stop a process explicitly; an interrupted run keeps its worktree. Resume is explicit and requires an unchanged source base.
 5. Inspect the captured diff and request review from the other configured provider. A completed review is evidence for your decision, not an automatic approval.
 6. Approve the artifact, then use **Apply approved changes**. Approval expires after 15 minutes. The application checks the exact artifact, latest attempt, clean source and unchanged base, then fast-forwards the source checkout. Stale or conflicting changes are rejected.
@@ -60,17 +62,20 @@ Use `/` to focus task search and `Ctrl+Enter` / `⌘Enter` to save a draft. Unsa
 
 | Connection | Implemented | Validation / limitations |
 | --- | --- | --- |
-| Codex app-server | Initialize, thread start/resume, streamed messages, steering, cancellation, explicit browser sign-in | Local installed CLI handshake and protocol fixtures tested. Authenticated model inference is not part of automated QA. Provider sandbox enforcement remains the provider's responsibility. |
-| Claude / ACP v1 | Initialize, session creation/loading, prompt, cancellation, read-only review mode | Tested with a local stdio fixture. Supply a trusted compatible ACP executable; arbitrary `claude` CLI output is not an ACP protocol. The provider name is declared by configuration. |
+| Codex app-server | Threads, streaming, steering, cancellation, browser sign-in, existing/isolated profiles, official rate-limit windows | Local CLI/account probe and protocol fixtures; no paid inference in QA. Exact token allowances are not inferred from percentages. |
+| Claude Code native CLI | Streaming JSON, CLI-owned login, resume, file reading/editing and read-only reviews | Local auth status plus protocol fixtures. Requires a CLI supporting `--safe-mode`; shell tools and ambient MCP are disabled. Automatic quota reading is unavailable. |
+| Claude / ACP v1 | Compatible ACP bridge, sessions, cancellation, read-only review mode | Legacy configurable bridge retained; fixture-tested. An ordinary `claude` executable is not an ACP server. |
+| OpenCode / OpenRouter | Existing ACP agent loop, model selection, encrypted API key, public model catalog, per-key budget | ACP/vault fixtures and public catalog probe. OpenCode and an API key are required for real inference; no authenticated OpenRouter inference was performed. |
+| Antigravity CLI | Official `agy` streaming input/output, CLI-owned login, cancellation | Experimental and fixture-tested. CLI was not installed on the verification machine. Read-only/reviewer and resume roles are rejected. Automatic quotas are unavailable. |
 | MCP stdio | Protocol `2025-11-25`, tool pagination, explicit manual calls, bounded text results | Fixture-tested. No HTTP transport, model-driven calls, sampling, elicitation or background execution. Servers validate their argument schemas. |
 
 Read-only installation probes are separate from these execution connections. Authentication and subscription quota are not inferred from installed command names; quota remains **unknown** when no authoritative source is available.
 
 ## Context and extensions
 
-Memory stays inside its project and uses SQLite FTS5 retrieval. Only selected entries are included in a run. The context snapshot retains their source and date and is limited to 24,000 characters. Oversized or cross-project selections are rejected.
+Memory defaults to its project. An explicitly shared entry is searchable and selectable across the workspace; project-private entries cannot be selected from another project. Only selected entries are included in a run. The frozen context retains source, date and scope, is reused for review, and is limited to 24,000 characters. This is a single local workspace database, not cloud synchronization between computers.
 
-Four workflows are included: implementation, bug fix, research and UI audit. Research/audit request read-only execution. Two original text skills cover evidence-based review and accessible UI; both are opt-in.
+Four workflows are included: implementation, bug fix, research and UI audit. Research/audit request read-only execution. Three original text skills cover evidence-based review, accessible UI and AI Evolution Polska team handoff. Individual runs choose skills explicitly; the queue includes the team handoff skill automatically.
 
 Import versioned JSON manifests from **Extensions**. Skills contain instructions, not executable scripts:
 
@@ -95,8 +100,10 @@ flowchart LR
   UI[React workspace] -->|validated IPC| Main[Electron main process]
   Main --> DB[(SQLite: projects, tasks, memory, runs)]
   Main --> Supervisor[Run supervisor]
+  Main --> Queue[Explicit finite task queue]
+  Queue --> Supervisor
   Supervisor --> Git[Managed Git worktrees]
-  Supervisor --> Providers[Codex / ACP adapters]
+  Supervisor --> Providers[Codex / ACP / native CLI adapters]
   Git --> Artifact[Immutable diff + hash]
   Artifact --> Review[Provider review + human approval]
   Review --> Apply[Exact fast-forward application]
@@ -111,6 +118,7 @@ The supervisor owns process lifetime, deadlines, leases and recovery. JSON-RPC t
 | Lifecycle, persistence, memory | `src/main/store.ts`, `lifecycle.ts`, `runs.ts`, `knowledge.ts` |
 | Worktrees, artifacts, approval/application | `git.ts`, `artifacts.ts`, `approvals.ts`, `applications.ts` |
 | Provider and tool protocols | `rpc.ts`, `providers.ts`, `acp.ts`, `extensions.ts` |
+| Queue, native agents, model connection and limits | `orchestrator.ts`, `cli-provider.ts`, `openrouter.ts`, `quota.ts` |
 | Remote browser / trusted IPC | `browser.ts`, `browser-policy.ts`, `index.ts`, `preload.cts` |
 | Workspace UI | `src/renderer/` |
 
@@ -118,7 +126,7 @@ The supervisor owns process lifetime, deadlines, leases and recovery. JSON-RPC t
 
 Data lives in Electron's per-user `userData` directory: `agenting.sqlite`, managed worktrees, provider profiles and browser partitions. `AGENTING_DATA_DIR` overrides that directory for isolated development/QA; it is not a renderer setting. No credentials are required in an application `.env` file.
 
-Metadata, context and diffs are unencrypted. Codex manages its sign-in material in the app-owned provider directory. Back up the whole data directory while the app is closed if you need recovery. Do not commit it or enter credentials into task/memory text.
+Metadata, context and diffs are unencrypted. Native CLIs manage their own subscription login. OpenRouter keys use Electron `safeStorage` (Windows DPAPI); plaintext/basic-text fallback is refused. The renderer receives only the connection state/model, never a saved key. The trusted OpenCode child receives the key in its environment. Back up the whole data directory while the app is closed if you need recovery; encrypted keys are not portable between OS accounts. Do not enter credentials into task/memory text.
 
 The app renderer has a sandboxed, narrow IPC bridge. Remote browser contents have no preload or app bridge. Host permission requests and provider escalation requests are denied. **ACP and MCP executables are trusted local programs, not OS-sandboxed plugins.** Their read-only/capability declarations do not isolate their process. Use an OS/container boundary for untrusted programs. Redaction and protected-file checks recognize common secrets and sensitive paths; they are not a complete secret detector. See [SECURITY.md](SECURITY.md).
 
@@ -129,13 +137,14 @@ npm run typecheck
 npm test
 npm run smoke
 npm run qa:tools
+npm run qa:workspace
 npm run qa:contrast
 npm audit --audit-level=moderate
 ```
 
-The 43 automated tests cover real Git/SQLite behavior, project isolation, migrations, scoped context, process cancellation, restart recovery, artifact approval/application and local protocol fixtures. Electron checks cover the UI and browser sessions. On Linux, use Xvfb for graphical checks; CI explicitly disables Chromium's OS sandbox in that environment, so those checks do not certify sandbox enforcement.
+The automated tests cover real Git/SQLite behavior, explicit shared memory, migrations, process cancellation, restart recovery, artifact approval/application, bounded orchestration and provider protocol fixtures. Electron checks cover UI, browser isolation, responsive layouts, text contrast and OS-backed credential persistence. On Linux, use Xvfb for graphical checks; CI explicitly disables Chromium's OS sandbox in that environment, so those checks do not certify sandbox enforcement.
 
-Current evidence and practical limits: [0.2 execution](docs/evidence/stage-02/README.md), [0.3 collaboration](docs/evidence/stage-03/README.md), [0.4 distribution](docs/evidence/release-04/README.md). Historical UI evidence is retained and labeled by stage. Tests make no paid model calls and do not certify third-party providers or servers.
+Current evidence and practical limits: [workspace audit](docs/WORKSPACE_AUDIT.md) and [research](docs/research/agent-workspace-2026-10-19.md). Historical evidence: [0.2 execution](docs/evidence/stage-02/README.md), [0.3 collaboration](docs/evidence/stage-03/README.md), [0.4 distribution](docs/evidence/release-04/README.md). Tests make no paid model calls and do not certify third-party providers or servers.
 
 ## Open-source foundations and direction
 

@@ -1,0 +1,89 @@
+[rtk] /!\ No hook installed — run `rtk init -g` for automatic token savings
+
+> agenting-os@0.4.0 pretest
+> npm run build
+
+
+> agenting-os@0.4.0 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+✓ 40 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                           0.66 kB │ gzip:  0.38 kB
+dist/renderer/assets/InterVariable-H_M6nIbt.ttf  862.94 kB
+dist/renderer/assets/index-Byp0fpsZ.css           47.77 kB │ gzip:  9.93 kB
+dist/renderer/assets/index-D7wKbYsh.js           300.68 kB │ gzip: 93.80 kB
+✓ built in 2.70s
+
+> agenting-os@0.4.0 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs
+
+✔ provider probes use only the documented fixed commands and redact command output (2.672ms)
+✔ missing or timed-out commands remain unknown without claiming installation or auth (0.3039ms)
+✔ integration smoke contract: passed, with seven unprobed entries (7.6157ms)
+✔ integration smoke contract: unavailable, with seven unprobed entries (81.1728ms)
+✔ integration smoke contract: timed_out, with seven unprobed entries (13.8077ms)
+✔ integration smoke contract: failed, with seven unprobed entries (10.942ms)
+✔ scan classifies real-world outputs honestly and never leaks credentials (4.4388ms)
+✔ unauthenticated and broken tools are reported as such, not as connected (2.4238ms)
+✔ local servers: models from loopback JSON, down server is degraded, absent is needs-install (3.0046ms)
+✔ every spawned command is a fixed, read-only version or status query (1.2669ms)
+✔ PATH resolution is strict, and the HTTP probe refuses non-loopback hosts (4.9794ms)
+✔ local run counters are exact and separate from provider quota (6.1331ms)
+✔ WCAG reference ratios and sRGB transfer (0.4295ms)
+✔ source-over alpha and transparent ancestor backgrounds (0.393ms)
+✔ group opacity applies to foreground AND background before parent compositing (0.3471ms)
+✔ large-text thresholds use points converted to CSS px; never round a fail up (0.2202ms)
+✔ DOM collector reads rendered styles, input values, placeholders and rejects complex paint (194.2587ms)
+✔ extension import is scoped, explicit and contributes versioned frozen context (37.5714ms)
+✔ MCP uses versioned handshake and pagination, rejects cross-project and unapproved calls (273.8409ms)
+✔ browser only accepts safe explicit web URLs and blocks local navigation from remote content (0.9877ms)
+✔ persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart (834.7601ms)
+✔ lifecycle persists, fences two claimants and journals failures/retries atomically (103.7161ms)
+✔ expired lease cannot heartbeat or finish; explicit recovery and retry required (83.7928ms)
+✔ dependencies, cycles, invalid transitions and workspace separation fail closed (67.0896ms)
+✔ heartbeat extends ownership, retry is bounded and invalid requests leave no events (69.4052ms)
+✔ migration preserves original v1 data and events are atomic with task mutations (78.3593ms)
+✔ two simultaneous worker connections produce exactly one claim (183.3009ms)
+✔ cross-project dependency edges and worker writes are rejected (76.4469ms)
+✔ all connections close before restart; expired attempt is preserved and recovered once (151.3915ms)
+✔ supervised protocol run seals a real worktree, redacts output and keeps the source unchanged (8931.3035ms)
+✔ orchestrator dispatches a real worktree run and reviewer, shares frozen memory, then waits for human approval (8834.2847ms)
+✔ FTS retrieval and frozen context keep source provenance, budgets and project scope (1120.343ms)
+✔ only independently reviewed, exact approved artifacts apply by fast-forward; replay is idempotent (16628.1483ms)
+✔ dirty or changed source and expired approvals cannot apply or overwrite user work (20716.3874ms)
+✔ protected files and a reviewer that modifies the captured worktree fail closed (34439.9257ms)
+✔ ACP v1 uses read-only mode and rejects permission grants with an actual stdio process (199.6216ms)
+✔ interrupted runs survive a real database reopen and resume only on an explicit action (11980.7667ms)
+✔ application never overwrites an ignored local file even when the proposal changes gitignore (14251.4447ms)
+✔ cancellation terminates the provider and leaves durable cancelled state and source files intact (5303.8434ms)
+✔ provider crash fails closed; invalid project, dirty repository and unconsented executable are rejected (3059.3592ms)
+✔ only exact local main frame gets app IPC (0.4755ms)
+✔ empty launch, persisted projects, tasks, memory and preferences survive reopen (26.2682ms)
+✔ memory and tasks are isolated and deletion is project scoped (31.835ms)
+✔ invalid and oversized input, unknown projects, invalid roles fail closed (76.004ms)
+✔ unconfigured integrations never report quota values or observed provenance (64.4049ms)
+✔ exact diff approval records persist and fail closed on scope, bytes, expiry and input (160.8225ms)
+✔ approval v2 migration preserves data; SQLite rejects mutation and malformed hashes (74.0016ms)
+✔ diff artifact capture persists exact bytes from isolated committed worktree (7809.8846ms)
+✔ v4 migration preserves unbound history and rolls back failed schema changes (50.4278ms)
+✔ built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings (607.5466ms)
+✔ quota readings preserve unknown data, multi-bucket windows, reset duration and real daily usage (1.3601ms)
+✔ OpenRouter key resets use remaining budget instead of lifetime spend; unlimited is unknown, zero is exhausted (0.3506ms)
+✔ manual budgets reject invalid data, preserve overrun and migrate plaintext key fields out of legacy records (4.4871ms)
+✔ OpenRouter vault keeps credentials out of public settings and plaintext disk; unencrypted storage is refused (6.3421ms)
+✔ workspace memory is explicit, searchable and frozen for all providers; project memory stays isolated after restart (32.3586ms)
+✔ native CLI uses stdin, constrained tools and process cancellation; malformed or denied results fail closed (1738.1965ms)
+✔ detected CLI is not a configured connection and isolated Codex does not inherit global auth claims (0.5002ms)
+✔ orchestrator is finite, shares context, reviews changes and pauses without applying or starting the next task (65.0709ms)
+ℹ tests 58
+ℹ suites 0
+ℹ pass 58
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 139994.0297

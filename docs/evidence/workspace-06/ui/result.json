@@ -1,0 +1,72 @@
+{
+  "status": "passed",
+  "screenshots": [
+    {
+      "file": "center-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-dark-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "center-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-dark-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "center-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-light-1440.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "center-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "quota-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    },
+    {
+      "file": "connections-light-390.png",
+      "overflow": false,
+      "contrastFailures": []
+    }
+  ],
+  "errors": [],
+  "checks": [
+    "manual-budget-create-edit-persisted",
+    "four-provider-setup-and-masked-api-key",
+    "native-safeStorage-encrypt-decrypt-remove-dummy-key-no-network",
+    "shared-memory-visible-private-memory-excluded-over-ipc"
+  ]
+}

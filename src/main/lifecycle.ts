@@ -37,7 +37,7 @@ export class Lifecycle {
       const version = Number(
         this.db.prepare("PRAGMA user_version").get()!.user_version,
       );
-      if (version >= 2 && version <= 8) return;
+      if (version >= 2 && version <= 9) return;
       if (version !== 1) throw Error("UNSUPPORTED_SCHEMA");
       this.db.exec(`ALTER TABLE tasks RENAME TO tasks_v1;
         CREATE TABLE tasks(id TEXT PRIMARY KEY,projectId TEXT NOT NULL REFERENCES projects(id),title TEXT NOT NULL,implementer TEXT NOT NULL,reviewer TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('draft','queued','running','completed','failed','cancelled')),createdAt TEXT NOT NULL,

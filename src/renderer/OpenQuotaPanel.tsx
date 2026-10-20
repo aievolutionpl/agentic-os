@@ -3,6 +3,7 @@ import type {
   ProviderQuotaCard,
   CustomSubscriptionInput,
   QuotaMetric,
+  ProviderSetting,
 } from "../shared";
 import { Icon, Modal } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
@@ -13,8 +14,8 @@ const details: Record<string, [string, string]> = {
     "Check your Google account limits. This adapter has no verified subscription counter.",
   ],
   PROVIDER_USAGE_UNAVAILABLE: [
-    "Limity zależą od dostawcy wybranego w Hermesie. Brak wspólnego zweryfikowanego odczytu.",
-    "Limits depend on the provider selected in Hermes. No unified verified reading is available.",
+    "Limity zależą od wybranego dostawcy. To połączenie nie udostępnia zweryfikowanego odczytu budżetu; możesz dodać budżet ręczny.",
+    "Limits depend on the selected provider. This connection has no verified budget reader; you can add a manual budget.",
   ],
   LOCAL_MODEL_NO_SUBSCRIPTION_QUOTA: [
     "Dla lokalnej inferencji nie ma limitu subskrypcji do odczytania. Wydajność zależy od modelu i urządzenia.",
@@ -114,6 +115,7 @@ export function OpenQuotaPanel({
   const [cards, setCards] = useState<ProviderQuotaCard[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false);
+  const [providers, setProviders] = useState<ProviderSetting[]>([]);
   const [form, setForm] = useState<CustomSubscriptionInput | null>(null),
     [deleting, setDeleting] = useState<ProviderQuotaCard | null>(null);
   const mounted = useRef(true),
@@ -124,10 +126,10 @@ export function OpenQuotaPanel({
     setBusy(true);
     setError(false);
     try {
-      const data = await (force && api.quotaRefresh
+      const [data, connections] = await Promise.all([(force && api.quotaRefresh
         ? api.quotaRefresh()
-        : api.quotaScan());
-      if (mounted.current) setCards(data);
+        : api.quotaScan()), api.providerSettings()]);
+      if (mounted.current) { setCards(data.filter(c => c.id !== "gemini")); setProviders(connections); }
     } catch {
       if (mounted.current) setError(true);
     } finally {
@@ -161,7 +163,7 @@ export function OpenQuotaPanel({
       : `${num(n)}${m.format === "usd" ? " USD" : m.format === "percent" ? "%" : ""}`;
   // Cards with nothing to show collapse into one line each below the grid.
   const idle = (card: ProviderQuotaCard) =>
-    card.source === "unavailable" && !card.isCustom;
+    card.source === "unavailable" && !card.isCustom && !providers.some(p => p.id === card.id && p.configured);
   const source = (card: ProviderQuotaCard) =>
     card.source === "manual"
       ? pl
@@ -259,6 +261,7 @@ export function OpenQuotaPanel({
                 <ProviderIcon provider={card.icon} />
                 <div>
                   <h2>{card.name}</h2>
+                  {providers.some(p => p.id === card.id && p.configured) && <small className="connection-state connected">{pl ? "Połączenie zapisane" : "Connection saved"}</small>}
                   <span>{card.plan}</span>
                 </div>
                 <span className={`source-chip source-${card.source}`}>

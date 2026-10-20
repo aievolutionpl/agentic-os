@@ -22,18 +22,22 @@ Installed metadata and original license/notice texts retained in dependencies/. 
 - @electron/windows-sign 1.2.2: BSD-2-Clause; [notice](dependencies/@electron_windows-sign-1.2.2-LICENSE)
 - fs-extra 11.4.1: MIT; [notice](dependencies/fs-extra-11.4.1-LICENSE)
 - @electron-internal/extract-zip 1.0.4: BSD-2-Clause; NOTICE REVIEW REQUIRED
-- @esbuild/linux-x64 0.25.12: MIT; NOTICE REVIEW REQUIRED
+- @esbuild/win32-x64 0.25.12: MIT; NOTICE REVIEW REQUIRED
 - @isaacs/fs-minipass 4.0.1: ISC; [notice](dependencies/@isaacs_fs-minipass-4.0.1-LICENSE)
+- @lobehub/icons-static-svg 1.95.1: MIT; [notice](upstream/lobe-icons-LICENSE)
 - @malept/cross-spawn-promise 2.0.0: Apache-2.0; [notice](dependencies/@malept_cross-spawn-promise-2.0.0-LICENSE)
 - @malept/flatpak-bundler 0.4.0: MIT; [notice](dependencies/@malept_flatpak-bundler-0.4.0-LICENSE)
 - fs-extra 9.1.0: MIT; [notice](dependencies/fs-extra-9.1.0-LICENSE)
-- @napi-rs/lzma-linux-x64-gnu 1.5.1: MIT; NOTICE REVIEW REQUIRED
+- @modelcontextprotocol/core 2.3.1: Apache-2.0; [notice](dependencies/@modelcontextprotocol_core-2.3.1-LICENSE)
+- @modelcontextprotocol/server 2.3.1: Apache-2.0; [notice](dependencies/@modelcontextprotocol_server-2.3.1-LICENSE)
+- @modelcontextprotocol/server-memory 2.0.0: SEE LICENSE IN LICENSE; [notice](upstream/mcp-servers-LICENSE)
 - @noble/hashes 1.8.0: MIT; [notice](dependencies/@noble_hashes-1.8.0-LICENSE)
 - @peculiar/asn1-schema 2.11.0: MIT; [notice](dependencies/@peculiar_asn1-schema-2.11.0-LICENSE)
 - @peculiar/json-schema 1.1.12: MIT; [notice](dependencies/@peculiar_json-schema-1.1.12-LICENSE)
 - @peculiar/utils 2.0.3: MIT; [notice](dependencies/@peculiar_utils-2.0.3-LICENSE)
 - @peculiar/webcrypto 1.7.1: MIT; [notice](dependencies/@peculiar_webcrypto-1.7.1-LICENSE.md)
-- @rollup/rollup-linux-x64-gnu 4.64.5: MIT; NOTICE REVIEW REQUIRED
+- @rollup/rollup-win32-x64-gnu 4.64.5: MIT; NOTICE REVIEW REQUIRED
+- @rollup/rollup-win32-x64-msvc 4.64.5: MIT; NOTICE REVIEW REQUIRED
 - @tootallnate/once 2.0.1: MIT; [notice](dependencies/@tootallnate_once-2.0.1-LICENSE)
 - @types/debug 4.1.13: MIT; [notice](dependencies/@types_debug-4.1.13-LICENSE)
 - @types/estree 1.0.9: MIT; [notice](dependencies/@types_estree-1.0.9-LICENSE)
@@ -336,8 +340,8 @@ Installed metadata and original license/notice texts retained in dependencies/. 
 - space-separated-tokens 2.0.2: MIT; [notice](dependencies/space-separated-tokens-2.0.2-license)
 - stat-mode 1.0.0: MIT; [notice](dependencies/stat-mode-1.0.0-LICENSE)
 - string-width 4.2.3: MIT; [notice](dependencies/string-width-4.2.3-license)
-- string_decoder 1.1.1: MIT; [notice](dependencies/string_decoder-1.1.1-LICENSE)
 - stringify-entities 4.0.4: MIT; [notice](dependencies/stringify-entities-4.0.4-license)
+- string_decoder 1.1.1: MIT; [notice](dependencies/string_decoder-1.1.1-LICENSE)
 - strip-ansi 6.0.1: MIT; [notice](dependencies/strip-ansi-6.0.1-license)
 - style-to-js 1.1.21: MIT; [notice](dependencies/style-to-js-1.1.21-LICENSE)
 - style-to-object 1.0.14: MIT; [notice](dependencies/style-to-object-1.0.14-LICENSE)
@@ -395,4 +399,5 @@ Installed metadata and original license/notice texts retained in dependencies/. 
 - yargs 17.7.3: MIT; [notice](dependencies/yargs-17.7.3-LICENSE)
 - yargs-parser 21.1.1: ISC; [notice](dependencies/yargs-parser-21.1.1-LICENSE.txt)
 - yocto-queue 0.1.0: MIT; [notice](dependencies/yocto-queue-0.1.0-license)
+- zod 4.6.7: MIT; [notice](dependencies/zod-4.6.7-LICENSE)
 - zwitch 2.0.4: MIT; [notice](dependencies/zwitch-2.0.4-license)

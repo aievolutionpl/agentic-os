@@ -13,7 +13,7 @@ function TerminalView({
 }: {
   session: TerminalSession;
   pl: boolean;
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "classic";
   onExit: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -163,7 +163,7 @@ export function TerminalPanel({
 }: {
   language: "pl" | "en";
   projects: Project[];
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "classic";
 }) {
   const pl = language === "pl",
     api = window.agenting!;

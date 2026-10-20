@@ -52,11 +52,12 @@ async function probeProvider(
   runner: Runner,
   observedAt: string,
 ): Promise<Integration> {
-  const commands = {
-    version: await runner(spec.id, ["--version"], TIMEOUT_MS),
-    help: await runner(spec.id, ["--help"], TIMEOUT_MS),
-    authStatus: await runner(spec.id, spec.authArgs, TIMEOUT_MS),
-  };
+  const [version, help, authStatus] = await Promise.all([
+    runner(spec.id, ["--version"], TIMEOUT_MS),
+    runner(spec.id, ["--help"], TIMEOUT_MS),
+    runner(spec.id, spec.authArgs, TIMEOUT_MS),
+  ]);
+  const commands = { version, help, authStatus };
   const states = {
     version: state(commands.version),
     help: state(commands.help),
@@ -104,10 +105,17 @@ export async function probeProviders(
   now: () => string = () => new Date().toISOString(),
 ): Promise<Integration[]> {
   const observedAt = now();
-  const results: Integration[] = [];
-  for (const spec of SPECS)
-    results.push(await probeProvider(spec, runner, observedAt));
-  return results;
+  return Promise.all(SPECS.map(spec => probeProvider(spec, runner, observedAt)));
+}
+
+let cachedProbes: Integration[] = [], pendingProbes: Promise<void> | undefined, probedAt = 0;
+/** Local navigation must not wait for an installed CLI to boot or time out. */
+export function currentProviderProbes() {
+  if (!pendingProbes && Date.now() - probedAt > 60000) {
+    pendingProbes = probeProviders().then(rows => { cachedProbes = rows; })
+      .catch(() => {}).finally(() => { probedAt = Date.now(); pendingProbes = undefined; });
+  }
+  return cachedProbes;
 }
 
 export function withProviderProbes(

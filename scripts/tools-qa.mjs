@@ -72,7 +72,7 @@ try {
   await page.locator(".project-link", { hasText: a.name }).click();
   await page.getByRole("heading", { name: a.name, exact: true }).waitFor();
   await page.getByRole("button", { name: "Extensions", exact: true }).click();
-  await page.getByText("Evidence-based review", { exact: true }).waitFor();
+  await page.getByText("verification before completion", { exact: true }).waitFor();
   await page.getByText("Import JSON manifest", { exact: true }).click();
   await page.getByRole("checkbox").check();
   await page
@@ -172,7 +172,7 @@ try {
     await page.waitForFunction(() => innerWidth >= 1000);
     await page.locator(".project-link", { hasText: a.name }).click();
     await page.getByRole("button", { name: "Extensions", exact: true }).click();
-    await page.getByText("Evidence-based review", { exact: true }).waitFor();
+    await page.getByText("verification before completion", { exact: true }).waitFor();
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 960 });
       await page.screenshot({

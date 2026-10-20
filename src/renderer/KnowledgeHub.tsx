@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Extension, Memory, Project } from "../shared";
 import { Icon, Modal } from "./ui";
+import { MemoryGraphPanel } from "./MemoryGraphPanel";
 
 export function SkillsHub({
   language,
@@ -14,11 +15,14 @@ export function SkillsHub({
   const api = window.agenting!,
     pl = language === "pl";
   const [items, setItems] = useState<Extension[]>([]),
-    [project, setProject] = useState(""),
+    [project, setProject] = useState(projects[0]?.id ?? ""),
     [query, setQuery] = useState(""),
     [selected, setSelected] = useState<Extension | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  useEffect(() => {
+    if (!project && projects.length) setProject(projects[0].id);
+  }, [projects, project]);
   async function load() {
     setItems(
       project
@@ -118,8 +122,8 @@ export function SkillsHub({
       </div>
       <p className="helper">
         {pl
-          ? "Skille są instrukcjami, a nie uruchamianymi skryptami. Włączasz je osobno w czacie lub przy uruchomieniu zadania. Import z własnego workspace wymaga wybrania projektu."
-          : "Skills are instructions, not executable scripts. Enable them per chat or task. Select a project to import from your workspace."}
+          ? "Wybierz projekt i dodaj skill jednym przyciskiem. Pełny pakiet trafi do .agents/skills, a agenci dostaną go w kontekście. Instalacja zapisuje źródło w pamięci projektu; skrypty nie uruchamiają się automatycznie."
+          : "Choose a project and add a skill with one click. The full package goes to .agents/skills and becomes available to its agents. Installation records its source in project memory; scripts do not run automatically."}
       </p>
       {error && (
         <p role="alert" className="error">
@@ -150,11 +154,41 @@ export function SkillsHub({
               <p>
                 {skill.author} · {skill.license}
               </p>
-              <small>{skill.version}</small>
+              <small>
+                {skill.files ?? 1} {pl ? "plików" : "files"} ·{" "}
+                {skill.version.slice(0, 12)}
+              </small>
             </div>
             <button className="secondary" onClick={() => setSelected(skill)}>
               {pl ? "Zobacz instrukcje" : "View instructions"}
               <Icon name="arrow" />
+            </button>
+            <button
+              className={skill.installed ? "secondary" : "primary"}
+              disabled={!project || busy || skill.installed || !skill.slug}
+              onClick={() => {
+                setBusy(true);
+                setError("");
+                void api.skillInstall!({ projectId: project, id: skill.id })
+                  .then(load)
+                  .catch(() =>
+                    setError(
+                      pl
+                        ? "Nie udało się dodać skilla. Sprawdź folder projektu; istniejących plików nie nadpisujemy."
+                        : "Could not install skill. Check the project folder; existing files are preserved.",
+                    ),
+                  )
+                  .finally(() => setBusy(false));
+              }}
+            >
+              <Icon name={skill.installed ? "check" : "plus"} />
+              {skill.installed
+                ? pl
+                  ? "Dodano do projektu"
+                  : "Added to project"
+                : pl
+                  ? "Dodaj do workspace"
+                  : "Add to workspace"}
             </button>
           </article>
         ))}
@@ -292,6 +326,14 @@ export function MemoryHub({
           </p>
         </div>
       </header>
+      <MemoryGraphPanel
+        pl={pl}
+        onUpdated={() => void load()}
+        onSelect={(id) => {
+          const entry = rows.find((m) => m.id === id);
+          if (entry) open(entry);
+        }}
+      />
       <div className="hub-toolbar">
         <label className="hub-search">
           <Icon name="search" />

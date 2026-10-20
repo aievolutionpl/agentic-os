@@ -43,7 +43,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
     [busy, setBusy] = useState(false),
     [status, setStatus] = useState("");
   async function load() {
-    setSettings(await api.providerSettings());
+    setSettings((await api.providerSettings()).filter(p => p.id !== "gemini"));
   }
   // Card state always comes from the recorded evidence in the database, so the
   // newest check wins and a cleared check is never resurrected by a local cache.
@@ -67,7 +67,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
       .then(async () => {
         // Re-check saved connections whose last check is missing or old, one at a
         // time, so a lit card reflects a real handshake rather than a saved path.
-        const rows = await api.providerSettings();
+        const rows = (await api.providerSettings()).filter(p => p.id !== "gemini");
         for (const row of rows) {
           const age = row.lastCheck
             ? Date.now() - Date.parse(row.lastCheck.observedAt)
@@ -144,7 +144,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
         role="group"
         aria-label={pl ? "Wybierz agenta" : "Choose agent"}
       >
-        {(Object.keys(defaults) as Agent[]).map((id) => {
+        {(Object.keys(defaults) as Agent[]).filter(id => id !== "gemini").map((id) => {
           const saved = settings.find((p) => p.id === id);
           const setting = saved && {
             ...saved,

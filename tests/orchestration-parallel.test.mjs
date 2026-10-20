@@ -56,6 +56,7 @@ function runtime(store, projectId) {
   const fake = {
     calls: [],
     cancelled: [],
+    paid: () => false,
     settings: () => [
       { id: "codex", configured: true },
       { id: "claude", configured: true },
@@ -388,4 +389,62 @@ test("resuming an interrupted parallel batch settles every run it had in flight"
   assert.equal(done.status, "completed");
   assert.deepEqual([...done.completedTaskIds].sort(), [...ids].sort());
   assert.equal(done.finished, 3);
+});
+
+test("two paid tasks never run side by side, so the spend gate sees each one", async (t) => {
+  const { store, projectId, ids } = setup(t, 2);
+  const fake = runtime(store, projectId);
+  fake.paid = (agent) => agent === "codex";
+  const queue = new Orchestrator(store, fake);
+  queue.start({
+    projectId,
+    taskIds: ids,
+    contextIds: [],
+    consent: true,
+    parallel: true,
+  });
+  await until(() => fake.calls.length === 1);
+  await settle();
+  assert.deepEqual(fake.calls, [ids[0]], "the second paid run waits");
+  fake.end(ids[0]);
+  await until(() => fake.calls.length === 2);
+  fake.end(ids[1]);
+  await until(() => queue.state({ projectId }).status !== "running");
+  assert.equal(queue.state({ projectId }).status, "completed");
+});
+
+test("two failed reviews in a parallel batch are both resumed", async (t) => {
+  const { store, projectId, ids } = setup(t, 2);
+  const fake = runtime(store, projectId);
+  let failing = true;
+  fake.review = async (p) =>
+    store.runs.update(projectId, p.runId, {
+      reviewState: failing ? "failed" : "completed",
+    });
+  const queue = new Orchestrator(store, fake);
+  queue.start({
+    projectId,
+    taskIds: ids,
+    contextIds: [],
+    consent: true,
+    parallel: true,
+  });
+  await until(() => fake.calls.length === 2);
+  fake.end(ids[0], "awaiting_review");
+  fake.end(ids[1], "awaiting_review");
+  await until(() => queue.state({ projectId }).status !== "running");
+  const held = queue.state({ projectId });
+  assert.equal(held.reason, "REVIEW_FAILED");
+  assert.equal(new Set([held.runId, ...held.runIds]).size, 2);
+  failing = false;
+  const reviewed = [];
+  fake.review = async (p) => {
+    reviewed.push(p.runId);
+    store.runs.update(projectId, p.runId, { reviewState: "completed" });
+  };
+  queue.resume({ projectId, batchId: held.id, consent: true });
+  await until(() => queue.state({ projectId }).status !== "running");
+  assert.equal(reviewed.length, 2, "both reviews are retried");
+  assert.equal(queue.state({ projectId }).reason, "HUMAN_APPROVAL_REQUIRED");
+  assert.equal(queue.state({ projectId }).finished, 2);
 });

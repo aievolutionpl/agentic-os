@@ -14,7 +14,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
 import { trustedSender, externalWebUrl } from "./security.js";
 import { Terminals } from "./terminals.js";
-import { probeProviders, withProviderProbes } from "./adapters.js";
+import { currentProviderProbes, withProviderProbes } from "./adapters.js";
 import {
   defaultRunner,
   scanConnectors,
@@ -32,6 +32,7 @@ import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
 import { capabilityMatrix } from "./capabilities.js";
 import { attention } from "./attention.js";
+import { workBoard } from "./work-board.js";
 import {
   DATABASE,
   applyPendingRestore,
@@ -47,6 +48,7 @@ import { evaluatePolicy, PaidApprovals } from "./policy.js";
 import { route } from "./router.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
+import { MemoryVault } from "./memory-vault.js";
 import {
   AGENTS,
   type Agent,
@@ -76,6 +78,7 @@ let orchestrator: Orchestrator | undefined;
 let masterAgent: MasterAgent | undefined;
 let chats: Chats | undefined;
 let quotaMonitor: QuotaMonitor | undefined;
+let memoryVault: MemoryVault | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
 let browser: ProjectBrowser | undefined;
@@ -118,6 +121,7 @@ app
     mkdirSync(app.getPath("userData"), { recursive: true });
     restoreResult = applyPendingRestore(app.getPath("userData"));
     store = new Store(join(app.getPath("userData"), DATABASE));
+    memoryVault = new MemoryVault(store, app.getPath("userData"));
     terminals = new Terminals(app.getPath("userData"), (id) => {
       const project = store.projects().find((p) => p.id === id);
       if (!project) throw Error("PROJECT_NOT_FOUND");
@@ -359,8 +363,25 @@ app
       chatRemember: (input) => chats!.remember(input),
       chatTask: (input) => chats!.task(input),
       memoryList: () => store.allMemory(),
+      memoryGraph: () => memoryVault!.sync(),
+      memoryAutoCapture: (input) => {
+        const p = exact(input, ["enabled"]);
+        if (typeof p.enabled !== "boolean") throw Error("INVALID_INPUT");
+        return memoryVault!.setEnabled(p.enabled);
+      },
+      memoryVaultOpen: async () => {
+        await memoryVault!.sync();
+        if (await shell.openPath(memoryVault!.directory)) throw Error("FOLDER_REQUIRED");
+      },
       memoryUpdate: (input) => store.updateMemory(input),
       skillCatalog: () => store.extensions.catalog(),
+      skillInstall: async (input) => {
+        const p = exact(input, ["projectId", "id"]), projectId = text(p.projectId), id = text(p.id);
+        const skill = await store.extensions.install(projectId, id);
+        const source = `skill:${id}`;
+        if (!store.memory(projectId).some(m => m.projectId === projectId && m.source === source)) store.createMemory({ projectId, source, scope: "project", content: `Installed skill: ${skill.name}\nSource: ${skill.source}\nVersion: ${skill.version}\nInstructions: ${skill.installPath}/SKILL.md` });
+        return skill;
+      },
       skillImportFile: async (input) => {
         const p = exact(input, ["projectId"]),
           projectId = text(p.projectId);
@@ -441,6 +462,7 @@ app
       orchestrationState: (input) => orchestrator!.state(input),
       orchestrationStop: (input) => orchestrator!.stop(input),
       attention: () => attention(store),
+      workBoard: () => workBoard(store),
       orchestrationEvents: (input) => orchestrator!.events(input),
       orchestrationResume: (input) => orchestrator!.resume(input),
       providerDetect: () => detectExecutables(),
@@ -725,7 +747,7 @@ app
         preferences: store.preferences(),
         integrations: withProviderProbes(
           store.integrations(),
-          await probeProviders(),
+          currentProviderProbes(),
         ),
       }),
       connectorScan: async () => {
@@ -898,6 +920,7 @@ app
       });
     openWindow();
     quotaMonitor.start();
+    memoryVault.start();
     app.on("activate", () => {
       if (!window) openWindow();
     });
@@ -931,6 +954,7 @@ app.on("before-quit", (event) => {
     supervisor?.close(),
     mcp?.close(),
     terminals?.dispose(),
+    memoryVault?.close(),
   ]).finally(() => {
     try {
       browser?.close();

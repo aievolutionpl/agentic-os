@@ -67,7 +67,10 @@ try {
     .locator(".project-link", { hasText: a.name })
     .waitFor({ timeout: 90000 });
   page.on("pageerror", (error) => result.errors.push(error.message));
-  await page.locator(".primary-nav").getByRole("button",{name:"Centrum dowodzenia",exact:true}).click();
+  await page
+    .locator(".primary-nav")
+    .getByRole("button", { name: "Centrum dowodzenia", exact: true })
+    .click();
   await page
     .locator(".connector-card:not(.skeleton-card)")
     .first()
@@ -115,7 +118,7 @@ try {
   );
   result.checks.push("manual-budget-create-edit-persisted");
   await nav("Połączenia i modele");
-  assert.equal(await page.locator(".provider-picker > button").count(), 7);
+  assert.equal(await page.locator(".provider-picker > button").count(), 6);
   await page
     .locator(".provider-picker")
     .getByRole("button", { name: /Claude Code/ })
@@ -128,7 +131,7 @@ try {
     await page.locator('.router-setup input[type="password"]').count(),
     1,
   );
-  result.checks.push("seven-provider-setup-and-masked-api-key");
+  result.checks.push("six-provider-setup-and-masked-api-key");
   const local = page.locator(".local-model-setup");
   await local
     .getByRole("textbox", { name: "Identyfikator modelu", exact: true })
@@ -256,11 +259,11 @@ try {
             .getByRole("button", { name: new RegExp(`^${name}`) })
             .click();
           if (label === "skills") {
-            await page.getByText("Frontend design", { exact: true }).waitFor();
-            assert.equal(await page.locator(".extension-list > li").count(), 9);
+            await page.getByText("frontend design", { exact: true }).waitFor();
+            assert.equal(await page.locator(".extension-list > li").count(), 8);
             await page
               .getByRole("searchbox", { name: "Szukaj skilla lub narzędzia" })
-              .fill("memory curator");
+              .fill("verification before completion");
             assert.equal(await page.locator(".extension-list > li").count(), 1);
             await page
               .getByRole("searchbox", { name: "Szukaj skilla lub narzędzia" })

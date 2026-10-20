@@ -137,7 +137,7 @@ export function PolicyPanel({ language }: { language: "pl" | "en" }) {
       </div>
       <fieldset className="policy-agents">
         <legend>{pl ? "Kto może pracować" : "Who may work"}</legend>
-        {AGENTS.map((id) => (
+        {AGENTS.filter(id => id !== "gemini").map((id) => (
           <label key={id} className={allowed(id) ? "on" : ""}>
             <input
               type="checkbox"

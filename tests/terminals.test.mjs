@@ -4,6 +4,8 @@ import { mkdtempSync, mkdirSync, realpathSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { Terminals } from "../dist/main/terminals.js";
 
 function setup(t) {
@@ -28,6 +30,12 @@ function setup(t) {
   return { terminals, project };
 }
 const open = (extra = {}) => ({ consent: true, cols: 100, rows: 24, ...extra });
+test("disposing a terminal releases native workers so its host exits without force", async () => {
+  const module = new URL("../dist/main/terminals.js", import.meta.url).href;
+  const script = `import { Terminals } from ${JSON.stringify(module)}; import { mkdtempSync, rmSync } from 'node:fs'; import { tmpdir } from 'node:os'; import { join } from 'node:path'; const dir=mkdtempSync(join(tmpdir(),'agenting-pty-exit-')); const terminals=new Terminals(dir,()=> ''); terminals.open({consent:true,cols:100,rows:24}); await terminals.dispose(); rmSync(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100}); console.log('DISPOSED');`;
+  const result = await promisify(execFile)(process.execPath, ["--input-type=module", "-e", script], { timeout: 20000, windowsHide: true });
+  assert.match(result.stdout, /DISPOSED/);
+});
 test("native terminal startup failure leaves no phantom session and permits a later retry", async (t) => {
   const { terminals } = setup(t);
   const pty = createRequire(import.meta.url)("node-pty");
@@ -117,6 +125,10 @@ test("real PTY runs in the chosen directory, accepts resize and Ctrl+C, and pres
     ready.cursor,
   );
   terminals.write({ id: first.id, data: "\x03" });
+  // ConPTY delivers Ctrl+C asynchronously. Writing the next command immediately
+  // can send it to the dying Node process instead of PowerShell's command reader.
+  if (process.platform === "win32") await until(terminals, first.id,
+    output => /PS [^\r\n]*>/.test(output.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")), running.cursor);
   terminals.write({
     id: first.id,
     data: "node -e \"console.log('AFTER_'+'INTERRUPT')\"\r",

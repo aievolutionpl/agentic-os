@@ -121,6 +121,11 @@ try {
       "routePreview",
       "usageReport",
       "memoryList",
+      "memoryGraph",
+      "memoryAutoCapture",
+      "memoryVaultOpen",
+      "skillInstall",
+      "workBoard",
       "memoryUpdate",
       "skillCatalog",
       "skillImportFile",
@@ -515,14 +520,14 @@ try {
   await projectToggle.focus();
   await page.keyboard.press("Enter");
   assert.equal(await projectToggle.getAttribute("aria-expanded"), "true");
-  await page.getByRole("button", { name: /Client B/ }).click();
+  await page.locator(".project-link").filter({ hasText: "Client B" }).click();
   assert.equal(await projectToggle.getAttribute("aria-expanded"), "false");
   assert.equal(
     await projectToggle.evaluate((el) => el === document.activeElement),
     true,
   );
   await projectToggle.click();
-  await page.getByRole("button", { name: /Client A/ }).click();
+  await page.locator(".project-link").filter({ hasText: "Client A" }).click();
   for (const width of [320, 390, 768, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     assert.equal(

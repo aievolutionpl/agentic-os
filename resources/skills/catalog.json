@@ -1,0 +1,82 @@
+[
+  {
+    "id": "builtin:frontend-design",
+    "slug": "frontend-design",
+    "name": "frontend design",
+    "author": "Anthropic",
+    "license": "Apache-2.0",
+    "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+    "source": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/frontend-design",
+    "files": 2
+  },
+  {
+    "id": "builtin:webapp-testing",
+    "slug": "webapp-testing",
+    "name": "webapp testing",
+    "author": "Anthropic",
+    "license": "Apache-2.0",
+    "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+    "source": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/webapp-testing",
+    "files": 6
+  },
+  {
+    "id": "builtin:mcp-builder",
+    "slug": "mcp-builder",
+    "name": "mcp builder",
+    "author": "Anthropic",
+    "license": "Apache-2.0",
+    "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+    "source": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/mcp-builder",
+    "files": 10
+  },
+  {
+    "id": "builtin:skill-creator",
+    "slug": "skill-creator",
+    "name": "skill creator",
+    "author": "Anthropic",
+    "license": "Apache-2.0",
+    "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
+    "source": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/skill-creator",
+    "files": 18
+  },
+  {
+    "id": "builtin:superpowers-systematic-debugging",
+    "slug": "systematic-debugging",
+    "name": "systematic debugging",
+    "author": "Jesse Vincent / obra",
+    "license": "MIT",
+    "version": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
+    "source": "https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3/skills/systematic-debugging",
+    "files": 12
+  },
+  {
+    "id": "builtin:superpowers-verification-before-completion",
+    "slug": "verification-before-completion",
+    "name": "verification before completion",
+    "author": "Jesse Vincent / obra",
+    "license": "MIT",
+    "version": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
+    "source": "https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3/skills/verification-before-completion",
+    "files": 2
+  },
+  {
+    "id": "builtin:superpowers-test-driven-development",
+    "slug": "test-driven-development",
+    "name": "test driven development",
+    "author": "Jesse Vincent / obra",
+    "license": "MIT",
+    "version": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
+    "source": "https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3/skills/test-driven-development",
+    "files": 3
+  },
+  {
+    "id": "builtin:superpowers-writing-plans",
+    "slug": "writing-plans",
+    "name": "writing plans",
+    "author": "Jesse Vincent / obra",
+    "license": "MIT",
+    "version": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
+    "source": "https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3/skills/writing-plans",
+    "files": 2
+  }
+]

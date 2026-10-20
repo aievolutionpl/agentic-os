@@ -6,7 +6,9 @@ Agenting OS is an open-source, local-first agent workbench by **AI Evolution Pol
 
 [Polski](README.md) · [Get started](#get-started) · [Workflow](#how-it-works) · [Providers](docs/PROVIDERS.md) · [Release status](docs/RELEASE_STATUS.md) · [Contribute](CONTRIBUTING.md)
 
-![Conversation with Markdown, history and shared context](docs/images/chat-dark.png)
+![Classic Terra conversation workspace](docs/images/classic-start.png)
+
+**Workspace update:** Classic · Terra and Graphite palettes, per-conversation models, automatic MCP memory with editable Markdown, eight complete GitHub skill packages and live Kanban. [Details and sources](docs/PREMIUM_WORKSPACE.md).
 
 **0.5.0-rc.1 — public preview candidate.** Screenshots show the actual desktop application with labeled example data. [Release status](docs/RELEASE_STATUS.md) separates local verification from publication gates. Windows packaging is unsigned; there is no automatic updater.
 
@@ -16,11 +18,11 @@ Agenting OS is an open-source, local-first agent workbench by **AI Evolution Pol
 - **Embedded terminal:** up to six local shell sessions, project directory selection, resize, Ctrl+C and persistence while navigating between screens. PowerShell on Windows; Bash or sh on Linux/macOS.
 - **Projects and tasks:** dependencies, separate implementer/reviewer roles, frozen context and an execution journal. The queue preview exposes saved models, connection-check dates and missing reviewers before launch.
 - **Master Agent:** a selected lead proposes up to six steps, delegates the plan after launch and evaluates the outcome. File changes pause for your decision.
-- **Memory and skills:** project-private and explicitly shared workspace memory, pinned entries, FTS5 search, nine bundled skills and local SKILL.md imports.
+- **Memory and skills:** automatic local MCP graph, editable Markdown, scoped retrieval, pinned notes and eight complete Anthropic/Superpowers packages installed with one click. Local SKILL.md imports remain available.
 - **Connections and usage:** CLI discovery, model selection, explicit connection checks, evidence distinguishing configuration from real execution. Official Codex limits and OpenRouter key budgets; unsupported quotas stay unknown.
 - **Tools and data:** explicitly invoked trusted MCP tools, project browser sessions, backups, reversible staged restores and redacted diagnostics.
 
-Polish and English UI, dark and light themes, keyboard access and reduced-motion support. `Ctrl+K` / `⌘K` opens the command palette; focused terminals keep their own keyboard shortcuts.
+Polish and English UI, Graphite, Light and Classic · Terra themes, keyboard access and reduced-motion support. `Ctrl+K` / `⌘K` opens the command palette; focused terminals keep their own keyboard shortcuts.
 
 ## Get started
 

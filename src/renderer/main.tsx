@@ -45,6 +45,7 @@ import { ccWords } from "./cc-i18n";
 import "./style.css";
 import "./harness.css";
 import "./workbench.css";
+import "./premium.css";
 
 const TerminalPanel = React.lazy(() =>
   import("./TerminalPanel").then((module) => ({
@@ -56,7 +57,6 @@ const agentChoices = [
   { value: "codex", label: "Codex" },
   { value: "claude", label: "Claude Code" },
   { value: "opencode", label: "OpenCode / OpenRouter" },
-  { value: "gemini", label: "Gemini CLI" },
   { value: "hermes", label: "Hermes" },
   { value: "local", label: "Lokalny LLM" },
   { value: "antigravity", label: "Antigravity" },
@@ -86,6 +86,7 @@ function App() {
   const [attention, setAttention] = useState<Attention | null>(null),
     [attentionFailed, setAttentionFailed] = useState(false),
     [palette, setPalette] = useState(false);
+  const [requestedTask, setRequestedTask] = useState<string | null>(null);
   // Connection evidence for the sidebar agent dock; refreshed on every view
   // change so a check run on any screen shows up everywhere.
   const [agents, setAgents] = useState<ProviderSetting[]>([]);
@@ -267,6 +268,7 @@ function App() {
     return () => document.removeEventListener("keydown", open);
   }, []);
   function openAttention(item: AttentionItem) {
+    setRequestedTask(item.taskId ?? null);
     setProjectsExpanded(false);
     setView("project");
     setTab(item.target);
@@ -590,6 +592,15 @@ function App() {
           }),
       },
       {
+        id: "action-classic-theme",
+        label: pl
+          ? "Motyw Classic · kość słoniowa i terakota"
+          : "Classic theme · ivory and terracotta",
+        group: act,
+        icon: "palette",
+        run: () => void preferences({ theme: "classic" }),
+      },
+      {
         id: "action-language",
         label: pl ? "Switch to English" : "Przełącz na polski",
         group: act,
@@ -785,7 +796,7 @@ function App() {
         >
           {agents.some((a) => a.configured) ? (
             agents
-              .filter((a) => a.configured)
+              .filter((a) => a.configured && a.id !== "gemini")
               .map((a) => {
                 const state = connectionState(a),
                   label = `${agentName(a.id)} · ${connectionLabel(state, prefs.language === "pl")}`;
@@ -944,6 +955,27 @@ function App() {
               }
               icon="globe"
               className="language-select"
+            />
+            <SelectField
+              label={prefs.language === "pl" ? "Kolorystyka" : "Color palette"}
+              value={prefs.theme}
+              options={[
+                {
+                  value: "dark",
+                  label: prefs.language === "pl" ? "Grafit" : "Graphite",
+                },
+                {
+                  value: "light",
+                  label: prefs.language === "pl" ? "Jasny" : "Light",
+                },
+                { value: "classic", label: "Classic · Terra" },
+              ]}
+              icon="palette"
+              className="theme-select"
+              disabled={busy || loading || !snapshot}
+              onChange={(theme) =>
+                void preferences({ theme: theme as Preferences["theme"] })
+              }
             />
             <button
               className="icon-button theme-toggle"
@@ -1285,6 +1317,7 @@ function App() {
                     />
                     <TaskBoard
                       key={projectId}
+                      requestedTask={requestedTask}
                       tasks={data.tasks}
                       memory={data.memory}
                       events={data.events ?? []}

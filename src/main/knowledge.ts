@@ -82,6 +82,7 @@ export class Knowledge {
     ids: unknown,
     workflow: unknown = "implementation",
     skills: ContextSkill[] = [],
+    query = "",
   ) {
     this.project(projectId);
     if (
@@ -110,7 +111,7 @@ export class Knowledge {
       if (!row) throw Error("INVALID_CONTEXT");
       return row as unknown as Memory;
     });
-    const body = [
+    let body = [
       `Workflow: ${key}\n${WORKFLOWS[key].instructions}`,
       ...memory.map(
         (entry) =>
@@ -122,12 +123,25 @@ export class Knowledge {
       ),
     ].join("\n\n");
     if (body.length > 24000) throw Error("CONTEXT_BUDGET_EXCEEDED");
+    // Retrieval is bounded and scoped by the same project/workspace rules as manual selection.
+    // Prior conversations are attributed evidence, not instructions or verified facts.
+    const recalled: string[] = [];
+    if (query.trim() && selected.length < 20)
+      for (const entry of this.search(projectId, query.slice(0, 1000))) {
+        if (selected.includes(entry.id)) continue;
+        const chunk = `\n\n[Recalled memory ${entry.id}; source: ${entry.source}; scope: ${entry.scope ?? "project"}. Attributed reference, verify before relying on it.]\n${entry.content.slice(0, 1200)}`;
+        if (body.length + chunk.length > 24000) continue;
+        body += chunk;
+        recalled.push(entry.id);
+        if (recalled.length === 4 || selected.length + recalled.length === 20)
+          break;
+      }
     return {
       body,
       characters: body.length,
       limit: 24000,
       readOnly: WORKFLOWS[key].readOnly,
-      memoryIds: memory.map((entry) => entry.id),
+      memoryIds: [...memory.map((entry) => entry.id), ...recalled],
       workflow: key,
     };
   }

@@ -1,13 +1,14 @@
 import React from "react";
 import type { Agent, Attention, AttentionItem } from "../shared";
 import { Icon, agentName, relativeTime } from "./ui";
+import { WorkBoard } from "./WorkBoard";
 
 const COPY = {
   en: {
-    title: "Inbox",
+    title: "Work & questions",
     subtitle:
-      "Everything waiting for you across projects. Nothing here acts on its own — open an item to review and decide.",
-    decisions: "Needs your decision",
+      "Your team, its tasks and the questions that need your attention.",
+    decisions: "Pending questions & approvals",
     active: "In progress",
     noDecisions: "Nothing is waiting for you.",
     noActive: "No agent is working right now.",
@@ -40,10 +41,10 @@ const COPY = {
     } as Record<string, string>,
   },
   pl: {
-    title: "Do decyzji",
+    title: "Praca i pytania",
     subtitle:
-      "Wszystko, co czeka na Ciebie we wszystkich projektach. Nic tutaj nie działa samo — otwórz pozycję, aby sprawdzić i zdecydować.",
-    decisions: "Wymaga Twojej decyzji",
+      "Twój zespół, jego zadania i pytania, które potrzebują Twojej uwagi.",
+    decisions: "Pytania i zgody oczekujące",
     active: "W toku",
     noDecisions: "Nic na Ciebie nie czeka.",
     noActive: "Żaden agent teraz nie pracuje.",
@@ -170,6 +171,7 @@ export function Inbox({
           <span>{t.failed}</span>
         </div>
       )}
+      <WorkBoard pl={language === "pl"} onOpen={onOpen} />
       <h2 className="cc-section">
         {t.decisions}
         {attention ? ` (${attention.decisions.length})` : ""}

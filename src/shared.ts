@@ -375,6 +375,8 @@ export interface OpenRouterSetting {
   configured: boolean;
   model: string;
   encryptionAvailable: boolean;
+  /** An optional management key is saved; it only reads the account balance. */
+  balanceKey?: boolean;
 }
 export interface OrchestrationState {
   id: string | null;
@@ -698,6 +700,8 @@ export interface API {
   openRouterSettings?(): Promise<OpenRouterSetting>;
   openRouterSave?(input: {
     apiKey?: string;
+    /** Optional management key for the account balance; "" removes it. */
+    managementKey?: string;
     model: string;
     consent: true;
   }): Promise<OpenRouterSetting>;

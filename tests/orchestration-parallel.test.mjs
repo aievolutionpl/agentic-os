@@ -448,3 +448,26 @@ test("two failed reviews in a parallel batch are both resumed", async (t) => {
   assert.equal(queue.state({ projectId }).reason, "HUMAN_APPROVAL_REQUIRED");
   assert.equal(queue.state({ projectId }).finished, 2);
 });
+
+test("a sibling's failure that settles in the same turn stops refilling", async (t) => {
+  const { store, projectId, ids } = setup(t, 3);
+  const fake = runtime(store, projectId);
+  const queue = new Orchestrator(store, fake);
+  queue.start({
+    projectId,
+    taskIds: ids,
+    contextIds: [],
+    consent: true,
+    parallel: true,
+  });
+  await until(() => fake.calls.length === 2);
+  fake.end(ids[0]);
+  fake.end(ids[1], "failed");
+  await until(() => queue.state({ projectId }).status !== "running");
+  await settle();
+  assert.deepEqual(fake.calls, [ids[0], ids[1]], "no third task starts");
+  const failed = queue.state({ projectId });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.reason, "RUN_FAILED");
+  assert.deepEqual(failed.completedTaskIds, [ids[0]]);
+});

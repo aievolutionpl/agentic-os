@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.main.json && vite build",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit",
-    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs tests/chats.test.mjs tests/orchestration-journal.test.mjs tests/capabilities.test.mjs tests/attention.test.mjs",
+    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs tests/chats.test.mjs tests/orchestration-journal.test.mjs tests/capabilities.test.mjs tests/attention.test.mjs tests/backup.test.mjs",
     "start": "npm run build && npm run runtime:install && electron .",
     "runtime:install": "node node_modules/electron/install.js",
     "smoke": "node scripts/smoke.mjs",

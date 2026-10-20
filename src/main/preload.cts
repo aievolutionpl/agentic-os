@@ -29,6 +29,11 @@ const api: API = {
   orchestrationStop: (input) =>
     ipcRenderer.invoke("app:orchestrationStop", input),
   attention: () => ipcRenderer.invoke("app:attention"),
+  backupCreate: () => ipcRenderer.invoke("app:backupCreate"),
+  backupRestore: (input) => ipcRenderer.invoke("app:backupRestore", input),
+  diagnosticsExport: () => ipcRenderer.invoke("app:diagnosticsExport"),
+  restoreStatus: () => ipcRenderer.invoke("app:restoreStatus"),
+  restartApp: () => ipcRenderer.invoke("app:restartApp"),
   orchestrationEvents: (input) =>
     ipcRenderer.invoke("app:orchestrationEvents", input),
   orchestrationResume: (input) =>

@@ -9,7 +9,7 @@ import {
   safeStorage,
 } from "electron";
 import { join, dirname } from "node:path";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
 import { trustedSender } from "./security.js";
@@ -26,6 +26,13 @@ import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
 import { capabilityMatrix } from "./capabilities.js";
 import { attention } from "./attention.js";
+import {
+  DATABASE,
+  applyPendingRestore,
+  createBackup,
+  diagnostics,
+  stageRestore,
+} from "./backup.js";
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
 import { Chats } from "./chats.js";
@@ -48,6 +55,7 @@ if (process.env.AGENTING_DATA_DIR)
   app.setPath("userData", process.env.AGENTING_DATA_DIR);
 app.setName("Agenting OS");
 let store: Store;
+let restoreResult: ReturnType<typeof applyPendingRestore> = "none";
 let supervisor: Supervisor;
 let orchestrator: Orchestrator | undefined;
 let masterAgent: MasterAgent | undefined;
@@ -92,7 +100,8 @@ app
     if (!primaryInstance) return;
     Menu.setApplicationMenu(null);
     mkdirSync(app.getPath("userData"), { recursive: true });
-    store = new Store(join(app.getPath("userData"), "agenting.sqlite"));
+    restoreResult = applyPendingRestore(app.getPath("userData"));
+    store = new Store(join(app.getPath("userData"), DATABASE));
     const router = new OpenRouterConnection(app.getPath("userData"), {
       available: () =>
         safeStorage.isEncryptionAvailable() &&
@@ -183,6 +192,17 @@ app
         ),
       }),
     );
+    const scanAll = async () =>
+      withExecutionSettings(
+        await scanConnectors(),
+        supervisor.settings(),
+        router.settings().configured,
+      );
+    const capabilities = (connectors: Awaited<ReturnType<typeof scanAll>>) =>
+      capabilityMatrix(connectors, supervisor.settings(), {
+        checks: store.capabilities.list(),
+        runs: store.runs.evidence(),
+      });
     const handlers: Record<string, (input: unknown) => unknown> = {
       chatList: () => chats!.list(),
       chatCreate: (input) => chats!.create(input),
@@ -409,20 +429,58 @@ app
       connectorScan: async () => {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
-        const connectors = withExecutionSettings(
-          await scanConnectors(),
-          supervisor.settings(),
-          router.settings().configured,
-        );
+        const connectors = await scanAll();
         return {
           observedAt: new Date().toISOString(),
           connectors,
           usage: store.runs.usage(startOfDay.getTime()),
-          capabilities: capabilityMatrix(connectors, supervisor.settings(), {
-            checks: store.capabilities.list(),
-            runs: store.runs.evidence(),
-          }),
+          capabilities: capabilities(connectors),
         };
+      },
+      backupCreate: async () => {
+        const stamp = new Date().toISOString().slice(0, 10);
+        const result = await dialog.showSaveDialog(window!, {
+          title: "Save Agenting OS backup",
+          defaultPath: `agenting-os-backup-${stamp}.sqlite`,
+          filters: [{ name: "Agenting OS backup", extensions: ["sqlite"] }],
+        });
+        if (result.canceled || !result.filePath) return null;
+        return createBackup(store, result.filePath);
+      },
+      backupRestore: async (input) => {
+        const p = exact(input, ["consent"]);
+        if (p.consent !== true) throw Error("EXPLICIT_CONSENT_REQUIRED");
+        const result = await dialog.showOpenDialog(window!, {
+          title: "Restore Agenting OS backup",
+          properties: ["openFile"],
+          filters: [{ name: "Agenting OS backup", extensions: ["sqlite"] }],
+        });
+        if (result.canceled || !result.filePaths[0]) return null;
+        return stageRestore(app.getPath("userData"), result.filePaths[0]);
+      },
+      diagnosticsExport: async () => {
+        const stamp = new Date().toISOString().slice(0, 10);
+        const result = await dialog.showSaveDialog(window!, {
+          title: "Save diagnostics",
+          defaultPath: `agenting-os-diagnostics-${stamp}.json`,
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        });
+        if (result.canceled || !result.filePath) return null;
+        const bundle = diagnostics(store, {
+          version: app.getVersion(),
+          platform: process.platform,
+          arch: process.arch,
+          versions: process.versions,
+          dataDir: app.getPath("userData"),
+          capabilities: capabilities(await scanAll()),
+        });
+        writeFileSync(result.filePath, JSON.stringify(bundle, null, 2) + "\n");
+        return result.filePath.split(/[\\/]/).pop() ?? null;
+      },
+      restoreStatus: () => restoreResult,
+      restartApp: () => {
+        app.relaunch();
+        app.quit();
       },
       projectData: (id) => store.projectData(id),
       taskAction: (input) => store.taskAction(input),

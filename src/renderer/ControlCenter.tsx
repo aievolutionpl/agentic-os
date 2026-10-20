@@ -10,6 +10,7 @@ import { ccWords } from "./cc-i18n";
 import { Icon, relativeTime } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 import { CapabilityMatrix } from "./CapabilityMatrix";
+import { DataPanel } from "./DataPanel";
 
 const TONES: Record<ConnectorStatus["state"], string> = {
   ready: "tone-success",
@@ -447,6 +448,7 @@ export function ControlCenter({
           language={language}
         />
       )}
+      <DataPanel language={language} />
       <p className="cc-safety">
         <Icon name="shield" />
         {t.safety}

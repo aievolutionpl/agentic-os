@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import type { Task, Memory, OrchestrationState } from "../shared";
+import type {
+  Task,
+  Memory,
+  OrchestrationEvent,
+  OrchestrationState,
+} from "../shared";
 import { Icon, Modal, agentName } from "./ui";
 
 export function OrchestrationPanel({
@@ -19,6 +24,8 @@ export function OrchestrationPanel({
     api = window.agenting!;
   const [state, setState] = useState<OrchestrationState | null>(null),
     [open, setOpen] = useState(false),
+    [inspect, setInspect] = useState(false),
+    [events, setEvents] = useState<OrchestrationEvent[]>([]),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false);
   const [contextIds, setContextIds] = useState<string[]>([]),
@@ -57,6 +64,7 @@ export function OrchestrationPanel({
         completed: "Zakończono",
         stopped: "Zatrzymano",
         failed: "Błąd wykonania",
+        interrupted: "Przerwano",
       }
     : {
         idle: "Ready",
@@ -65,6 +73,7 @@ export function OrchestrationPanel({
         completed: "Completed",
         stopped: "Stopped",
         failed: "Run failed",
+        interrupted: "Interrupted",
       };
   return (
     <section
@@ -86,6 +95,10 @@ export function OrchestrationPanel({
               (pl
                 ? " · Otwórz wynik zadania, aby przejrzeć i zatwierdzić zmiany."
                 : " · Open the task result to review and approve changes.")}
+            {state.status === "interrupted" &&
+              (pl
+                ? " · Aplikacja została zamknięta w trakcie pracy. Nic nie zostało powtórzone."
+                : " · The app closed during work. Nothing was replayed.")}
           </span>
         )}
       </div>
@@ -104,22 +117,40 @@ export function OrchestrationPanel({
           {pl ? "Zatrzymaj" : "Stop"}
         </button>
       ) : (
-        <button
-          className="secondary"
-          disabled={!queued.length || busy}
-          onClick={() => {
-            setTaskIds(queued.slice(0, 10).map((t) => t.id));
-            setContextIds([]);
-            setError(false);
-            setOpen(true);
-          }}
-        >
-          {pl
-            ? `Uruchom kolejkę (${queued.length})`
-            : `Run queue (${queued.length})`}
-        </button>
+        <>
+          {state?.status === "interrupted" && state.id && (
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() => {
+                setError(false);
+                setInspect(true);
+                void api
+                  .orchestrationEvents?.({ projectId })
+                  .then(setEvents)
+                  .catch(() => setError(true));
+              }}
+            >
+              {pl ? "Sprawdź / Kontynuuj" : "Inspect / Continue"}
+            </button>
+          )}
+          <button
+            className="secondary"
+            disabled={!queued.length || busy}
+            onClick={() => {
+              setTaskIds(queued.slice(0, 10).map((t) => t.id));
+              setContextIds([]);
+              setError(false);
+              setOpen(true);
+            }}
+          >
+            {pl
+              ? `Uruchom kolejkę (${queued.length})`
+              : `Run queue (${queued.length})`}
+          </button>
+        </>
       )}
-      {error && !open && (
+      {error && !open && !inspect && (
         <p role="alert">
           {pl
             ? "Nie udało się odczytać lub uruchomić kolejki."
@@ -250,6 +281,109 @@ export function OrchestrationPanel({
             }}
           >
             {pl ? "Uruchom wybrane zadania" : "Start selected tasks"}
+          </button>
+        </div>
+      </Modal>
+      <Modal
+        open={inspect}
+        onClose={() => {
+          if (!busy) setInspect(false);
+        }}
+        titleId="orchestration-inspect-title"
+        className="batch-dialog"
+      >
+        <h2 id="orchestration-inspect-title">
+          {pl ? "Przerwana kolejka" : "Interrupted queue"}
+        </h2>
+        <p className="helper">
+          {pl
+            ? "Aktywny krok został oznaczony jako przerwany i nie został powtórzony. Jego zapisany workspace sprawdzisz i wznowisz w wyniku zadania. Kontynuacja uruchomi tylko pozostałe zadania, które nadal czekają w kolejce."
+            : "The active step was marked interrupted and was not replayed. Inspect and resume its saved workspace from the task result. Continuing only starts remaining tasks that are still queued."}
+        </p>
+        {state && (
+          <ul className="batch-tasks">
+            {state.taskIds.map((id) => {
+              const task = tasks.find((t) => t.id === id);
+              const done = state.completedTaskIds.includes(id);
+              return (
+                <li key={id}>
+                  {task?.title ?? id}
+                  <small>
+                    {" · "}
+                    {done
+                      ? pl
+                        ? "ukończone"
+                        : "completed"
+                      : task?.status === "queued"
+                        ? pl
+                          ? "w kolejce — zostanie uruchomione"
+                          : "queued — will run"
+                        : pl
+                          ? `${task?.status ?? "brak"} — wymaga Twojej decyzji`
+                          : `${task?.status ?? "missing"} — needs your decision`}
+                  </small>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <details>
+          <summary>{pl ? "Dziennik zdarzeń" : "Event log"}</summary>
+          <ol className="batch-events">
+            {events.map((e) => (
+              <li key={e.seq}>
+                {new Date(e.at).toLocaleString()} · {e.kind}
+                {e.reason ? ` · ${e.reason}` : ""}
+              </li>
+            ))}
+          </ol>
+        </details>
+        {error && (
+          <p role="alert">
+            {pl
+              ? "Nie można kontynuować. Sprawdź połączenia agentów i czy zadania nadal są w kolejce."
+              : "Could not continue. Check agent connections and that tasks are still queued."}
+          </p>
+        )}
+        <div className="panel-actions">
+          <button
+            className="secondary"
+            disabled={busy}
+            onClick={() => setInspect(false)}
+          >
+            {pl ? "Zamknij" : "Close"}
+          </button>
+          <button
+            className="primary"
+            disabled={
+              busy ||
+              !state?.id ||
+              !state.taskIds.some(
+                (id) =>
+                  !state.completedTaskIds.includes(id) &&
+                  tasks.find((t) => t.id === id)?.status === "queued",
+              )
+            }
+            onClick={() => {
+              if (!state?.id || !api.orchestrationResume) return;
+              setBusy(true);
+              setError(false);
+              void api
+                .orchestrationResume({
+                  projectId,
+                  batchId: state.id,
+                  consent: true,
+                })
+                .then((s) => {
+                  setState(s);
+                  setInspect(false);
+                  onChanged();
+                })
+                .catch(() => setError(true))
+                .finally(() => setBusy(false));
+            }}
+          >
+            {pl ? "Kontynuuj pozostałe zadania" : "Continue remaining tasks"}
           </button>
         </div>
       </Modal>

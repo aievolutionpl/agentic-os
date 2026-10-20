@@ -1,1 +1,3 @@
+> **Historical record.** Current release status: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md). This file is kept unchanged as an audit trail.
+
 Read BUILD_BRIEF.md and docs/STATUS.md. Implement ONE bounded slice: next ordered item from STATUS 'Next' that is verifiable on Linux (not Windows): exact-diff-hash approval record model (SQLite, validated, no execution, no renderer claims), with tests. No auth changes, no paid API, no push, no config changes. Run npm run typecheck && npm test && xvfb-run -a npm run smoke. Append result and exact next step to docs/STATUS.md. Concise Polish report.

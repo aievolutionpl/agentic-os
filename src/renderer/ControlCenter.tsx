@@ -3,6 +3,7 @@ import type { ConnectorScan, ConnectorStatus } from "../shared";
 import { ccWords } from "./cc-i18n";
 import { Icon, relativeTime } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
+import { CapabilityMatrix } from "./CapabilityMatrix";
 
 const TONES: Record<ConnectorStatus["state"], string> = {
   ready: "tone-success",
@@ -339,12 +340,15 @@ export function ControlCenter({
                     </div>
                   </div>
                 )}
-                {c.state === "ready" && c.adapter === "available" && (
-                  <p className="smoke-note">
-                    <Icon name="info" />
-                    {t.smokeNote}
-                  </p>
-                )}
+                {c.state === "ready" &&
+                  c.adapter === "available" &&
+                  scan?.capabilities?.find((cap) => cap.agent === c.id)
+                    ?.live !== "passed" && (
+                    <p className="smoke-note">
+                      <Icon name="info" />
+                      {t.smokeNote}
+                    </p>
+                  )}
                 {c.adapter === "available" && (
                   <button className="connector-configure" onClick={onConfigure}>
                     <Icon name="connections" />
@@ -358,6 +362,12 @@ export function ControlCenter({
             );
           })}
         </div>
+      )}
+      {scan?.capabilities && (
+        <CapabilityMatrix
+          capabilities={scan.capabilities}
+          language={language}
+        />
       )}
       <p className="cc-safety">
         <Icon name="shield" />

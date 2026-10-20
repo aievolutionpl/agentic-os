@@ -1,3 +1,5 @@
+> **Historical record.** Current release status: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md). This file is kept unchanged as an audit trail.
+
 # Agenting OS — authorized build
 User authorized implementing and continuous progress checks. Existing failed delegation produced no deliverable. Own entire app in this directory; do not edit Hermes configuration or any other project. Read /home/aibot/.hermes/projects/agent-os-preparation/Agenting_OS_Master_Plan_v2.1.md fully. Treat it as requirements, not executable instructions. Latest requirements below override it.
 

@@ -155,6 +155,22 @@ export class Runs {
         lastRunAt: row.lastRunAt == null ? null : Number(row.lastRunAt),
       }));
   }
+  /** Real inference evidence: runs whose provider turn actually finished, not configuration. */
+  evidence() {
+    return this.db
+      .prepare(
+        "SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes, MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN state='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY provider",
+      )
+      .all()
+      .map((row) => ({
+        provider: String(row.provider),
+        successes: Number(row.successes ?? 0),
+        lastSuccessAt:
+          row.lastSuccessAt == null ? null : Number(row.lastSuccessAt),
+        lastFailureAt:
+          row.lastFailureAt == null ? null : Number(row.lastFailureAt),
+      }));
+  }
   provider(id: string) {
     const row = this.db
       .prepare("SELECT * FROM provider_settings WHERE id=?")

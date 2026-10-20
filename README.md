@@ -8,7 +8,7 @@ Agenting OS is an open-source, local-first workbench by **AI Evolution Polska**.
 
 ![AI Evolution Polska conversation workspace](docs/evidence/harness-08/ui/chat-dark-1440.png)
 
-*Early release 0.4.0. The evidence folders contain real application captures. Model execution requires your own configured provider. Windows builds are unsigned.*
+*Early release 0.4.0. The evidence folders contain real application captures. Model execution requires your own configured provider. Windows builds are unsigned. Current release status: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md).*
 
 ## What you can do
 

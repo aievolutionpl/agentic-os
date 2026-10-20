@@ -24,13 +24,7 @@ FINDINGS:
 - path/to/file:line — what is wrong and how it was verified
 Use one line per finding and cite a real file. Write "FINDINGS: none" when there are none.`;
 
-/** Files a unified diff touches, from its `diff --git a/... b/...` headers. */
-export function diffFiles(diff: string) {
-  const files = new Set<string>();
-  for (const m of diff.matchAll(/^diff --git a\/(.+?) b\/(.+)$/gm))
-    files.add(m[1]!).add(m[2]!);
-  return files;
-}
+export { diffFiles } from "./diff-files.js";
 
 export function parseReview(
   text: string,

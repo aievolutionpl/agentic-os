@@ -8,7 +8,7 @@ import type {
   OrchestrationState,
 } from "../shared.js";
 import { exact, text } from "./validate.js";
-import { diffFiles } from "./review-evidence.js";
+import { diffFiles } from "./diff-files.js";
 
 type PolicyStep = { taskId: string; agent: Agent; runId?: string };
 /** How one task's run ended for the queue. */
@@ -193,22 +193,24 @@ export class Orchestrator {
     const open = batch.taskIds.filter(
       (id) => !batch.completedTaskIds.includes(id),
     );
-    const inFlight = batch.runId
-      ? this.store.runs.get(projectId, batch.runId)
-      : null;
-    const held =
-      inFlight &&
-      open.includes(inFlight.taskId) &&
-      UNSETTLED.includes(inFlight.state)
-        ? inFlight
-        : null;
+    // A parallel batch can have several runs in flight (runIds).
+    const held = [
+      ...new Set(
+        [batch.runId, ...(batch.runIds ?? [])].filter(Boolean) as string[],
+      ),
+    ]
+      .map((id) => this.store.runs.get(projectId, id))
+      .filter(
+        (run) =>
+          !!run && open.includes(run.taskId) && UNSETTLED.includes(run.state),
+      ) as NonNullable<ReturnType<Store["runs"]["get"]>>[];
     const tasks = this.store.tasks(projectId),
       remaining = open.filter(
         (id) =>
-          id !== held?.taskId &&
+          !held.some((run) => run.taskId === id) &&
           tasks.find((t) => t.id === id)?.status === "queued",
       );
-    if (!remaining.length && !held) throw Error("NOTHING_TO_RESUME");
+    if (!remaining.length && !held.length) throw Error("NOTHING_TO_RESUME");
     this.providers(remaining, projectId);
     const context = this.store.batches.context(projectId, batchId);
     batch.status = "running";
@@ -218,18 +220,24 @@ export class Orchestrator {
     delete batch.policyAgent;
     this.store.batches.save(batch, "resumed");
     this.live.set(projectId, batch);
-    void this.execute(batch, context, remaining, held?.id);
+    void this.execute(
+      batch,
+      context,
+      remaining,
+      held.map((run) => run.id),
+    );
     return { ...batch };
   }
   private save(
     batch: OrchestrationState,
     kind: OrchestrationEvent["kind"],
     taskId: string | null = null,
+    runId: string | null = batch.runId,
   ) {
     // After close() the database may already be shut; the journal keeps the last durable state.
-    if (!this.closed) this.store.batches.save(batch, kind, taskId);
+    if (!this.closed) this.store.batches.save(batch, kind, taskId, runId);
   }
-  /** Files a captured diff touches, from its `diff --git a/... b/...` headers. */
+  /** Files a captured diff touches. */
   private changedFiles(projectId: string, taskId: string, runId: string) {
     const run = this.store.runs.get(projectId, runId);
     if (!run?.artifactId) return new Set<string>();
@@ -244,7 +252,7 @@ export class Orchestrator {
     batch: OrchestrationState,
     context: BatchContext,
     taskIds = batch.taskIds,
-    heldRunId?: string,
+    heldRunIds: string[] = [],
   ) {
     const pending = new Set(taskIds);
     const running = () => batch.status === "running" && !this.closed;
@@ -282,11 +290,26 @@ export class Orchestrator {
       );
     };
     try {
-      if (heldRunId) {
-        const held = this.store.runs.get(batch.projectId, heldRunId)!;
+      for (const id of heldRunIds) {
+        const held = this.store.runs.get(batch.projectId, id)!;
         pending.delete(held.taskId);
         track(held.taskId, held.id);
       }
+      // Results of this batch still waiting for a human decision keep
+      // counting for file conflicts after Continue.
+      if (batch.parallel)
+        for (const id of batch.taskIds) {
+          const run = this.store.runs.list(batch.projectId, id)[0];
+          if (
+            run?.state === "awaiting_review" &&
+            !heldRunIds.includes(run.id) &&
+            !batch.completedTaskIds.includes(id)
+          )
+            awaitingApproval.set(
+              id,
+              this.changedFiles(batch.projectId, id, run.id),
+            );
+        }
       while (running()) {
         while (!hold && active.size < limit) {
           const tasks = this.store.tasks(batch.projectId);
@@ -315,21 +338,30 @@ export class Orchestrator {
             );
           } catch (e) {
             const code = e instanceof Error ? e.message : "";
-            if (!code.startsWith("POLICY_")) throw e;
-            // A refusal is a decision for the operator; runs already in
-            // flight still finish before the batch is held.
-            halt({
-              status: "blocked",
-              reason: code,
-              taskId: next.id,
-              runId: null,
-              agent: next.implementer,
-            });
+            // A refusal is a decision for the operator, any other error
+            // fails the batch; either way runs already in flight finish
+            // (and stay stoppable) before the batch is finalized.
+            halt(
+              code.startsWith("POLICY_")
+                ? {
+                    status: "blocked",
+                    reason: code,
+                    taskId: next.id,
+                    runId: null,
+                    agent: next.implementer,
+                  }
+                : {
+                    status: "failed",
+                    reason: "DISPATCH_FAILED",
+                    taskId: next.id,
+                    runId: null,
+                  },
+            );
             break;
           }
           pending.delete(next.id);
           track(next.id, run.id);
-          this.save(batch, "dispatched", next.id);
+          this.save(batch, "dispatched", next.id, run.id);
           if (!running())
             await this.supervisor.action({
               projectId: batch.projectId,
@@ -356,7 +388,7 @@ export class Orchestrator {
             batch.completedTaskIds.push(taskId);
             batch.finished++;
             if (batch.runId === runId) batch.runId = null;
-            this.save(batch, "task_completed", taskId);
+            this.save(batch, "task_completed", taskId, runId);
             break;
           case "approval": {
             batch.finished++;
@@ -493,17 +525,26 @@ export class Orchestrator {
     batch.status = "stopped";
     batch.reason = "USER_STOPPED";
     this.save(batch, "stopped");
-    for (const runId of new Set(
-      [batch.runId, ...(batch.runIds ?? [])].filter(Boolean) as string[],
-    )) {
-      const run = this.store.runs.get(batch.projectId, runId);
-      if (run && ["preparing", "running", "reviewing"].includes(run.state))
-        await this.supervisor.action({
-          projectId: batch.projectId,
-          runId,
-          action: "cancel",
-        });
-    }
+    // Every active run is signalled at once; one slow or failing
+    // cancellation must not keep another provider running.
+    const results = await Promise.allSettled(
+      [
+        ...new Set(
+          [batch.runId, ...(batch.runIds ?? [])].filter(Boolean) as string[],
+        ),
+      ].map((runId) => {
+        const run = this.store.runs.get(batch.projectId, runId);
+        return run && ["preparing", "running", "reviewing"].includes(run.state)
+          ? this.supervisor.action({
+              projectId: batch.projectId,
+              runId,
+              action: "cancel",
+            })
+          : undefined;
+      }),
+    );
+    const failed = results.find((r) => r.status === "rejected");
+    if (failed) throw (failed as PromiseRejectedResult).reason;
   }
   /** App shutdown: persist running batches as interrupted so the operator can inspect them. */
   close() {

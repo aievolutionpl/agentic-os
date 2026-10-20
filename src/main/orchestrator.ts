@@ -270,7 +270,22 @@ export class Orchestrator {
           RUN_FAILED: 3,
           DISPATCH_FAILED: 4,
         }[next.reason] ?? 2;
+      // Every policy or review hold stays resumable, not only the one shown.
+      if (rank === 2 && next.runId) resumable.add(next.runId);
       if (!hold || rank > hold.rank) hold = { ...next, rank };
+    };
+    const resumable = new Set<string>();
+    // A paid provider's spend is only read when its invocation starts, so a
+    // second paid run never starts while another one may still be billing.
+    const paid = (taskId: string) => {
+      const task = this.store
+        .tasks(batch.projectId)
+        .find((t) => t.id === taskId);
+      return (
+        !!task &&
+        (this.supervisor.paid(task.implementer) ||
+          this.supervisor.paid(task.reviewer))
+      );
     };
     const track = (taskId: string, runId: string) => {
       batch.runId = runId;
@@ -313,10 +328,12 @@ export class Orchestrator {
       while (running()) {
         while (!hold && active.size < limit) {
           const tasks = this.store.tasks(batch.projectId);
+          const paidActive = [...active.keys()].some(paid);
           const next = tasks.find(
             (t) =>
               pending.has(t.id) &&
               !active.has(t.id) &&
+              !(paidActive && paid(t.id)) &&
               t.status === "queued" &&
               !t.blockedBy.length &&
               t.dependencies.every((id) => {
@@ -437,6 +454,8 @@ export class Orchestrator {
         batch.status = final.status;
         batch.reason = final.reason;
         batch.runId = final.runId;
+        if (batch.parallel)
+          batch.runIds = final.rank === 2 ? [...resumable] : [];
         if (final.agent) batch.policyAgent = final.agent;
         this.save(batch, final.status, final.taskId);
       } else if (running()) {
@@ -475,7 +494,7 @@ export class Orchestrator {
       if (reviewer && result.reviewState !== "completed") {
         // A review that just failed under our watch is not retried silently.
         if (!wasReviewing) {
-          this.save(batch, "reviewing", taskId);
+          this.save(batch, "reviewing", taskId, runId);
           try {
             await this.supervisor.review({
               projectId: batch.projectId,

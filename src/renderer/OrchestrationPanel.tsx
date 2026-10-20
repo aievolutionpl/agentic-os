@@ -124,6 +124,12 @@ export function OrchestrationPanel({
               (pl
                 ? " · Otwórz wynik zadania, aby przejrzeć i zatwierdzić zmiany."
                 : " · Open the task result to review and approve changes.")}
+            {state.status === "blocked" &&
+              state.parallel &&
+              state.reason === "HUMAN_APPROVAL_REQUIRED" &&
+              (pl
+                ? " Każdy wynik stosuje się tylko na stan, na którym powstał: po zastosowaniu jednego uruchom pozostałe ponownie."
+                : " Each result applies only onto the state it was built on: after applying one, re-run the others.")}
             {state.status === "interrupted" &&
               (pl
                 ? " · Aplikacja została zamknięta w trakcie pracy. Nic nie zostało powtórzone."

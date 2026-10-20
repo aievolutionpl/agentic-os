@@ -274,7 +274,19 @@ function App() {
   // Connection evidence changes (a check on another screen) rescan Control
   // Center, so its counts and map never lag behind the Connections cards.
   const evidence = agents
-    .map((a) => `${a.id}:${a.configured}:${a.lastCheck?.observedAt ?? ""}`)
+    // Everything the scan depends on: setup fields and the last check.
+    .map((a) =>
+      JSON.stringify([
+        a.id,
+        a.configured,
+        a.command,
+        a.args,
+        a.protocol,
+        a.profile,
+        a.model,
+        a.lastCheck?.observedAt ?? "",
+      ]),
+    )
     .join("|");
   const scannedEvidence = useRef("");
   useEffect(() => {

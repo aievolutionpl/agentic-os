@@ -1,7 +1,10 @@
+import { WORKFLOWS } from "./knowledge.js";
 import {
+  EVIDENCE_LIMIT,
   MAX_ATTEMPTS,
   REVIEW_FORMAT,
   diffFiles,
+  serializeEvidence,
   parseReview,
 } from "./review-evidence.js";
 import { tokenMeter } from "./usage-ledger.js";
@@ -629,7 +632,8 @@ export class Supervisor {
         if (
           !revising ||
           revising.taskId !== taskId ||
-          revising.state !== "awaiting_review" ||
+          // A reviewed no-change run (completed) can be revised as well.
+          !["awaiting_review", "completed"].includes(revising.state) ||
           revising.reviewState !== "completed" ||
           revising.approvalId ||
           this.store.runs.list(projectId, taskId)[0]?.id !== revising.id ||
@@ -666,15 +670,26 @@ export class Supervisor {
         })
       )
         throw Error("DEPENDENCIES_NOT_READY");
+      // A revision keeps the reviewed run's frozen context (memory, skills,
+      // workflow), whatever the panel currently has selected.
       const context =
         frozenContext ??
-        this.contextFor(projectId, p.contextIds, p.workflow, p.skillIds);
+        (revising
+          ? this.revisionContext(revising)
+          : this.contextFor(projectId, p.contextIds, p.workflow, p.skillIds));
       if (task.implementer === "antigravity" && context.readOnly)
         throw Error("ANTIGRAVITY_READ_ONLY_UNSUPPORTED");
       // A read-only workflow (research, audit) needs an agent that has a
       // read-only mode; the app refuses rather than trusting the prompt.
       if (context.readOnly && !READ_ONLY_AGENTS.includes(task.implementer))
         throw Error("READ_ONLY_MODE_UNSUPPORTED");
+      // Every source check runs before reopen resets the sealed worktree, so
+      // a refused revision leaves the reviewed result intact.
+      if (
+        revising &&
+        (await this.worktrees.inspect(project.root)).base !== revising.base
+      )
+        throw Error("BASE_CHANGED");
       const workspace: Workspace = revising
         ? await this.worktrees.reopen({
             repository: revising.repository,
@@ -692,9 +707,8 @@ export class Supervisor {
           : await this.worktrees.create(project.root);
       await this.worktrees.verify(workspace);
       if (
-        (previous ?? revising) &&
-        (await this.worktrees.inspect(project.root)).base !==
-          (previous ?? revising)!.base
+        previous &&
+        (await this.worktrees.inspect(project.root)).base !== previous.base
       )
         throw Error("BASE_CHANGED");
       if (task.status === "draft")
@@ -772,6 +786,23 @@ export class Supervisor {
     } finally {
       this.starting.delete(taskId);
     }
+  }
+  /** The frozen context a reviewed run was started with. */
+  private revisionContext(run: Run) {
+    const body = this.store.runs.context(run.id);
+    const key = /^Workflow: (\S+)/.exec(body)?.[1] as
+      | keyof typeof WORKFLOWS
+      | undefined;
+    const workflow = key && Object.hasOwn(WORKFLOWS, key) ? key : null;
+    if (!workflow) throw Error("INVALID_REVISION");
+    return {
+      body,
+      characters: body.length,
+      limit: 24000,
+      readOnly: WORKFLOWS[workflow].readOnly,
+      memoryIds: [...body.matchAll(/^\[Memory ([^;\]]+);/gm)].map((m) => m[1]!),
+      workflow,
+    };
   }
   /** Reviewer findings handed to a revision, as untrusted data. */
   private revisionNote(run: Run) {
@@ -1080,9 +1111,11 @@ export class Supervisor {
         this.store.runs.event(
           run.id,
           "review_evidence",
-          JSON.stringify(
+          serializeEvidence(
             parseReview(result.summary, diffFiles(artifact ? reviewDiff : "")),
+            EVIDENCE_LIMIT,
           ),
+          EVIDENCE_LIMIT,
         );
         this.store.runs.event(
           run.id,

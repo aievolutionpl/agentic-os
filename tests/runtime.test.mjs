@@ -701,10 +701,7 @@ test("reviewer evidence drives a bounded, explicitly started revision of the sam
     const first = await completed(f);
     await reviewed(f, first);
     const review = f.inputs.find((i) => i.readOnly);
-    assert.match(
-      review.prompt,
-      /VERDICT: APPROVE or VERDICT: CHANGES_REQUESTED/,
-    );
+    assert.match(review.prompt, /VERDICT: <verdict>/);
     const evidence = f.store.runs.reviewEvidence(first.id);
     assert.equal(evidence.verdict, "changes_requested");
     assert.deepEqual(
@@ -782,6 +779,51 @@ test("reviewer evidence drives a bounded, explicitly started revision of the sam
     assert.equal(
       f.store.tasks(f.project.id).find((t) => t.id === f.task.id).attempt,
       3,
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("a revision refused by the source check leaves the reviewed worktree intact", async () => {
+  const f = await setup("revise");
+  try {
+    const first = await completed(f);
+    await reviewed(f, first);
+    writeFileSync(join(f.repo, "dirty.txt"), "local edit");
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: first.id,
+      }),
+      /REPOSITORY_NOT_CLEAN/,
+    );
+    assert.equal(
+      f.store.runs.get(f.project.id, first.id).state,
+      "awaiting_review",
+    );
+    assert.equal(
+      await gitText(first.worktree, "rev-parse", "HEAD"),
+      first.head,
+      "worktree not reset",
+    );
+    rmSync(join(f.repo, "dirty.txt"));
+    const second = await f.supervisor.start({
+      projectId: f.project.id,
+      taskId: f.task.id,
+      consent: true,
+      reviseRunId: first.id,
+    });
+    assert.equal(
+      f.store.runs.context(second.id),
+      f.store.runs.context(first.id),
+      "the frozen context is reused",
+    );
+    await wait(
+      () =>
+        f.store.runs.get(f.project.id, second.id)?.state === "awaiting_review",
     );
   } finally {
     await f.close();

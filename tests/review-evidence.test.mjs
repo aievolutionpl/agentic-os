@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { diffFiles, parseReview } from "../dist/main/review-evidence.js";
+import {
+  diffFiles,
+  parseReview,
+  serializeEvidence,
+} from "../dist/main/review-evidence.js";
 
 const changed = new Set(["src/app.ts", "README.md"]);
 
@@ -80,4 +84,56 @@ test("changed files come from diff headers, renames included", () => {
     ["src/a.ts", "old.md", "new.md"],
   );
   assert.equal(diffFiles("").size, 0);
+});
+
+test("an echoed template with both choices is no verdict", () => {
+  const changed = new Set(["src/app.ts"]);
+  assert.equal(
+    parseReview(
+      "VERDICT: APPROVE or VERDICT: CHANGES_REQUESTED\n- src/app.ts:1 — fix",
+      changed,
+    ).verdict,
+    "unknown",
+  );
+  assert.equal(
+    parseReview("**VERDICT: CHANGES_REQUESTED**", changed).verdict,
+    "changes_requested",
+  );
+});
+
+test("finding paths may contain spaces and quoted diff paths match", () => {
+  const changed = diffFiles(
+    'diff --git a/docs/release notes.md b/docs/release notes.md\ndiff --git "a/\\303\\251.ts" "b/\\303\\251.ts"\n',
+  );
+  const { findings } = parseReview(
+    "VERDICT: CHANGES_REQUESTED\n- `docs/release notes.md:4` — typo\n- é.ts:2 — wrong",
+    changed,
+  );
+  assert.deepEqual(
+    findings.map((f) => [f.path, f.line, f.inDiff]),
+    [
+      ["docs/release notes.md", 4, true],
+      ["é.ts", 2, true],
+    ],
+  );
+});
+
+test("serialized evidence stays valid JSON within its budget", () => {
+  const evidence = {
+    verdict: "changes_requested",
+    findings: Array.from({ length: 50 }, (_, i) => ({
+      path: `src/f${i}.ts`,
+      line: i,
+      text: "x".repeat(500),
+      inDiff: true,
+    })),
+  };
+  const json = serializeEvidence(evidence, 4000);
+  assert.ok(json.length <= 4000);
+  const parsed = JSON.parse(json);
+  assert.equal(parsed.findings.length + parsed.omitted, 50);
+  assert.equal(
+    JSON.parse(serializeEvidence(evidence, 32000)).findings.length,
+    50,
+  );
 });

@@ -9,6 +9,7 @@ export interface Evidence {
     text: string;
     inDiff: boolean;
   }[];
+  omitted?: number;
 }
 
 /** Latest structured review evidence among a run's events. */
@@ -70,6 +71,13 @@ export function ReviewEvidence({
       ) : (
         <p className="helper">
           {pl ? "Brak uwag wskazujących pliki." : "No findings citing files."}
+        </p>
+      )}
+      {!!evidence.omitted && (
+        <p className="helper">
+          {pl
+            ? `Pominięto ${evidence.omitted} dalszych uwag — pełny tekst jest w wyniku review.`
+            : `${evidence.omitted} more findings left out — the full text is in the review result.`}
         </p>
       )}
       {outside > 0 && (

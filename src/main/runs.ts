@@ -115,7 +115,7 @@ export class Runs {
         )
         .run(...entries.map(([, v]) => v ?? null), this.clock(), projectId, id);
   }
-  event(runId: string, kind: string, value: string) {
+  event(runId: string, kind: string, value: string, limit = 4000) {
     const count = Number(
       this.db
         .prepare("SELECT count(*) AS n FROM run_events WHERE runId=?")
@@ -139,7 +139,7 @@ export class Runs {
       return;
     this.db
       .prepare("INSERT INTO run_events(runId,kind,text,at) VALUES(?,?,?,?)")
-      .run(runId, kind, redact(value), this.clock());
+      .run(runId, kind, redact(value, limit), this.clock());
   }
   /** Latest structured review evidence recorded for a run, if any. */
   reviewEvidence(runId: string): ReviewEvidence | null {

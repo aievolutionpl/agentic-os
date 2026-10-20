@@ -247,7 +247,7 @@ export function RunPanel({
   // attempt left; each one is started explicitly by the operator.
   const mayRevise =
     !!run &&
-    run.state === "awaiting_review" &&
+    ["awaiting_review", "completed"].includes(run.state) &&
     run.reviewState === "completed" &&
     !run.approvalId &&
     evidence?.verdict === "changes_requested" &&
@@ -584,9 +584,7 @@ export function RunPanel({
                       projectId: task.projectId,
                       taskId: task.id,
                       consent: true,
-                      contextIds: ids,
-                      skillIds,
-                      workflow,
+                      // The revision reuses the reviewed run's frozen context.
                       reviseRunId: run.id,
                     }),
                   )

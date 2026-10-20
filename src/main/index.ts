@@ -18,6 +18,7 @@ import {
   defaultRunner,
   scanConnectors,
   withExecutionSettings,
+  withCheckEvidence,
 } from "./connectors.js";
 import { Supervisor } from "./supervisor.js";
 import { CodexAdapter } from "./providers.js";
@@ -235,10 +236,17 @@ app
       }),
     );
     const scanAll = async () =>
-      withExecutionSettings(
-        await scanConnectors(),
-        supervisor.settings(),
-        router.settings().configured,
+      withCheckEvidence(
+        withExecutionSettings(
+          await scanConnectors(),
+          supervisor.settings(),
+          router.settings().configured,
+        ),
+        store.capabilities.list(),
+        // Hermes refuses every run until a model is saved.
+        (id) =>
+          id === "hermes" &&
+          !supervisor.settings().find((s) => s.id === "hermes")?.model,
       );
     const capabilities = (connectors: Awaited<ReturnType<typeof scanAll>>) =>
       capabilityMatrix(connectors, supervisor.settings(), {

@@ -113,6 +113,10 @@ const draft = {
   repository: "",
   existing: "",
 };
+/** Open the start screen next time the chat view mounts. */
+export function startNewChat() {
+  draft.selected = "";
+}
 export function ChatWorkspace({
   language,
   projects,

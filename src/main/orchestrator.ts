@@ -290,7 +290,8 @@ export class Orchestrator {
       this.save(batch, "reviewing", run.taskId);
       // The operator may already have run the review from the task: wait for
       // a running one, accept a finished one, start it only if it never ran.
-      if (run.reviewState !== "running" && run.reviewState !== "completed")
+      const live = run.state === "reviewing" && run.reviewState === "running";
+      if (!live && run.reviewState !== "completed")
         await this.supervisor.review({
           projectId: batch.projectId,
           runId,

@@ -475,3 +475,62 @@ test("abandoning a policy hold frees the queue for a new batch", async (t) => {
   );
   assert.equal(queue.state({ projectId: project.id }).status, "completed");
 });
+
+test("a review cut short by a crash returns the result to review, and a held retry runs it again", async (t) => {
+  const f = fixture(t);
+  let store = f.open();
+  const { project } = seed(store, 1);
+  const [a] = store.tasks(project.id).map((x) => x.id);
+  const fake = runtime(store, project.id, () => "ok");
+  fake.waitForRun = (runId) => {
+    if (store.runs.get(project.id, runId).state !== "awaiting_review")
+      store.runs.update(project.id, runId, { state: "awaiting_review" });
+    return Promise.resolve();
+  };
+  fake.review = async () => {
+    throw Error("POLICY_APPROVAL_REQUIRED");
+  };
+  const queue = new Orchestrator(store, fake);
+  const started = queue.start({
+    projectId: project.id,
+    taskIds: [a],
+    contextIds: [],
+    consent: true,
+  });
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  const runId = store.runs.list(project.id, a)[0].id;
+  // The operator started the review by hand, then the app crashed.
+  store.runs.update(project.id, runId, {
+    state: "reviewing",
+    reviewState: "running",
+    artifactId: "artifact-fixture",
+  });
+  store.close();
+  store = f.open();
+  new Supervisor(store, join(f.dir, "app"));
+  const recovered = store.runs.get(project.id, runId);
+  assert.equal(recovered.state, "awaiting_review");
+  assert.equal(recovered.reviewState, "failed");
+  assert.equal(recovered.error, "REVIEW_INTERRUPTED");
+
+  const second = runtime(store, project.id, () => "ok");
+  const reviews = [];
+  second.review = async (p) => reviews.push(p.runId);
+  second.waitForRun = () => Promise.resolve();
+  const resumedQueue = new Orchestrator(store, second);
+  resumedQueue.resume({
+    projectId: project.id,
+    batchId: started.id,
+    consent: true,
+  });
+  await until(
+    () => resumedQueue.state({ projectId: project.id }).status !== "running",
+  );
+  assert.deepEqual(reviews, [runId], "the interrupted review runs again");
+  assert.equal(
+    resumedQueue.state({ projectId: project.id }).reason,
+    "HUMAN_APPROVAL_REQUIRED",
+  );
+});

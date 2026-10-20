@@ -1736,8 +1736,12 @@ summary:focus-visible {
     grid-template-columns: auto minmax(0, 1fr);
   }
   .quota-idle li > span,
-  .quota-idle li > button {
+  .quota-idle li > button,
+  .quota-idle li > .quota-idle-actions {
     grid-column: 1 / -1;
+  }
+  .quota-idle-actions {
+    justify-content: flex-start;
   }
 }
 /* Usage ledger */
@@ -1847,4 +1851,54 @@ summary:focus-visible {
   border-radius: 999px;
   font-size: 11px;
   color: var(--warning);
+}
+
+/* Opt-in status line link for live CLI limits (OpenQuota). */
+.limit-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 16px;
+}
+.limit-link .connection-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.limit-link small {
+  flex-basis: 100%;
+}
+.quota-idle .limit-link {
+  margin: 0;
+}
+.limit-link-dialog .limit-link-facts {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 20px;
+  padding-left: 18px;
+  font-size: 13px;
+}
+.limit-link-dialog code {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.quota-idle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+.quota-idle-actions .limit-link button {
+  white-space: nowrap;
+}
+.limit-link > button {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding-block: 6px;
 }

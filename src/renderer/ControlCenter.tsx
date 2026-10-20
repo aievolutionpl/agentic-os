@@ -1,11 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import type {
   Attention,
   AttentionItem,
   ConnectorScan,
   ConnectorStatus,
+  ProviderQuotaCard,
   ProviderSetting,
 } from "../shared";
+import { quotaSummary } from "./LimitLink";
 import { attentionWords } from "./Inbox";
 import { ccWords } from "./cc-i18n";
 import { Icon, connectionState, relativeTime } from "./ui";
@@ -86,7 +88,34 @@ export function ControlCenter({
   agents?: ProviderSetting[];
 }) {
   const t = ccWords[language];
-  const connectors = (scan?.connectors ?? []).filter(c => c.id !== "gemini");
+  const pl = language === "pl";
+  // Shared, cached quota reading: real limits and balances per provider.
+  const [quota, setQuota] = useState<ProviderQuotaCard[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      void window.agenting
+        ?.quotaScan?.()
+        .then((cards) => alive && setQuota(cards))
+        .catch(() => {});
+    load();
+    const timer = setInterval(() => {
+      if (!document.hidden) load();
+    }, 60000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [scan?.observedAt]);
+  const limitOf = (id: string) =>
+    quotaSummary(
+      quota.find((c) => c.id === id),
+      pl,
+    );
+  const balance = quota.find(
+    (c) => c.id === "openrouter" && typeof c.balanceUsd === "number",
+  );
+  const connectors = (scan?.connectors ?? []).filter((c) => c.id !== "gemini");
   const runnable = connectors.filter((c) => c.adapter === "available");
   const ready = runnable.filter((c) => c.state === "ready").length;
   const attention = connectors.filter(
@@ -324,6 +353,21 @@ export function ControlCenter({
           <span className="stat-value">{scan ? runsToday : "–"}</span>
           <span className="stat-label">{t.statRuns}</span>
         </li>
+        {balance && (
+          <li data-stat="openrouter-balance">
+            <button className="quota-stat-button" onClick={onOpenQuota}>
+              <span className="stat-value">
+                <Icon name="tokens" />
+                {quotaSummary(balance, pl)!.value}
+              </span>
+              <span className="stat-label">
+                {pl
+                  ? "Saldo OpenRouter · OpenCode, Hermes"
+                  : "OpenRouter balance · OpenCode, Hermes"}
+              </span>
+            </button>
+          </li>
+        )}
         <li>
           <button className="quota-stat-button" onClick={onOpenQuota}>
             <span className="stat-value">
@@ -425,10 +469,10 @@ export function ControlCenter({
                 )}
                 {hasRuns && (
                   <div className="quota-block">
-                    <div>
+                    <div data-limit={limitOf(c.id) ? "known" : "unknown"}>
                       <span className="quota-label">{t.providerLimit}</span>
-                      <strong>{t.limitUnknown}</strong>
-                      <small>{t.limitUnknownNote}</small>
+                      <strong>{limitOf(c.id)?.value ?? t.limitUnknown}</strong>
+                      <small>{limitOf(c.id)?.note ?? t.limitUnknownNote}</small>
                     </div>
                     <div>
                       <span className="quota-label">{t.localRuns}</span>

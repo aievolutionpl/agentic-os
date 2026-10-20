@@ -28,6 +28,7 @@ import { Applications } from "./applications.js";
 import { McpTools } from "./extensions.js";
 import { ProjectBrowser } from "./browser.js";
 import { OpenRouterConnection } from "./openrouter.js";
+import { BRIDGE_AGENTS, LimitBridge } from "./limit-bridge.js";
 import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
 import { capabilityMatrix } from "./capabilities.js";
@@ -136,6 +137,9 @@ app
       decrypt: (value) => safeStorage.decryptString(value),
     });
     const localModel = new LocalModelConnection(app.getPath("userData"));
+    const limitBridge = new LimitBridge(app.getPath("userData"));
+    // An app update moves the runtime; a linked status line keeps working.
+    limitBridge.refresh();
     supervisor = new Supervisor(
       store,
       app.getPath("userData"),
@@ -191,15 +195,36 @@ app
             ? body.subscriptionType.slice(0, 40)
             : null;
         },
-        openrouter: async () =>
-          router.settings().configured
-            ? openRouterQuota(await router.quota())
-            : unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
+        openrouter: async () => {
+          if (!router.settings().configured)
+            return unavailable(
+              "openrouter",
+              "OpenRouter",
+              "CONFIGURE_OPENROUTER",
+            );
+          const [key, credits] = await Promise.all([
+            router.quota(),
+            router.credits(),
+          ]);
+          return openRouterQuota(key, credits);
+        },
+        statusLines: () => limitBridge.readings(),
+        viaOpenRouter: () =>
+          (["opencode", "hermes"] as Agent[]).filter(
+            (agent) => quotaProvider(agent) === "openrouter",
+          ),
       });
     quotaMonitor = new QuotaMonitor(quotaSources);
     const quotas = () => quotaMonitor!.read();
+    // OpenCode runs on the connected OpenRouter key; Hermes does when its
+    // selected model is an OpenRouter one.
     const quotaProvider = (agent: Agent) =>
-      agent === "opencode" && router.settings().configured
+      router.settings().configured &&
+      (agent === "opencode" ||
+        (agent === "hermes" &&
+          /^openrouter[/:]/i.test(
+            supervisor.settings().find((s) => s.id === "hermes")?.model ?? "",
+          )))
         ? "openrouter"
         : agent;
     /** A provider's quota state for routing and the start gate: a reading
@@ -220,11 +245,12 @@ app
             (m.format === "percent" || m.limitValue !== null) &&
             // Limits seen in a CLI stream age with their window: only one
             // that has not reset yet still describes the quota.
-            (card.source !== "cli-stream" ||
+            ((card.source !== "cli-stream" &&
+              card.source !== "cli-statusline") ||
               (!!m.resetsAt && Date.parse(m.resetsAt) > Date.now())),
         );
       if (!fresh) return "unknown";
-      if (card!.source === "cli-stream") {
+      if (card!.source === "cli-stream" || card!.source === "cli-statusline") {
         // Judge only the windows still in force; an old window with no reset
         // must not keep a usable provider exhausted.
         const current = card!.metrics.filter(
@@ -371,15 +397,28 @@ app
       },
       memoryVaultOpen: async () => {
         await memoryVault!.sync();
-        if (await shell.openPath(memoryVault!.directory)) throw Error("FOLDER_REQUIRED");
+        if (await shell.openPath(memoryVault!.directory))
+          throw Error("FOLDER_REQUIRED");
       },
       memoryUpdate: (input) => store.updateMemory(input),
       skillCatalog: () => store.extensions.catalog(),
       skillInstall: async (input) => {
-        const p = exact(input, ["projectId", "id"]), projectId = text(p.projectId), id = text(p.id);
+        const p = exact(input, ["projectId", "id"]),
+          projectId = text(p.projectId),
+          id = text(p.id);
         const skill = await store.extensions.install(projectId, id);
         const source = `skill:${id}`;
-        if (!store.memory(projectId).some(m => m.projectId === projectId && m.source === source)) store.createMemory({ projectId, source, scope: "project", content: `Installed skill: ${skill.name}\nSource: ${skill.source}\nVersion: ${skill.version}\nInstructions: ${skill.installPath}/SKILL.md` });
+        if (
+          !store
+            .memory(projectId)
+            .some((m) => m.projectId === projectId && m.source === source)
+        )
+          store.createMemory({
+            projectId,
+            source,
+            scope: "project",
+            content: `Installed skill: ${skill.name}\nSource: ${skill.source}\nVersion: ${skill.version}\nInstructions: ${skill.installPath}/SKILL.md`,
+          });
         return skill;
       },
       skillImportFile: async (input) => {
@@ -855,6 +894,18 @@ app
         quotaMonitor!.invalidate();
       },
       quotaRefresh: () => quotaMonitor!.read(true),
+      limitBridgeStatus: () =>
+        BRIDGE_AGENTS.map((agent) => limitBridge.status(agent)),
+      limitBridgeInstall: (input) => {
+        const status = limitBridge.install(input);
+        quotaMonitor!.invalidate();
+        return status;
+      },
+      limitBridgeRemove: (input) => {
+        const status = limitBridge.remove(input);
+        quotaMonitor!.invalidate();
+        return status;
+      },
     };
     for (const [name, handler] of Object.entries(handlers))
       ipcMain.handle(`app:${name}`, async (event, input: unknown) => {
@@ -880,6 +931,8 @@ app
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
           if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
+          if (name.startsWith("limitBridge") && code.startsWith("BRIDGE_"))
+            throw Error(code);
           if (name.startsWith("terminal") && code.startsWith("TERMINAL_"))
             throw Error(code);
           if (

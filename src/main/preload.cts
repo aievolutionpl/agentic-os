@@ -24,7 +24,8 @@ const api: API = {
   usageReport: () => ipcRenderer.invoke("app:usageReport"),
   memoryList: () => ipcRenderer.invoke("app:memoryList"),
   memoryGraph: () => ipcRenderer.invoke("app:memoryGraph"),
-  memoryAutoCapture: (input) => ipcRenderer.invoke("app:memoryAutoCapture", input),
+  memoryAutoCapture: (input) =>
+    ipcRenderer.invoke("app:memoryAutoCapture", input),
   memoryVaultOpen: () => ipcRenderer.invoke("app:memoryVaultOpen"),
   memoryUpdate: (input) => ipcRenderer.invoke("app:memoryUpdate", input),
   skillCatalog: () => ipcRenderer.invoke("app:skillCatalog"),
@@ -98,5 +99,10 @@ const api: API = {
   quotaSaveCustom: (input) => ipcRenderer.invoke("app:quotaSaveCustom", input),
   quotaDeleteCustom: (id) => ipcRenderer.invoke("app:quotaDeleteCustom", id),
   quotaRefresh: () => ipcRenderer.invoke("app:quotaRefresh"),
+  limitBridgeStatus: () => ipcRenderer.invoke("app:limitBridgeStatus"),
+  limitBridgeInstall: (input) =>
+    ipcRenderer.invoke("app:limitBridgeInstall", input),
+  limitBridgeRemove: (input) =>
+    ipcRenderer.invoke("app:limitBridgeRemove", input),
 };
 contextBridge.exposeInMainWorld("agenting", api);

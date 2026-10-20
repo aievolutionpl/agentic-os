@@ -18,13 +18,13 @@ export interface SecretStorage {
   decrypt(value: Buffer): string;
 }
 export type JsonRequest = (
-  path: "/key" | "/models",
+  path: "/key" | "/credits" | "/models",
   key?: string,
 ) => Promise<any>;
 /** Fixed origin, verified TLS, no redirects, bounded body and elapsed time. */
 export const openRouterRequest: JsonRequest = (path, key) =>
   new Promise((resolve, reject) => {
-    if (!["/key", "/models"].includes(path))
+    if (!["/key", "/credits", "/models"].includes(path))
       return reject(Error("INVALID_ENDPOINT"));
     const req = request(
       `https://openrouter.ai/api/v1${path}`,
@@ -155,6 +155,10 @@ export class OpenRouterConnection {
   }
   quota() {
     return this.requestJson("/key", this.key());
+  }
+  /** Account credits; some keys may not read them, which is not an error. */
+  credits() {
+    return this.requestJson("/credits", this.key()).catch(() => null);
   }
   /** Secret is passed directly to the trusted child, never returned over IPC. */
   environment(): NodeJS.ProcessEnv {

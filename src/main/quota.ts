@@ -18,6 +18,11 @@ import type {
   CustomSubscriptionInput,
 } from "../shared.js";
 import { exact, text } from "./validate.js";
+import type {
+  AntigravityReading,
+  BridgeReadings,
+  ClaudeReading,
+} from "./limit-bridge.js";
 
 const finite = (v: unknown): v is number =>
   typeof v === "number" && Number.isFinite(v) && v >= 0;
@@ -126,7 +131,15 @@ export function codexQuota(
     updatedAt: new Date().toISOString(),
   };
 }
-export function openRouterQuota(response: any): ProviderQuotaCard {
+/**
+ * OpenRouter account and key spend. `credits` (GET /credits) gives the
+ * account balance; `response` (GET /key) the key's own limit and its daily,
+ * weekly and monthly spend. A missing credits reading leaves the balance out.
+ */
+export function openRouterQuota(
+  response: any,
+  credits?: any,
+): ProviderQuotaCard {
   const d = response?.data;
   if (!d || !finite(d.usage))
     return unavailable(
@@ -163,6 +176,14 @@ export function openRouterQuota(response: any): ProviderQuotaCard {
       unit: "USD",
     });
   };
+  const total = credits?.data?.total_credits,
+    spent = credits?.data?.total_usage;
+  const balanceUsd =
+    finite(total) && finite(spent)
+      ? Math.max(0, Math.round((total - spent) * 100) / 100)
+      : null;
+  if (balanceUsd !== null)
+    add("balance", "Account balance", spent, total, null);
   // limit_remaining is authoritative for resetting keys; lifetime usage is not window spend.
   if (
     finite(d.limit) &&
@@ -176,7 +197,11 @@ export function openRouterQuota(response: any): ProviderQuotaCard {
       d.limit,
       null,
     );
-  else add("usage", "Lifetime usage", d.usage, null, null);
+  else if (balanceUsd === null)
+    add("usage", "Lifetime usage", d.usage, null, null);
+  add("today", "Spend today", d.usage_daily, null, null);
+  add("week", "Spend this week", d.usage_weekly, null, null);
+  add("month", "Spend this month", d.usage_monthly, null, null);
   if (Array.isArray(d.budgets))
     for (const [i, b] of d.budgets.slice(0, 10).entries())
       add(
@@ -196,8 +221,117 @@ export function openRouterQuota(response: any): ProviderQuotaCard {
     metrics,
     usageTrend: [],
     source: "openrouter-api",
-    detail: "API_KEY_BUDGET_NOT_ACCOUNT_BALANCE",
+    detail:
+      balanceUsd === null
+        ? "API_KEY_BUDGET_NOT_ACCOUNT_BALANCE"
+        : "OPENROUTER_ACCOUNT_BALANCE",
+    balanceUsd,
     updatedAt: new Date().toISOString(),
+  };
+}
+
+/** An agent whose model calls are billed to the connected OpenRouter account. */
+export function viaOpenRouter(
+  id: string,
+  name: string,
+  router: ProviderQuotaCard,
+): ProviderQuotaCard {
+  return {
+    ...router,
+    id,
+    name,
+    icon: id,
+    plan: "OpenRouter",
+    detail: "BILLED_VIA_OPENROUTER",
+    via: "openrouter",
+  };
+}
+
+const CLAUDE_WINDOWS: Record<string, [string, number]> = {
+  five_hour: ["Session · 5 h", 18000],
+  seven_day: ["Weekly · 7 d", 604800],
+  seven_day_opus: ["Weekly · Opus", 604800],
+  seven_day_sonnet: ["Weekly · Sonnet", 604800],
+  spend_limit: ["Spend limit", 0],
+};
+
+/** Claude Code's own status line windows; a window past its reset is dropped. */
+export function claudeLimitMetrics(
+  reading: ClaudeReading,
+  now = Date.now(),
+): QuotaMetric[] {
+  return Object.entries(reading.windows)
+    .filter(([, w]) => w.resetsAt > now)
+    .map(([id, w]): QuotaMetric => {
+      const used = Math.min(100, w.usedPercent);
+      const [label, periodSeconds] = CLAUDE_WINDOWS[id] ?? [
+        id.replace(/_/g, " "),
+        0,
+      ];
+      return {
+        id: `limit-${id}`,
+        label,
+        usedPercent: used,
+        remainingPercent: 100 - used,
+        usedValue: used,
+        limitValue: 100,
+        resetsAt: new Date(w.resetsAt).toISOString(),
+        periodSeconds,
+        format: "percent",
+        unit: "%",
+      };
+    });
+}
+
+/** Antigravity's shared quota pools ("gemini-weekly", ...), as fractions left. */
+export function antigravityLimitMetrics(
+  reading: AntigravityReading,
+  now = Date.now(),
+): QuotaMetric[] {
+  return Object.entries(reading.buckets)
+    .filter(([, b]) => b.resetsAt === null || b.resetsAt > now)
+    .map(([id, b]): QuotaMetric => {
+      const used = Math.round((1 - b.remainingFraction) * 1000) / 10;
+      const words = id.split(/[-_:.]/).filter(Boolean);
+      const label = words
+        .map((w, i) => (i ? w : w[0]!.toUpperCase() + w.slice(1)))
+        .join(" · ");
+      return {
+        id: `pool-${id}`,
+        label,
+        usedPercent: used,
+        remainingPercent: 100 - used,
+        usedValue: used,
+        limitValue: 100,
+        resetsAt:
+          b.resetsAt === null ? null : new Date(b.resetsAt).toISOString(),
+        periodSeconds: /week/i.test(id) ? 604800 : /day/i.test(id) ? 86400 : 0,
+        format: "percent",
+        unit: "%",
+      };
+    });
+}
+
+/** A CLI card whose limits came from its own status line. */
+function statusLineCard(
+  base: ProviderQuotaCard,
+  limits: QuotaMetric[],
+  at: number,
+  plan: string | null,
+): ProviderQuotaCard {
+  if (!limits.length) return base;
+  const metrics = [
+    ...limits,
+    ...base.metrics.filter((m) => m.id === "tokens-today"),
+  ];
+  return {
+    ...base,
+    plan: plan ?? base.plan,
+    metrics,
+    status: status(limits),
+    source: "cli-statusline",
+    detail: `${base.id.toUpperCase()}_LIMITS_FROM_STATUS_LINE`,
+    updatedAt: new Date(at).toISOString(),
   };
 }
 function validateCustom(
@@ -413,6 +547,10 @@ export interface QuotaSources {
   openrouter?: () => Promise<ProviderQuotaCard>;
   /** Subscription tier as the Claude CLI's own auth status reports it. */
   claudePlan?: () => Promise<string | null>;
+  /** Quota the CLIs' own status lines handed over (opt-in link). */
+  statusLines?: () => BridgeReadings;
+  /** Agents whose model calls are billed to the connected OpenRouter key. */
+  viaOpenRouter?: () => string[];
 }
 export async function scanAllQuotas(
   directory: string,
@@ -430,27 +568,57 @@ export async function scanAllQuotas(
       ),
     sources.claudePlan?.().catch(() => null) ?? null,
   ]);
+  const lines = (() => {
+    try {
+      return sources.statusLines?.() ?? {};
+    } catch {
+      return {};
+    }
+  })();
+  const routerCard =
+    router ?? unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER");
+  const routed = new Set(sources.viaOpenRouter?.() ?? []);
+  const billed = (id: string, name: string) =>
+    routed.has(id) && routerCard.source === "openrouter-api"
+      ? viaOpenRouter(id, name, routerCard)
+      : unavailable(id, name, "PROVIDER_USAGE_UNAVAILABLE");
+  const claude = observedQuota(
+    "claude",
+    "Claude Code",
+    observed.claude,
+    claudePlan ?? null,
+    "CLAUDE_USE_OFFICIAL_USAGE",
+  );
+  const antigravity = observedQuota(
+    "antigravity",
+    "Antigravity",
+    observed.antigravity,
+    null,
+    "ANTIGRAVITY_USE_OFFICIAL_USAGE",
+  );
   return [
     codex ?? unavailable("codex", "Codex", "CONFIGURE_CODEX"),
-    observedQuota(
-      "claude",
-      "Claude Code",
-      observed.claude,
-      claudePlan ?? null,
-      "CLAUDE_USE_OFFICIAL_USAGE",
-    ),
+    lines.claude
+      ? statusLineCard(
+          claude,
+          claudeLimitMetrics(lines.claude),
+          lines.claude.at,
+          claudePlan ?? null,
+        )
+      : claude,
     unavailable("gemini", "Gemini CLI", "GEMINI_USE_OFFICIAL_USAGE"),
-    unavailable("opencode", "OpenCode", "PROVIDER_USAGE_UNAVAILABLE"),
-    unavailable("hermes", "Hermes", "PROVIDER_USAGE_UNAVAILABLE"),
+    billed("opencode", "OpenCode"),
+    billed("hermes", "Hermes"),
     unavailable("local", "Local LLM", "LOCAL_MODEL_NO_SUBSCRIPTION_QUOTA"),
-    router ?? unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
-    observedQuota(
-      "antigravity",
-      "Antigravity",
-      observed.antigravity,
-      null,
-      "ANTIGRAVITY_USE_OFFICIAL_USAGE",
-    ),
+    routerCard,
+    lines.antigravity
+      ? statusLineCard(
+          antigravity,
+          antigravityLimitMetrics(lines.antigravity),
+          lines.antigravity.at,
+          lines.antigravity.plan,
+        )
+      : antigravity,
     ...loadCustomSubscriptions(directory).map(mapCustomToCard),
   ];
 }

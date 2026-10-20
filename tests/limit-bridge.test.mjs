@@ -1,0 +1,253 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { LimitBridge } from "../dist/main/limit-bridge.js";
+import {
+  antigravityLimitMetrics,
+  claudeLimitMetrics,
+  openRouterQuota,
+  scanAllQuotas,
+} from "../dist/main/quota.js";
+
+function setup(t) {
+  const root = mkdtempSync(join(tmpdir(), "agenting-bridge-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const home = join(root, "home"),
+    data = join(root, "data");
+  mkdirSync(home, { recursive: true });
+  const bridge = new LimitBridge(data, process.execPath, {}, home);
+  return { root, home, data, bridge };
+}
+const claudeSettings = (home) => join(home, ".claude", "settings.json");
+const relay = (data, agent, input) =>
+  spawnSync(
+    process.execPath,
+    [join(data, "limit-bridge", "relay.mjs"), agent],
+    { input: JSON.stringify(input), encoding: "utf8", timeout: 10000 },
+  );
+
+test("linking needs consent and keeps every other setting", (t) => {
+  const { home, bridge } = setup(t);
+  mkdirSync(join(home, ".claude"));
+  writeFileSync(
+    claudeSettings(home),
+    JSON.stringify({ model: "opus", permissions: { allow: ["Bash(ls)"] } }),
+  );
+  assert.throws(() => bridge.install({ agent: "claude" }), /CONSENT/);
+  assert.throws(
+    () => bridge.install({ agent: "codex", consent: true }),
+    /INVALID_INPUT/,
+  );
+  const status = bridge.install({ agent: "claude", consent: true });
+  assert.equal(status.installed, true);
+  const settings = JSON.parse(readFileSync(claudeSettings(home), "utf8"));
+  assert.equal(settings.model, "opus");
+  assert.deepEqual(settings.permissions, { allow: ["Bash(ls)"] });
+  assert.equal(settings.statusLine.type, "command");
+  assert.equal(settings.statusLine.command, status.command);
+  assert.equal(
+    bridge.install({ agent: "claude", consent: true }).installed,
+    true,
+    "linking twice is a no-op",
+  );
+  bridge.remove({ agent: "claude" });
+  assert.deepEqual(JSON.parse(readFileSync(claudeSettings(home), "utf8")), {
+    model: "opus",
+    permissions: { allow: ["Bash(ls)"] },
+  });
+});
+
+test("a user's own status line is chained and restored exactly", (t) => {
+  const { home, data, bridge } = setup(t);
+  mkdirSync(join(home, ".claude"));
+  const mine = { type: "command", command: "echo mine", padding: 1 };
+  writeFileSync(claudeSettings(home), JSON.stringify({ statusLine: mine }));
+  const status = bridge.install({ agent: "claude", consent: true });
+  assert.equal(status.previous, "echo mine");
+  const linked = JSON.parse(readFileSync(claudeSettings(home), "utf8"));
+  assert.equal(linked.statusLine.padding, 1, "the user's padding is kept");
+  if (process.platform !== "win32") {
+    const out = relay(data, "claude", { rate_limits: {} });
+    assert.equal(
+      out.stdout.trim(),
+      "mine",
+      "the previous command still renders",
+    );
+  }
+  bridge.remove({ agent: "claude" });
+  assert.deepEqual(
+    JSON.parse(readFileSync(claudeSettings(home), "utf8")).statusLine,
+    mine,
+  );
+});
+
+test("an unreadable settings file is never overwritten", (t) => {
+  const { home, bridge } = setup(t);
+  mkdirSync(join(home, ".claude"));
+  writeFileSync(claudeSettings(home), "{ not json");
+  assert.throws(
+    () => bridge.install({ agent: "claude", consent: true }),
+    /BRIDGE_SETTINGS_UNREADABLE/,
+  );
+  assert.equal(readFileSync(claudeSettings(home), "utf8"), "{ not json");
+  assert.equal(bridge.status("claude").readable, false);
+});
+
+test("the relay keeps only quota numbers from Claude Code's status line", (t) => {
+  const { data, bridge } = setup(t);
+  bridge.install({ agent: "claude", consent: true });
+  const reset = Math.floor(Date.now() / 1000) + 3600;
+  const out = relay(data, "claude", {
+    session_id: "secret-session",
+    transcript_path: "/home/me/.claude/projects/x.jsonl",
+    workspace: { current_dir: "/home/me/private" },
+    rate_limits: {
+      five_hour: { used_percentage: 23.5, resets_at: reset },
+      seven_day: { used_percentage: 41.2, resets_at: reset + 86400 },
+    },
+  });
+  assert.equal(out.status, 0);
+  assert.equal(out.stdout, "5h 24% · 7d 41%");
+  const stored = readFileSync(
+    join(data, "limit-bridge", "claude-limits.json"),
+    "utf8",
+  );
+  assert.doesNotMatch(stored, /secret-session|private|transcript/);
+  const reading = bridge.readings().claude;
+  assert.equal(reading.windows.five_hour.usedPercent, 23.5);
+  assert.equal(reading.windows.five_hour.resetsAt, reset * 1000);
+  // A render without limits (start of a session) keeps the last reading.
+  relay(data, "claude", { model: { display_name: "Opus" } });
+  assert.ok(bridge.readings().claude.windows.seven_day);
+});
+
+test("the relay keeps Antigravity's quota pools and plan, never the e-mail", (t) => {
+  const { home, data, bridge } = setup(t);
+  const status = bridge.install({ agent: "antigravity", consent: true });
+  const settings = JSON.parse(
+    readFileSync(
+      join(home, ".gemini", "antigravity-cli", "settings.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(settings.statusLine.stack_with_default, true);
+  assert.equal(settings.statusLine.command, status.command);
+  const out = relay(data, "antigravity", {
+    email: "developer@email.com",
+    plan_tier: "Pro",
+    quota: {
+      "gemini-weekly": {
+        remaining_fraction: 0.9378,
+        reset_time: new Date(Date.now() + 86400000).toISOString(),
+      },
+    },
+  });
+  assert.equal(out.status, 0);
+  assert.match(out.stdout, /gemini-weekly 94% left/);
+  assert.doesNotMatch(
+    readFileSync(join(data, "limit-bridge", "antigravity-limits.json"), "utf8"),
+    /email/,
+  );
+  const reading = bridge.readings().antigravity;
+  assert.equal(reading.plan, "Pro");
+  const [pool] = antigravityLimitMetrics(reading);
+  assert.equal(pool.label, "Gemini · weekly");
+  assert.equal(pool.remainingPercent, 93.8);
+  bridge.remove({ agent: "antigravity" });
+  assert.equal(bridge.readings().antigravity, undefined);
+  assert.equal(
+    existsSync(join(data, "limit-bridge", "antigravity-limits.json")),
+    false,
+  );
+});
+
+test("malformed readings are ignored and expired windows are dropped", (t) => {
+  const { data, bridge } = setup(t);
+  mkdirSync(join(data, "limit-bridge"), { recursive: true });
+  writeFileSync(
+    join(data, "limit-bridge", "claude-limits.json"),
+    JSON.stringify({
+      at: Date.now(),
+      windows: {
+        five_hour: { usedPercent: "lots", resetsAt: 1 },
+        "bad id!": { usedPercent: 1, resetsAt: 1 },
+        seven_day: { usedPercent: 50, resetsAt: Date.now() - 1000 },
+      },
+    }),
+  );
+  const reading = bridge.readings().claude;
+  assert.deepEqual(Object.keys(reading.windows), ["seven_day"]);
+  assert.deepEqual(
+    claudeLimitMetrics(reading),
+    [],
+    "an expired window is gone",
+  );
+});
+
+test("OpenRouter shows the account balance and the key's spend windows", () => {
+  const card = openRouterQuota(
+    {
+      data: {
+        usage: 30,
+        limit: null,
+        usage_daily: 1.5,
+        usage_weekly: 4,
+        usage_monthly: 12,
+      },
+    },
+    { data: { total_credits: 50, total_usage: 37.6 } },
+  );
+  assert.equal(card.balanceUsd, 12.4);
+  assert.equal(card.metrics[0].id, "balance");
+  assert.equal(card.metrics[0].limitValue, 50);
+  assert.deepEqual(
+    card.metrics.map((m) => m.id),
+    ["balance", "today", "week", "month"],
+  );
+  assert.equal(card.detail, "OPENROUTER_ACCOUNT_BALANCE");
+  const keyOnly = openRouterQuota({ data: { usage: 3 } }, null);
+  assert.equal(keyOnly.balanceUsd, null);
+  assert.equal(keyOnly.detail, "API_KEY_BUDGET_NOT_ACCOUNT_BALANCE");
+});
+
+test("cards use status line limits and OpenRouter billing when available", async (t) => {
+  const { data } = setup(t);
+  const reset = Date.now() + 3600000;
+  const cards = await scanAllQuotas(data, {
+    openrouter: async () =>
+      openRouterQuota(
+        { data: { usage: 1 } },
+        { data: { total_credits: 10, total_usage: 2 } },
+      ),
+    statusLines: () => ({
+      claude: {
+        at: Date.now(),
+        windows: {
+          five_hour: { usedPercent: 92, resetsAt: reset },
+          seven_day: { usedPercent: 40, resetsAt: reset },
+        },
+      },
+    }),
+    viaOpenRouter: () => ["opencode"],
+    claudePlan: async () => "max",
+  });
+  const claude = cards.find((c) => c.id === "claude");
+  assert.equal(claude.source, "cli-statusline");
+  assert.equal(claude.status, "warning");
+  assert.equal(claude.plan, "max");
+  assert.equal(claude.metrics[0].label, "Session · 5 h");
+  const opencode = cards.find((c) => c.id === "opencode");
+  assert.equal(opencode.via, "openrouter");
+  assert.equal(opencode.balanceUsd, 8);
+  assert.equal(cards.find((c) => c.id === "hermes").source, "unavailable");
+});

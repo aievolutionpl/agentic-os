@@ -483,6 +483,14 @@ export interface API {
     paidApi: WorkspacePolicy["paidApi"];
     monthlyBudgetUsd: number | null;
   }): Promise<WorkspacePolicy>;
+  /** Preview the router's choice; it never starts anything. */
+  routePreview?(input: {
+    mode: RoutingMode;
+    role: "implementer" | "reviewer";
+    readOnly: boolean;
+    author?: Agent;
+    preferred?: Agent;
+  }): Promise<RoutingDecision>;
   /** Approve paid runs for one agent for 30 minutes, in memory only. */
   policyApprove?(input: { agent: Agent; consent: true }): Promise<void>;
   chatAction?(input: { id: string; action: "stop" | "delete" }): Promise<void>;
@@ -758,6 +766,19 @@ export interface RunEvent {
   kind: string;
   text: string;
   at: number;
+}
+export type RoutingMode =
+  | "manual"
+  | "balanced"
+  | "subscription-first"
+  | "quality-first";
+/** Explainable agent choice: every point and every rejection has a reason. */
+export interface RoutingDecision {
+  mode: RoutingMode;
+  choice: Agent | null;
+  ranked: { agent: Agent; score: number; reasons: string[] }[];
+  rejected: { agent: Agent; reasons: string[] }[];
+  reason: string;
 }
 /** Workspace rules the application enforces before any agent starts. */
 export interface WorkspacePolicy {

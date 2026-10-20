@@ -1536,3 +1536,83 @@ summary:focus-visible {
   color: var(--text-muted);
   font-size: 12px;
 }
+/* Router preview in the task composer */
+.route-preview {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+}
+.route-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.route-head .icon {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+.route-head select {
+  width: auto;
+}
+.route-result {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.route-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.route-role {
+  min-width: 84px;
+  color: var(--text-muted);
+}
+.route-row .provider-glyph {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+.route-row .provider-glyph svg {
+  width: 15px;
+  height: 15px;
+}
+.route-row small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+.route-result details {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.route-result ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+.route-preview button {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.route-preview button .icon {
+  width: 15px;
+  height: 15px;
+}
+.route-head select {
+  min-height: 34px;
+  padding: 4px 30px 4px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+}

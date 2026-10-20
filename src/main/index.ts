@@ -42,9 +42,15 @@ import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
 import { Chats, githubRepositories } from "./chats.js";
 import { evaluatePolicy, PaidApprovals } from "./policy.js";
+import { route } from "./router.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
-import { AGENTS, type Agent, type ProviderHealth } from "../shared.js";
+import {
+  AGENTS,
+  type Agent,
+  type ProviderHealth,
+  type RoutingMode,
+} from "../shared.js";
 import {
   scanAllQuotas,
   saveCustomSubscription,
@@ -433,6 +439,74 @@ app
         // A changed rule set asks again before the next paid run.
         paidApprovals.revokeAll();
         return policy;
+      },
+      routePreview: async (input) => {
+        const p = exact(input, [
+          "mode",
+          "role",
+          "readOnly",
+          "author",
+          "preferred",
+        ]);
+        const mode = String(p.mode) as RoutingMode;
+        if (
+          ![
+            "manual",
+            "balanced",
+            "subscription-first",
+            "quality-first",
+          ].includes(mode) ||
+          !["implementer", "reviewer"].includes(String(p.role)) ||
+          typeof p.readOnly !== "boolean" ||
+          (p.author !== undefined && !AGENTS.includes(p.author as Agent)) ||
+          (p.preferred !== undefined && !AGENTS.includes(p.preferred as Agent))
+        )
+          throw Error("INVALID_INPUT");
+        const settings = supervisor.settings(),
+          checks = store.capabilities.list(),
+          evidence = store.runs.evidence(),
+          policy = store.policies.get();
+        // A quota reading counts only while fresh; otherwise it is unknown.
+        const cards = await quotas().catch(() => []);
+        const facts = AGENTS.map((agent) => {
+          const card = cards.find(
+            (c) => c.id === quotaProvider(agent) && c.source !== "manual",
+          );
+          const fresh =
+            !!card &&
+            Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000;
+          const runs = evidence.find((e) => e.provider === agent);
+          const paid = quotaProvider(agent) === "openrouter";
+          return {
+            agent,
+            configured: !!settings.find((s) => s.id === agent)?.configured,
+            check: checks.find((c) => c.agent === agent)?.state ?? null,
+            quota:
+              fresh && ["active", "warning", "exhausted"].includes(card!.status)
+                ? (card!.status as "active" | "warning" | "exhausted")
+                : ("unknown" as const),
+            paid,
+            policy: evaluatePolicy(
+              { agent, paid, approved: paidApprovals.has(agent) },
+              policy,
+              null,
+            ).verdict,
+            successes: runs?.successes ?? 0,
+            lastFailed:
+              !!runs?.lastFailureAt &&
+              (runs.lastSuccessAt ?? 0) < runs.lastFailureAt,
+          };
+        });
+        return route(
+          {
+            mode,
+            role: p.role as "implementer" | "reviewer",
+            readOnly: p.readOnly,
+            author: p.author as Agent | undefined,
+            preferred: p.preferred as Agent | undefined,
+          },
+          facts,
+        );
       },
       policyApprove: (input) => {
         const p = exact(input, ["agent", "consent"]);

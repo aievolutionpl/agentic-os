@@ -36,19 +36,35 @@ function quotedToken(text: string) {
   return null;
 }
 
-/** Files a captured diff touches, from its `diff --git` headers. Captures
- * use `--no-renames`, so both sides of a header name the same path; quoted
- * (non-ASCII or special) and space-containing paths are both handled. */
+/** Files a diff touches, from its `diff --git` headers: both sides of a
+ * rename, Git-quoted (non-ASCII or special) and space-containing paths. */
 export function diffFiles(diff: string) {
   const files = new Set<string>();
+  const strip = (path: string) => path.replace(/^[ab]\//, "");
   for (const [, rest] of diff.matchAll(/^diff --git (.+)$/gm)) {
-    if (rest!.startsWith('"')) {
-      const token = quotedToken(rest!);
-      if (token) files.add(unquote(token).replace(/^a\//, ""));
+    const line = rest!;
+    const first = line.startsWith('"') ? quotedToken(line) : null;
+    if (first) {
+      const second = line.slice(first.length + 1);
+      files.add(strip(unquote(first)));
+      files.add(strip(second.startsWith('"') ? unquote(second) : second));
       continue;
     }
-    const size = (rest!.length - 5) / 2;
-    if (Number.isInteger(size) && size > 0) files.add(rest!.slice(2, 2 + size));
+    if (line.endsWith('"')) {
+      const at = line.lastIndexOf(' "');
+      files.add(strip(line.slice(0, at)));
+      files.add(strip(unquote(line.slice(at + 1))));
+      continue;
+    }
+    // Unquoted: an unchanged path reads "a/X b/X", which also covers spaces.
+    const size = (line.length - 5) / 2;
+    const same = line.slice(2, 2 + size);
+    if (Number.isInteger(size) && size > 0 && line === `a/${same} b/${same}`)
+      files.add(same);
+    else {
+      const m = /^a\/(.+?) b\/(.+)$/.exec(line);
+      if (m) files.add(m[1]!).add(m[2]!);
+    }
   }
   return files;
 }

@@ -172,7 +172,11 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
       { repository: "/r", path: "/r/w", base: "a", head: "a" },
       "",
     );
-    store.runs.update(project.id, run.id, { state });
+    store.runs.update(project.id, run.id, {
+      state,
+      ...(i === 3 && { reviewState: "completed" }),
+      ...(i === 4 && { reviewState: "failed" }),
+    });
   }
   store.close();
   store = new Store(join(dir, "db.sqlite"));
@@ -190,6 +194,13 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
   assert.equal(codex.successes, 2);
   assert.ok(codex.lastSuccessAt);
   assert.ok(codex.lastFailureAt);
+  // Reviewer history counts only the reviews an agent actually did.
+  const reviews = store.runs.evidence("reviewer");
+  assert.deepEqual(
+    reviews.map((r) => [r.provider, r.successes]),
+    [["claude", 1]],
+  );
+  assert.ok(reviews[0].lastFailureAt);
   // A late, older probe never replaces newer evidence.
   store.capabilities.record({
     agent: "codex",

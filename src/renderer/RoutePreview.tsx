@@ -151,21 +151,29 @@ export function RoutePreview({
         <div className="route-result">
           {row(pl ? "Wykonawca" : "Implementer", result.implementer)}
           {row(pl ? "Recenzent" : "Reviewer", result.reviewer)}
-          {!!result.implementer.rejected.length && (
-            <details>
-              <summary>
-                {pl ? "Odrzuceni" : "Not eligible"} ·{" "}
-                {result.implementer.rejected.length}
-              </summary>
-              <ul>
-                {result.implementer.rejected.map((r) => (
-                  <li key={r.agent}>
-                    <strong>{agentName(r.agent)}</strong>{" "}
-                    {r.reasons.map((x) => reasonText(x, pl)).join(", ")}
-                  </li>
-                ))}
-              </ul>
-            </details>
+          {(
+            [
+              [pl ? "Wykonawca" : "Implementer", result.implementer],
+              [pl ? "Recenzent" : "Reviewer", result.reviewer],
+            ] as const
+          ).map(
+            ([label, decision]) =>
+              !!decision?.rejected.length && (
+                <details key={label}>
+                  <summary>
+                    {label} · {pl ? "odrzuceni" : "not eligible"} ·{" "}
+                    {decision.rejected.length}
+                  </summary>
+                  <ul>
+                    {decision.rejected.map((r) => (
+                      <li key={r.agent}>
+                        <strong>{agentName(r.agent)}</strong>{" "}
+                        {r.reasons.map((x) => reasonText(x, pl)).join(", ")}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ),
           )}
           <button
             type="button"

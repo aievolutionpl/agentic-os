@@ -175,10 +175,13 @@ export class Runs {
       }));
   }
   /** Real inference evidence: runs whose provider turn actually finished, not configuration. */
-  evidence() {
+  /** Finished and failed work per agent, for the role it played. */
+  evidence(role: "implementer" | "reviewer" = "implementer") {
     return this.db
       .prepare(
-        "SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes, MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN state='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY provider",
+        role === "implementer"
+          ? "SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes, MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN state='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY provider"
+          : "SELECT reviewer AS provider, SUM(reviewState='completed') AS successes, MAX(CASE WHEN reviewState='completed' THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN reviewState='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY reviewer",
       )
       .all()
       .map((row) => ({

@@ -479,17 +479,29 @@ app
           throw Error("INVALID_INPUT");
         const settings = supervisor.settings(),
           checks = store.capabilities.list(),
-          evidence = store.runs.evidence(),
+          // History for the role being routed: reviews count for reviewers.
+          evidence = store.runs.evidence(p.role as "implementer" | "reviewer"),
           policy = store.policies.get();
+        // The same spend the execution gate uses, so a capped budget is not
+        // proposed and then refused at start.
+        const spent =
+          policy.monthlyBudgetUsd !== null && router.settings().configured
+            ? await monthlySpend()
+            : null;
         // A quota reading counts only while fresh; otherwise it is unknown.
         const cards = await quotas().catch(() => []);
         const facts = AGENTS.map((agent) => {
           const card = cards.find(
             (c) => c.id === quotaProvider(agent) && c.source !== "manual",
           );
+          // Fresh and backed by a provider-reported limit; usage alone (token
+          // observations, lifetime spend) says nothing about what is left.
           const fresh =
             !!card &&
-            Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000;
+            Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
+            card.metrics.some(
+              (m) => m.format === "percent" || m.limitValue !== null,
+            );
           const runs = evidence.find((e) => e.provider === agent);
           const paid = quotaProvider(agent) === "openrouter";
           return {
@@ -504,7 +516,7 @@ app
             policy: evaluatePolicy(
               { agent, paid, approved: paidApprovals.has(agent) },
               policy,
-              null,
+              paid ? spent : null,
             ).verdict,
             successes: runs?.successes ?? 0,
             lastFailed:

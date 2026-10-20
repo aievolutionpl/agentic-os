@@ -5,6 +5,44 @@ import type { ProcessSpec } from "./rpc.js";
 import { redact } from "./validate.js";
 
 export type NativeProtocol = "claude-cli" | "antigravity-cli";
+
+/** Facts the provider itself reported in its documented stream; never inferred. */
+export type ProviderObservation =
+  | {
+      kind: "limit";
+      window: string;
+      status: string;
+      resetsAt: number | null;
+      utilization: number | null;
+    }
+  | { kind: "tokens"; input: number; output: number; total: number };
+
+const finite = (v: unknown) =>
+  typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null;
+
+/**
+ * Claude Code stream-json `rate_limit_event`. Field casing has varied between
+ * releases, so both spellings are accepted; anything else is ignored.
+ */
+export function claudeLimit(event: any): ProviderObservation | null {
+  const info = event?.rate_limit_info ?? event?.rateLimitInfo;
+  if (!info || typeof info !== "object") return null;
+  const window = info.rateLimitType ?? info.rate_limit_type;
+  const status = info.status;
+  if (typeof window !== "string" || typeof status !== "string") return null;
+  const reset = finite(info.resetsAt ?? info.resets_at);
+  let utilization = finite(info.utilization);
+  // Reported as a 0–1 fraction; treat values above 1 as a percentage.
+  if (utilization !== null && utilization > 1) utilization /= 100;
+  return {
+    kind: "limit",
+    window: window.slice(0, 40),
+    status: status.slice(0, 40),
+    // Seconds or milliseconds since the epoch, normalised to milliseconds.
+    resetsAt: reset === null ? null : reset < 1e12 ? reset * 1000 : reset,
+    utilization: utilization === null ? null : Math.min(1, utilization),
+  };
+}
 export function cliArguments(
   protocol: NativeProtocol,
   readOnly: boolean,
@@ -44,6 +82,7 @@ export class CliAdapter implements AgentAdapter {
   constructor(
     private spec: ProcessSpec,
     private protocol: NativeProtocol,
+    private observe: (observation: ProviderObservation) => void = () => {},
   ) {}
   async run(input: AgentInput): Promise<AgentResult> {
     if (input.signal.aborted) throw Error("RUN_CANCELLED");
@@ -71,6 +110,8 @@ export class CliAdapter implements AgentAdapter {
       return await new Promise<AgentResult>((resolve, reject) => {
         let buffer = "",
           bytes = 0,
+          // Antigravity streams a response as text_delta fragments per step.
+          step = { index: -1, text: "" },
           final: AgentResult | undefined,
           failed = false;
         const turnId = randomUUID();
@@ -86,6 +127,32 @@ export class CliAdapter implements AgentAdapter {
           if (!line.trim() || failed) return;
           try {
             const event = JSON.parse(line);
+            if (
+              this.protocol === "claude-cli" &&
+              event.type === "rate_limit_event"
+            ) {
+              const limit = claudeLimit(event);
+              if (limit) this.observe(limit);
+              return;
+            }
+            const update =
+              event.event === "step_update" ? event.step_update : null;
+            if (this.protocol === "antigravity-cli" && update) {
+              if (update.step_type === "agent_response") {
+                if (update.step_index !== step.index)
+                  step = { index: update.step_index, text: "" };
+                if (typeof update.text_delta === "string")
+                  step.text = (step.text + update.text_delta).slice(-8000);
+                if (update.state === "DONE" && step.text.trim())
+                  input.activity("message", redact(step.text, 8000));
+              } else if (
+                update.step_type === "tool" &&
+                update.state === "DONE" &&
+                typeof update.tool_name === "string"
+              )
+                input.activity("tool", update.tool_name.slice(0, 100));
+              return;
+            }
             if (event.type === "assistant") {
               const body = event.message?.content;
               if (Array.isArray(body))
@@ -127,18 +194,24 @@ export class CliAdapter implements AgentAdapter {
             };
             input.session(final.threadId, turnId);
             const usage = result.usage;
-            if (
-              usage &&
-              Number.isFinite(usage.input_tokens) &&
-              Number.isFinite(usage.output_tokens)
-            )
+            const tokensIn = finite(usage?.input_tokens),
+              tokensOut = finite(usage?.output_tokens);
+            if (tokensIn !== null && tokensOut !== null) {
+              // Antigravity also reports thinking tokens and its own total.
+              const total =
+                finite(usage.total_tokens) ??
+                tokensIn + tokensOut + (finite(usage.thinking_tokens) ?? 0);
               input.activity(
                 "tokens",
-                JSON.stringify({
-                  input: usage.input_tokens,
-                  output: usage.output_tokens,
-                }),
+                JSON.stringify({ input: tokensIn, output: tokensOut, total }),
               );
+              this.observe({
+                kind: "tokens",
+                input: tokensIn,
+                output: tokensOut,
+                total,
+              });
+            }
           } catch {
             fail("PROTOCOL_INVALID");
           }

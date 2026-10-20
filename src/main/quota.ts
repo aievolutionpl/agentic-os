@@ -1,4 +1,9 @@
 import {
+  localDay,
+  readObservations,
+  type ProviderObservations,
+} from "./observations.js";
+import {
   existsSync,
   readFileSync,
   writeFileSync,
@@ -314,15 +319,106 @@ function mapCustomToCard(sub: CustomSubscriptionInput): ProviderQuotaCard {
     updatedAt: new Date().toISOString(),
   };
 }
+const WINDOWS: Record<string, [string, number]> = {
+  five_hour: ["5 h", 18000],
+  seven_day: ["7 d", 604800],
+  seven_day_opus: ["7 d · Opus", 604800],
+  seven_day_sonnet: ["7 d · Sonnet", 604800],
+};
+
+/**
+ * A card built only from what the provider's own CLI reported during real runs:
+ * rate-limit windows (with utilization when the CLI includes it) and token counts.
+ * Nothing is estimated; an expired window is dropped instead of shown as current.
+ */
+export function observedQuota(
+  id: string,
+  name: string,
+  observed: ProviderObservations | undefined,
+  plan: string | null,
+  emptyDetail: string,
+  now = Date.now(),
+): ProviderQuotaCard {
+  if (!observed)
+    return { ...unavailable(id, name, emptyDetail), plan: plan ?? "—" };
+  const limits = Object.entries(observed.limits).filter(
+    ([, l]) => l.resetsAt === null || l.resetsAt > now,
+  );
+  const metrics: QuotaMetric[] = limits
+    .map(([window, l]): QuotaMetric => {
+      const [label, periodSeconds] = WINDOWS[window] ?? [window, 0];
+      const used =
+        l.utilization === null ? null : Math.round(l.utilization * 100);
+      return {
+        id: `limit-${window}`,
+        label,
+        usedPercent: used ?? 0,
+        remainingPercent: used === null ? 0 : 100 - used,
+        usedValue: used,
+        limitValue: used === null ? null : 100,
+        resetsAt:
+          l.resetsAt === null ? null : new Date(l.resetsAt).toISOString(),
+        periodSeconds,
+        format: "percent",
+      };
+    })
+    // Windows with a reported percentage lead the card's gauge.
+    .sort(
+      (a, b) => Number(b.usedValue !== null) - Number(a.usedValue !== null),
+    );
+  const days = Object.keys(observed.tokens).sort().slice(-7);
+  const today = localDay(now);
+  metrics.push({
+    id: "tokens-today",
+    label: "Tokens today · Agenting OS",
+    usedPercent: 0,
+    remainingPercent: 0,
+    usedValue: observed.tokens[today] ?? 0,
+    limitValue: null,
+    resetsAt: null,
+    periodSeconds: 86400,
+    format: "tokens",
+    unit: "tokens",
+  });
+  const statuses = limits.map(([, l]) => l.status);
+  return {
+    id,
+    name,
+    icon: id,
+    plan: plan ?? "—",
+    account: null,
+    metrics,
+    status: statuses.includes("rejected")
+      ? "exhausted"
+      : statuses.includes("allowed_warning") ||
+          metrics.some(
+            (m) =>
+              m.usedValue !== null && m.limitValue === 100 && m.usedValue >= 90,
+          )
+        ? "warning"
+        : "active",
+    usageTrend: days.map((d) => observed.tokens[d] ?? 0),
+    trendLabels: days,
+    source: "cli-stream",
+    detail: limits.length
+      ? `${id.toUpperCase()}_LIMITS_FROM_RUNS`
+      : `${id.toUpperCase()}_TOKENS_FROM_RUNS`,
+    updatedAt: new Date(observed.updatedAt).toISOString(),
+  };
+}
+
 export interface QuotaSources {
   codex?: () => Promise<ProviderQuotaCard>;
   openrouter?: () => Promise<ProviderQuotaCard>;
+  /** Subscription tier as the Claude CLI's own auth status reports it. */
+  claudePlan?: () => Promise<string | null>;
 }
 export async function scanAllQuotas(
   directory: string,
   sources: QuotaSources = {},
 ): Promise<ProviderQuotaCard[]> {
-  const [codex, router] = await Promise.all([
+  const observed = readObservations(directory);
+  const [codex, router, claudePlan] = await Promise.all([
     sources
       .codex?.()
       .catch(() => unavailable("codex", "Codex", "CODEX_LIMITS_UNAVAILABLE")),
@@ -331,15 +427,28 @@ export async function scanAllQuotas(
       .catch(() =>
         unavailable("openrouter", "OpenRouter", "OPENROUTER_UNAVAILABLE"),
       ),
+    sources.claudePlan?.().catch(() => null) ?? null,
   ]);
   return [
     codex ?? unavailable("codex", "Codex", "CONFIGURE_CODEX"),
-    unavailable("claude", "Claude Code", "CLAUDE_USE_OFFICIAL_USAGE"),
+    observedQuota(
+      "claude",
+      "Claude Code",
+      observed.claude,
+      claudePlan ?? null,
+      "CLAUDE_USE_OFFICIAL_USAGE",
+    ),
     unavailable("gemini", "Gemini CLI", "GEMINI_USE_OFFICIAL_USAGE"),
     unavailable("hermes", "Hermes", "PROVIDER_USAGE_UNAVAILABLE"),
     unavailable("local", "Local LLM", "LOCAL_MODEL_NO_SUBSCRIPTION_QUOTA"),
     router ?? unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
-    unavailable("antigravity", "Antigravity", "ANTIGRAVITY_USE_OFFICIAL_USAGE"),
+    observedQuota(
+      "antigravity",
+      "Antigravity",
+      observed.antigravity,
+      null,
+      "ANTIGRAVITY_USE_OFFICIAL_USAGE",
+    ),
     ...loadCustomSubscriptions(directory).map(mapCustomToCard),
   ];
 }

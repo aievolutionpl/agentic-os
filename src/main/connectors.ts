@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { get } from "node:http";
 import { delimiter, join } from "node:path";
 import type {
@@ -42,6 +42,8 @@ type Spec =
       installHint: string;
       /** Installed but no verified integration path exists yet. */
       unverified?: boolean;
+      /** Other agent CLIs: listed only when found, never as an install prompt. */
+      optional?: boolean;
     }
   | {
       kind: "local-server";
@@ -229,6 +231,40 @@ export const SPECS: readonly Spec[] = [
     adapter: "none",
     installHint: "winget install GitHub.cli",
   },
+  // Other agent CLIs found on this computer. Detection uses only --version; no
+  // adapter exists yet, so they are shown as detected, never as connected.
+  ...(
+    [
+      [
+        "cursor-agent",
+        "Cursor Agent",
+        "cursor-agent",
+        "https://cursor.com/cli",
+      ],
+      [
+        "copilot",
+        "GitHub Copilot CLI",
+        "copilot",
+        "https://github.com/features/copilot/cli",
+      ],
+      ["qwen", "Qwen Code", "qwen", "https://github.com/QwenLM/qwen-code"],
+      ["aider", "Aider", "aider", "https://aider.chat"],
+      ["goose", "Goose", "goose", "https://block.github.io/goose"],
+      ["amp", "Amp", "amp", "https://ampcode.com"],
+    ] as const
+  ).map(
+    ([id, name, bin, installHint]) =>
+      ({
+        kind: "cli",
+        id,
+        name,
+        bin,
+        versionArgs: ["--version"],
+        adapter: "planned",
+        installHint,
+        optional: true,
+      }) as const,
+  ),
 ];
 
 export function versionOf(stdout: string): string | null {
@@ -241,14 +277,84 @@ export function versionOf(stdout: string): string | null {
 
 const WIN_EXTENSIONS = [".exe", ".com", ".cmd", ".bat"];
 
+/**
+ * Documented per-user and package-manager install folders. An app started from the
+ * macOS Dock or a Windows shortcut often lacks the shell PATH that holds them.
+ * Only folders derived from the given environment are used, so lookups stay
+ * deterministic and nothing outside these fixed locations is searched.
+ */
+export function installDirs(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+): string[] {
+  const home = platform === "win32" ? env.USERPROFILE : env.HOME;
+  const dirs: string[] = [];
+  const join2 = (...parts: (string | undefined)[]) =>
+    parts.every(Boolean) ? join(...(parts as string[])) : null;
+  if (platform === "win32") {
+    dirs.push(
+      ...[
+        join2(home, ".local", "bin"), // Claude Code native installer
+        join2(env.LOCALAPPDATA, "agy", "bin"), // Antigravity CLI installer
+        join2(env.APPDATA, "npm"),
+        join2(env.LOCALAPPDATA, "pnpm"),
+        join2(home, ".bun", "bin"),
+        join2(home, ".opencode", "bin"),
+        join2(home, "scoop", "shims"),
+        join2(env.LOCALAPPDATA, "Microsoft", "WinGet", "Links"),
+        join2(env.LOCALAPPDATA, "hermes", "bin"),
+      ].filter((d): d is string => !!d),
+    );
+  } else {
+    const nvm = join2(home, ".nvm", "versions", "node");
+    let nodes: string[] = [];
+    if (nvm)
+      try {
+        // Newest installed Node first, where global npm CLIs live under nvm.
+        nodes = readdirSync(nvm)
+          .filter((v) => /^v\d+\.\d+\.\d+$/.test(v))
+          .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
+          .map((v) => join(nvm, v, "bin"));
+      } catch {
+        // nvm not installed
+      }
+    dirs.push(
+      ...[
+        join2(home, ".local", "bin"), // Claude Code and Antigravity CLI installers
+        join2(home, ".claude", "local"),
+        join2(home, ".opencode", "bin"),
+        join2(home, ".npm-global", "bin"),
+        join2(home, ".bun", "bin"),
+        join2(home, ".volta", "bin"),
+        join2(home, ".cargo", "bin"),
+        join2(home, ".local", "share", "pnpm"),
+        join2(home, "Library", "pnpm"),
+        join2(home, "bin"),
+      ].filter((d): d is string => !!d),
+      ...nodes,
+      "/opt/homebrew/bin",
+      "/usr/local/bin",
+    );
+  }
+  return dirs;
+}
+
 export function resolveOnPath(
   name: string,
   env: NodeJS.ProcessEnv = process.env,
   platform: NodeJS.Platform = process.platform,
+  options: { native?: boolean } = {},
 ): string | null {
   if (!/^[A-Za-z0-9._-]+$/.test(name)) return null;
-  const dirs = (env.PATH ?? env.Path ?? "").split(delimiter).filter(Boolean);
-  const suffixes = platform === "win32" ? WIN_EXTENSIONS : [""];
+  const path = (env.PATH ?? env.Path ?? "").split(delimiter).filter(Boolean);
+  const dirs = [...new Set([...path, ...installDirs(env, platform)])];
+  // native: skip .cmd/.bat shims, which cannot be spawned without a shell.
+  const suffixes =
+    platform === "win32"
+      ? options.native
+        ? [".exe", ".com"]
+        : WIN_EXTENSIONS
+      : [""];
   for (const dir of dirs)
     for (const suffix of suffixes) {
       const candidate = join(dir, name + suffix);
@@ -453,11 +559,13 @@ async function scanCli(
       reason: "ok",
     });
   const reason: ConnectorReason =
-    info.auth === "unknown"
-      ? "auth_unknown"
-      : spec.adapter === "requires-bridge"
-        ? "bridge_required"
-        : "adapter_planned";
+    spec.adapter === "planned"
+      ? "adapter_planned"
+      : info.auth === "unknown"
+        ? "auth_unknown"
+        : spec.adapter === "requires-bridge"
+          ? "bridge_required"
+          : "adapter_planned";
   return status(base, observedAt, { ...common, state: "experimental", reason });
 }
 
@@ -566,7 +674,7 @@ export async function scanConnectors(
     http: deps.http ?? defaultHttpJson,
   };
   const observedAt = now();
-  return Promise.all(
+  const scanned = await Promise.all(
     SPECS.map((spec) => {
       if (spec.kind === "cli") return scanCli(spec, resolved, observedAt);
       if (spec.kind === "local-server")
@@ -585,5 +693,12 @@ export async function scanConnectors(
         ),
       );
     }),
+  );
+  return scanned.filter(
+    (c, i) =>
+      !(
+        SPECS[i]!.kind === "cli" &&
+        (SPECS[i] as { optional?: boolean }).optional
+      ) || c.installed,
   );
 }

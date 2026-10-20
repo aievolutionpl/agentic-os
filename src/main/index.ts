@@ -14,7 +14,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
 import { trustedSender } from "./security.js";
 import { probeProviders, withProviderProbes } from "./adapters.js";
-import { scanConnectors, withExecutionSettings } from "./connectors.js";
+import {
+  defaultRunner,
+  scanConnectors,
+  withExecutionSettings,
+} from "./connectors.js";
 import { Supervisor } from "./supervisor.js";
 import { CodexAdapter } from "./providers.js";
 import { exact, text } from "./validate.js";
@@ -153,6 +157,20 @@ app
             client.close();
             await client.stopped();
           }
+        },
+        claudePlan: async () => {
+          const config = store.runs.provider("claude");
+          if (!config?.consent || config.protocol !== "claude-cli") return null;
+          const status = await defaultRunner(
+            config.command,
+            ["auth", "status", "--json"],
+            10000,
+          );
+          const body = JSON.parse(status.stdout);
+          return body?.loggedIn === true &&
+            typeof body.subscriptionType === "string"
+            ? body.subscriptionType.slice(0, 40)
+            : null;
         },
         openrouter: async () =>
           router.settings().configured

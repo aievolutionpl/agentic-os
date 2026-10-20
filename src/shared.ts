@@ -280,7 +280,12 @@ export interface ProviderQuotaCard {
   trendLabels?: string[];
   isCustom?: boolean;
   updatedAt: string;
-  source?: "codex-app-server" | "openrouter-api" | "manual" | "unavailable";
+  source?:
+    | "codex-app-server"
+    | "openrouter-api"
+    | "cli-stream"
+    | "manual"
+    | "unavailable";
   detail?: string;
 }
 export interface CustomSubscriptionInput {

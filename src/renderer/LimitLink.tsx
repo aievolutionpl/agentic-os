@@ -16,7 +16,8 @@ export function quotaSummary(
     return null;
   const money = (n: number) =>
     `$${new Intl.NumberFormat(pl ? "pl" : "en", { maximumFractionDigits: 2 }).format(n)}`;
-  if (typeof card.balanceUsd === "number")
+  // An exhausted key limit binds before any account balance.
+  if (typeof card.balanceUsd === "number" && card.status !== "exhausted")
     return {
       value: pl
         ? `${money(card.balanceUsd)} salda`
@@ -32,7 +33,10 @@ export function quotaSummary(
     };
   // The tightest window with a known limit says how much is really left.
   const limited = card.metrics
-    .filter((m) => m.limitValue !== null && m.usedValue !== null)
+    .filter(
+      (m) =>
+        m.id !== "balance" && m.limitValue !== null && m.usedValue !== null,
+    )
     .sort((a, b) => a.remainingPercent - b.remainingPercent)[0];
   if (!limited) return null;
   const reset = limited.resetsAt

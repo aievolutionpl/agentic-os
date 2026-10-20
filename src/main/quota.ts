@@ -217,7 +217,10 @@ export function openRouterQuota(
     icon: "openrouter",
     plan: "API",
     account: null,
-    status: status(metrics),
+    // The balance is display-only: a management key may belong to another
+    // account than the inference key, and /credits names no account. Only
+    // the inference key's own limits judge whether OpenCode can run.
+    status: status(metrics.filter((m) => m.id !== "balance")),
     metrics,
     usageTrend: [],
     source: "openrouter-api",

@@ -8,6 +8,8 @@ import {
   existsSync,
   rmSync,
   statSync,
+  symlinkSync,
+  lstatSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -328,4 +330,42 @@ test("Hermes with its own OpenRouter key shows the balance for reference only", 
     cards.find((c) => c.id === "opencode").detail,
     "BILLED_VIA_OPENROUTER",
   );
+});
+
+test("a symlinked settings file is updated at its target and stays a link", (t) => {
+  if (process.platform === "win32") return;
+  const { home, root, bridge } = setup(t);
+  const dotfiles = join(root, "dotfiles");
+  mkdirSync(dotfiles);
+  writeFileSync(
+    join(dotfiles, "claude.json"),
+    JSON.stringify({ model: "opus" }),
+  );
+  mkdirSync(join(home, ".claude"));
+  symlinkSync(join(dotfiles, "claude.json"), claudeSettings(home));
+  bridge.install({ agent: "claude", consent: true });
+  assert.ok(lstatSync(claudeSettings(home)).isSymbolicLink());
+  assert.ok(
+    JSON.parse(readFileSync(join(dotfiles, "claude.json"), "utf8")).statusLine,
+  );
+  bridge.remove({ agent: "claude" });
+  assert.ok(lstatSync(claudeSettings(home)).isSymbolicLink());
+  assert.deepEqual(
+    JSON.parse(readFileSync(join(dotfiles, "claude.json"), "utf8")),
+    { model: "opus" },
+  );
+});
+
+test("an empty account balance alone never marks OpenRouter exhausted", () => {
+  const card = openRouterQuota(
+    { data: { usage: 2, limit: 10, limit_remaining: 8 } },
+    { data: { total_credits: 5, total_usage: 5 } },
+  );
+  assert.equal(card.balanceUsd, 0);
+  assert.equal(card.status, "active", "the key itself still has budget");
+  const spent = openRouterQuota(
+    { data: { usage: 10, limit: 10, limit_remaining: 0 } },
+    { data: { total_credits: 50, total_usage: 1 } },
+  );
+  assert.equal(spent.status, "exhausted", "the key's own limit binds");
 });

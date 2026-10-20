@@ -4,6 +4,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
@@ -184,7 +185,10 @@ export class LimitBridge {
     return parsed as Settings;
   }
   private write(agent: BridgeAgent, settings: Settings) {
-    const path = this.settingsPath(agent);
+    // A dotfile-managed (symlinked) settings file is updated at its target,
+    // so the link itself survives.
+    const link = this.settingsPath(agent);
+    const path = existsSync(link) ? realpathSync(link) : link;
     mkdirSync(dirname(path), { recursive: true });
     // The file keeps its own permissions (it may hold secrets); a new one is
     // private to the user.

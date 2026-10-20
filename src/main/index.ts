@@ -248,6 +248,7 @@ app
         Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
         card.metrics.some(
           (m) =>
+            m.id !== "balance" &&
             (m.format === "percent" || m.limitValue !== null) &&
             // Limits seen in a CLI stream age with their window: only one
             // that has not reset yet still describes the quota.

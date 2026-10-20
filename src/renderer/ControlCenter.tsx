@@ -115,6 +115,12 @@ export function ControlCenter({
   const balance = quota.find(
     (c) => c.id === "openrouter" && typeof c.balanceUsd === "number",
   );
+  // Agents whose cards show this account: billed (OpenCode) or for
+  // reference (Hermes on its own OpenRouter key).
+  const balanceFor = quota
+    .filter((c) => c.via === "openrouter")
+    .map((c) => c.name)
+    .join(", ");
   const connectors = (scan?.connectors ?? []).filter((c) => c.id !== "gemini");
   const runnable = connectors.filter((c) => c.adapter === "available");
   const ready = runnable.filter((c) => c.state === "ready").length;
@@ -361,9 +367,8 @@ export function ControlCenter({
                 {quotaSummary(balance, pl)!.value}
               </span>
               <span className="stat-label">
-                {pl
-                  ? "Saldo OpenRouter · OpenCode, Hermes"
-                  : "OpenRouter balance · OpenCode, Hermes"}
+                {pl ? "Saldo OpenRouter" : "OpenRouter balance"}
+                {balanceFor && ` · ${balanceFor}`}
               </span>
             </button>
           </li>

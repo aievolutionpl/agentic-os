@@ -1124,3 +1124,297 @@ summary:focus-visible {
 .chat-context summary .icon {
   display: inline;
 }
+/* Connection state: a lit glyph means a recorded check passed. */
+.picker-glyph {
+  position: relative;
+  display: inline-flex;
+}
+.connection-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  background: var(--text-muted);
+}
+.state-saved .connection-dot,
+.state-detected .connection-dot {
+  background: var(--bg);
+  box-shadow: inset 0 0 0 2px var(--text-muted);
+}
+.state-needs-auth .connection-dot {
+  background: var(--warning);
+}
+.state-unavailable .connection-dot {
+  background: var(--danger);
+}
+.state-connected .connection-dot {
+  background: var(--success);
+}
+.state-connected .provider-glyph {
+  border-color: var(--accent);
+  background: var(--accent-ring);
+  box-shadow:
+    0 0 0 3px var(--accent-ring),
+    0 0 18px var(--accent-ring);
+}
+.provider-picker > button.state-connected small {
+  color: var(--success);
+}
+.provider-picker > button.state-needs-auth small {
+  color: var(--warning);
+}
+.provider-picker > button.state-unavailable small {
+  color: var(--danger);
+}
+.provider-picker > button:not(.state-connected) .provider-glyph {
+  opacity: 0.72;
+}
+.provider-picker > button:not(.state-connected):hover .provider-glyph,
+.provider-picker > button.chosen .provider-glyph {
+  opacity: 1;
+}
+/* Agent strip: every agent visible, connected ones lit. */
+.agent-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+.agent-strip > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  text-align: left;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.agent-strip > button.chosen {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.agent-strip .provider-glyph {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+.agent-strip .provider-glyph svg {
+  width: 19px;
+  height: 19px;
+}
+.agent-strip > button > span:last-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.agent-strip strong {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agent-strip small {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.agent-strip .state-connected small {
+  color: var(--success);
+}
+.agent-strip .state-needs-auth small {
+  color: var(--warning);
+}
+.agent-strip .state-unavailable small {
+  color: var(--danger);
+}
+.agent-strip > button:not(.state-connected):not(.chosen) .provider-glyph {
+  opacity: 0.72;
+}
+.mode-toggle {
+  display: inline-flex;
+  justify-self: start;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+}
+.mode-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 7px 12px;
+  font-size: 12px;
+}
+.mode-toggle button.chosen {
+  background: var(--bg-subtle);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.mode-toggle .icon {
+  width: 15px;
+  height: 15px;
+}
+.chat-composer.start-composer {
+  margin-top: 0;
+}
+.chat-composer.start-composer textarea {
+  min-height: 70px;
+}
+.chat-composer.drop-over {
+  border-color: var(--accent);
+  border-style: dashed;
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.chat-composer > .composer-toolbar {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.composer-toolbar > small {
+  margin-left: auto;
+}
+.composer-tool {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: transparent;
+}
+.composer-tool .icon {
+  width: 16px;
+  height: 16px;
+}
+.composer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.composer-chip .icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.composer-chip .provider-glyph {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+}
+.composer-chip .provider-glyph svg {
+  width: 15px;
+  height: 15px;
+}
+.attachment-chips {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.attachment-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  font-size: 11px;
+}
+.attachment-chips li > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.attachment-chips small {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.attachment-chips .icon {
+  width: 13px;
+  height: 13px;
+}
+.attachment-chips button {
+  border: 0;
+  background: transparent;
+  padding: 2px;
+  display: inline-flex;
+}
+.chat-message .attachment-chips {
+  margin: 4px 0 8px;
+}
+.github-state {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+.github-state .icon {
+  width: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.conversation-head.state-connected .provider-glyph {
+  border-color: var(--accent);
+  background: var(--accent-ring);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+@media (max-width: 760px) {
+  .agent-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .composer-toolbar > small {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+.composer-toolbar > .composer-send {
+  margin-left: auto;
+}
+/* Start screen: keep the composer above the fold at desktop sizes. */
+.evolution-banner.chat-banner {
+  min-height: 0;
+}
+.chat-banner > div {
+  padding: 22px 28px;
+}
+.chat-banner h2 {
+  font-size: 26px;
+  margin: 8px 0;
+  white-space: normal;
+}
+.chat-banner p {
+  margin: 0;
+}
+.chat-start-form {
+  gap: 16px;
+  padding-top: 20px;
+}
+.workspace-source button {
+  padding: 12px;
+}

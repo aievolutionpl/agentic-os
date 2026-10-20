@@ -65,8 +65,11 @@ try {
     .getByRole("button", { name: "Otwórz rozmowę", exact: true })
     .waitFor();
   assert.equal(
-    await page.getByLabel("Agent czatu", { exact: true }).inputValue(),
-    "codex",
+    await page
+      .getByRole("group", { name: "Agent czatu", exact: true })
+      .locator('button[aria-pressed="true"] strong')
+      .innerText(),
+    "Codex",
   );
   await page
     .getByRole("button", { name: "Otwórz rozmowę", exact: true })

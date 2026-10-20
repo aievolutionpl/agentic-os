@@ -40,7 +40,7 @@ import {
 } from "./backup.js";
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
-import { Chats } from "./chats.js";
+import { Chats, githubRepositories } from "./chats.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
 import { AGENTS, type Agent } from "../shared.js";
@@ -368,7 +368,19 @@ app
         supervisor.configure(input);
         quotaMonitor!.invalidate();
       },
-      providerSettings: () => supervisor.settings(),
+      providerSettings: () => {
+        const checks = store.capabilities.list();
+        return supervisor.settings().map((setting) => {
+          const check = checks.find((c) => c.agent === setting.id);
+          return {
+            ...setting,
+            lastCheck: check
+              ? { state: check.state, observedAt: check.observedAt }
+              : null,
+          };
+        });
+      },
+      githubRepositories: () => githubRepositories(),
       chooseExecutable: async () => {
         const result = await dialog.showOpenDialog(window!, {
           title: "Choose a trusted agent executable",
@@ -568,6 +580,9 @@ app
               "GITHUB_CLONE_FAILED",
               "ISOLATED_GIT_WORKSPACE_REQUIRED",
               "FOLDER_REQUIRED",
+              "ATTACHMENT_LIMIT",
+              "ATTACHMENT_TOO_LARGE",
+              "ATTACHMENT_NOT_TEXT",
             ].includes(code)
           )
             throw Error(code);

@@ -133,6 +133,7 @@ export interface ChatMessage {
   content: string;
   at: number;
   status: "complete" | "streaming" | "failed" | "cancelled";
+  attachments?: { name: string; bytes: number }[];
 }
 export interface ChatSession {
   id: string;
@@ -144,6 +145,8 @@ export interface ChatSession {
   root: string;
   workspace: string;
   status: "idle" | "running" | "failed" | "interrupted";
+  /** owner/name for GitHub chats; the title changes after the first message. */
+  repository?: string;
   messages: ChatMessage[];
   contextIds: string[];
   skillIds: string[];
@@ -465,7 +468,9 @@ export interface API {
     contextIds: string[];
     skillIds: string[];
     consent: true;
+    attachments?: { name: string; content: string }[];
   }): Promise<ChatSession>;
+  githubRepositories?(): Promise<{ name: string; private: boolean }[] | null>;
   chatAction?(input: { id: string; action: "stop" | "delete" }): Promise<void>;
   chatRemember?(input: {
     id: string;
@@ -748,6 +753,8 @@ export interface ProviderSetting {
   protocol: string;
   profile?: "isolated" | "existing";
   model?: string | null;
+  /** Last recorded connection check; absent until one ran. */
+  lastCheck?: { state: ProviderHealth["state"]; observedAt: string } | null;
 }
 export interface RuntimeView {
   runs: Run[];

@@ -7,7 +7,14 @@ import type {
   API,
   ProviderHealth,
 } from "../shared";
-import { SelectField, Icon, agentName } from "./ui";
+import {
+  SelectField,
+  Icon,
+  agentName,
+  connectionLabel,
+  connectionState,
+  relativeTime,
+} from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 
 const defaults = {
@@ -38,12 +45,36 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
   async function load() {
     setSettings(await api.providerSettings());
   }
+  const [fresh, setFresh] = useState<Partial<Record<Agent, ProviderHealth>>>(
+    {},
+  );
   useEffect(() => {
-    void load().catch(() => setStatus("error"));
+    let active = true;
+    void load()
+      .then(async () => {
+        // Re-check saved connections whose last check is missing or old, one at a
+        // time, so a lit card reflects a real handshake rather than a saved path.
+        const rows = await api.providerSettings();
+        for (const row of rows) {
+          const age = row.lastCheck
+            ? Date.now() - Date.parse(row.lastCheck.observedAt)
+            : Infinity;
+          if (!active || !row.configured || age < 6 * 3600_000) continue;
+          const result = await api
+            .providerCheck?.({ agent: row.id })
+            .catch(() => null);
+          if (active && result)
+            setFresh((current) => ({ ...current, [row.id]: result }));
+        }
+      })
+      .catch(() => setStatus("error"));
     void api
       .providerDetect?.()
       .then(setDetected)
       .catch(() => setStatus("error"));
+    return () => {
+      active = false;
+    };
   }, []);
   useEffect(() => {
     const config = settings.find((p) => p.id === agent);
@@ -67,7 +98,11 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
     setConsent(false);
     setStatus("");
   }, [agent, settings, detected]);
-  useEffect(() => setHealth(null), [agent]);
+  useEffect(() => {
+    setHealth(null);
+    // Pick up checks recorded while another card was selected.
+    void load().catch(() => setStatus("error"));
+  }, [agent]);
   async function act(fn: () => Promise<unknown>, message = "saved") {
     setBusy(true);
     setStatus("");
@@ -100,32 +135,49 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
         role="group"
         aria-label={pl ? "Wybierz agenta" : "Choose agent"}
       >
-        {(Object.keys(defaults) as Agent[]).map((id) => (
-          <button
-            key={id}
-            type="button"
-            className={agent === id ? "chosen" : ""}
-            aria-pressed={agent === id}
-            onClick={() => setAgent(id)}
-            disabled={busy}
-          >
-            <ProviderIcon provider={id} />
-            <strong>{agentName(id)}</strong>
-            <small>
-              {settings.find((p) => p.id === id)?.configured
-                ? pl
-                  ? "Zapisane połączenie"
-                  : "Connection saved"
-                : detected[id]
-                  ? pl
-                    ? "Wykryto na urządzeniu"
-                    : "Detected on device"
-                  : pl
-                    ? "Wybierz program"
-                    : "Choose executable"}
-            </small>
-          </button>
-        ))}
+        {(Object.keys(defaults) as Agent[]).map((id) => {
+          const saved = settings.find((p) => p.id === id);
+          // A check run on this screen is newer than the loaded settings.
+          const latest = health?.agent === id ? health : fresh[id];
+          const setting =
+            saved && latest
+              ? {
+                  ...saved,
+                  lastCheck: {
+                    state: latest.state,
+                    observedAt: latest.observedAt,
+                  },
+                }
+              : saved;
+          const state = connectionState(setting, !!detected[id]);
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`state-${state}${agent === id ? " chosen" : ""}`}
+              aria-pressed={agent === id}
+              onClick={() => setAgent(id)}
+              disabled={busy}
+            >
+              <span className="picker-glyph">
+                <ProviderIcon provider={id} />
+                {state !== "none" && (
+                  <i className="connection-dot" aria-hidden="true" />
+                )}
+              </span>
+              <strong>{agentName(id)}</strong>
+              <small>
+                {connectionLabel(state, pl)}
+                {setting?.lastCheck && (
+                  <>
+                    {" · "}
+                    {relativeTime(setting.lastCheck.observedAt, language)}
+                  </>
+                )}
+              </small>
+            </button>
+          );
+        })}
       </div>
       <form
         onSubmit={(event) => {

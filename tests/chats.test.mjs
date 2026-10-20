@@ -656,12 +656,14 @@ test("skills retain pinned GitHub provenance and local markdown imports never ex
   const catalog = store.extensions.catalog();
   assert.equal(
     catalog.filter((s) =>
-      s.source.includes("github.com/obra/superpowers/blob/"),
+      s.source.includes("github.com/obra/superpowers/tree/"),
     ).length,
-    3,
+    4,
   );
   for (const s of catalog) {
-    assert.ok(s.instructions.length <= 12000);
+    assert.ok(s.instructions.length > 1000);
+    assert.match(s.version, /^[a-f0-9]{40}$/);
+    assert.ok(s.files >= 2);
     assert.ok(s.license);
   }
   const path = join(dir, "SKILL.md");

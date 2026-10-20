@@ -28,7 +28,7 @@ jobs:
       - name: Native Windows Electron verification
         if: runner.os == 'Windows'
         run: |
-          foreach ($suite in @("smoke", "qa:tools", "qa:workspace", "qa:harness", "qa:workbench")) {
+          foreach ($suite in @("smoke", "qa:tools", "qa:workspace", "qa:harness", "qa:workbench", "qa:premium")) {
             $env:AGENTING_QA_OUTPUT = ".runtime/ci-qa/" + $suite.Replace(":", "-")
             npm run $suite
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -38,7 +38,7 @@ jobs:
         env:
           AGENTING_TEST_NO_SANDBOX: '1'
         run: |
-          for suite in smoke qa:tools qa:workspace qa:harness qa:workbench; do
+          for suite in smoke qa:tools qa:workspace qa:harness qa:workbench qa:premium; do
             AGENTING_QA_OUTPUT=".runtime/ci-qa/${suite/:/-}" xvfb-run -a npm run "$suite" || exit "$?"
           done
       - name: Upload test evidence

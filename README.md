@@ -6,7 +6,9 @@ Agenting OS to otwarty pulpit do pracy z agentami AI od **AI Evolution Polska**.
 
 [English](README.en.md) · [Uruchomienie](#uruchomienie) · [Jak to działa](#jak-to-działa) · [Dostawcy](docs/PROVIDERS.md) · [Stan wydania](docs/RELEASE_STATUS.md) · [Współpraca](CONTRIBUTING.md)
 
-![Czat Agenting OS: Markdown, historia rozmów i kontekst](docs/images/chat-dark.png)
+![Agenting OS: motyw Classic Terra i pole rozmowy](docs/images/classic-start.png)
+
+**Nowości workspace:** Classic · Terra i ciemny Grafit, wybór modelu w rozmowie, automatyczny graf pamięci z Markdown, osiem pełnych skilli z GitHuba oraz Kanban z rzeczywistą aktywnością agentów. [Szczegóły i źródła](docs/PREMIUM_WORKSPACE.md).
 
 **0.5.0-rc.1 — kandydat do publicznego preview.** To aplikacja desktopowa. Zrzuty przedstawiają rzeczywisty interfejs z oznaczonymi danymi przykładowymi. Weryfikacja lokalna i warunki publikacji są opisane w [raporcie wydania](docs/RELEASE_STATUS.md). Instalator Windows jest niepodpisany; nie udostępniamy automatycznych aktualizacji.
 
@@ -18,11 +20,11 @@ Agenting OS to otwarty pulpit do pracy z agentami AI od **AI Evolution Polska**.
 | **Terminal** | Prawdziwa lokalna powłoka w aplikacji: do sześciu kart, wybór katalogu projektu, zmiana rozmiaru, Ctrl+C i ciągłość sesji podczas nawigacji. PowerShell na Windows; Bash lub sh na Linux/macOS. |
 | **Projekty i zadania** | Kolejka, zależności, role wykonawcy i recenzenta, kontekst oraz dziennik pracy. Podgląd zespołu przed startem pokazuje zapisane połączenia i brakującego recenzenta. |
 | **Master Agent** | Wybrany agent przygotowuje plan do sześciu kroków, deleguje zatwierdzony plan i ocenia rezultat. Misja zatrzymuje się przy zmianach wymagających Twojej decyzji. |
-| **Pamięć i skille** | Pamięć projektu i jawnie współdzielona pamięć workspace, przypinanie wpisów, wyszukiwanie FTS5, dziewięć wbudowanych skilli i import lokalnych instrukcji SKILL.md. |
+| **Pamięć i skille** | Automatyczny lokalny graf MCP, edytowalne pliki Markdown, zakres projektu/workspace, przypinanie i FTS5. Osiem pełnych pakietów Anthropic/Superpowers instalowanych jednym przyciskiem oraz import SKILL.md. |
 | **Połączenia i limity** | Wykrywanie CLI, konfiguracja modeli, jawne testy połączenia, rozróżnienie konfiguracji od rzeczywiście wykonanego zadania. Oficjalne limity Codex i budżet klucza OpenRouter; pozostałe mogą być nieznane. |
 | **Narzędzia i dane** | Ręczne wywołania zaufanych serwerów MCP, przeglądarka projektu, kopie zapasowe, odwracalne przygotowanie przywrócenia i diagnostyka z redakcją rozpoznanych sekretów. |
 
-Interfejs jest dostępny po polsku i angielsku, w jasnym i ciemnym motywie. Animacje uwzględniają systemowe ograniczenie ruchu. `Ctrl+K` / `⌘K` otwiera wyszukiwarkę poleceń; w aktywnym terminalu skróty trafiają do powłoki.
+Interfejs jest dostępny po polsku i angielsku, z motywami Grafit, Jasny i Classic · Terra. Animacje uwzględniają systemowe ograniczenie ruchu. `Ctrl+K` / `⌘K` otwiera wyszukiwarkę poleceń; w aktywnym terminalu skróty trafiają do powłoki.
 
 ## Uruchomienie
 

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import type { Agent, ProviderSetting } from "../shared";
-import { AGENTS } from "../shared";
+import { AVAILABLE_AGENTS as AGENTS } from "../shared";
 import { Icon, agentName, connectionLabel, connectionState } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 

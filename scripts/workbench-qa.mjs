@@ -202,6 +202,9 @@ try {
   }
   await capture("01-start-dark");
   const history = page.locator(".chat-history");
+  assert.equal(await history.isVisible(), false);
+  await page.getByRole("button", { name: "Historia", exact: true }).click();
+  assert.equal(await history.isVisible(), true);
   await history
     .getByRole("button", { name: /Przykład · plan wydania/ })
     .click();

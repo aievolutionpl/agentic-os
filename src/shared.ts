@@ -8,6 +8,8 @@ export const AGENTS = [
   "antigravity",
 ] as const;
 export type Agent = (typeof AGENTS)[number];
+/** Gemini remains readable in historical records; new work uses Antigravity. */
+export const AVAILABLE_AGENTS = AGENTS.filter((id) => id !== "gemini");
 export const READ_ONLY_AGENTS: readonly Agent[] = [
   "codex",
   "claude",
@@ -127,6 +129,15 @@ export interface Memory {
   pinned?: number;
   updatedAt?: string | null;
 }
+export interface MemoryGraph {
+  nodes: { id: string; label: string; kind: "project" | "memory"; projectId: string; memoryId?: string; content: string; source: string }[];
+  edges: { from: string; to: string; relation: string }[];
+  enabled: boolean;
+  directory: string;
+  engine: string;
+  syncedAt: string;
+  status: "ready";
+}
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
@@ -140,6 +151,7 @@ export interface ChatSession {
   title: string;
   projectId: string;
   agent: Agent;
+  model?: string | null;
   mode: "chat" | "plan";
   source: "default" | "local" | "github";
   root: string;
@@ -186,7 +198,7 @@ export function chatMarkdown(chat: ChatSession): string {
 }
 export interface Preferences {
   language: "pl" | "en";
-  theme: "dark" | "light";
+  theme: "dark" | "light" | "classic";
 }
 export interface Integration {
   id: string;
@@ -424,6 +436,7 @@ export interface BackupSummary {
 }
 /** Something the operator should know about or decide, aggregated across projects. */
 export interface AttentionItem {
+  taskId?: string;
   kind:
     | "run_review"
     | "run_interrupted"
@@ -447,6 +460,12 @@ export interface AttentionItem {
   at: number;
   /** Where the operator acts on it. */
   target: "tasks" | "master";
+}
+export interface WorkBoard {
+  observedAt: string;
+  cards: { id: string; projectId: string; projectName: string; title: string; agent: Agent;
+    stage: "queue" | "working" | "waiting" | "done"; state: string; activity: string; at: number; blockedBy: number }[];
+  conversations: { id: string; title: string; agent: Agent; projectId: string; activity: string }[];
 }
 export interface Attention {
   observedAt: string;
@@ -500,6 +519,7 @@ export interface API {
   chatList?(): Promise<ChatSession[]>;
   chatCreate?(input: {
     agent: Agent;
+    model?: string | null;
     mode: "chat" | "plan";
     source: "default" | "local" | "github";
     path?: string;
@@ -508,6 +528,7 @@ export interface API {
   }): Promise<ChatSession>;
   chatSend?(input: {
     id: string;
+    model?: string | null;
     message: string;
     contextIds: string[];
     skillIds: string[];
@@ -552,6 +573,9 @@ export interface API {
     reviewer: Agent;
   }): Promise<Task>;
   memoryList?(): Promise<Memory[]>;
+  memoryGraph?(): Promise<MemoryGraph>;
+  memoryAutoCapture?(input: { enabled: boolean }): Promise<MemoryGraph>;
+  memoryVaultOpen?(): Promise<void>;
   memoryUpdate?(input: {
     projectId: string;
     id: string;
@@ -560,6 +584,7 @@ export interface API {
     pinned: boolean;
   }): Promise<void>;
   skillCatalog?(): Promise<Extension[]>;
+  skillInstall?(input: { projectId: string; id: string }): Promise<Extension>;
   skillImportFile?(input: { projectId: string }): Promise<Extension | null>;
   providerCheck?(input: { agent: Agent }): Promise<ProviderHealth>;
   providerSignIn?(input: {
@@ -607,6 +632,7 @@ export interface API {
   }): Promise<OrchestrationState>;
   orchestrationStop?(input: { projectId: string }): Promise<void>;
   attention?(): Promise<Attention>;
+  workBoard?(): Promise<WorkBoard>;
   backupCreate?(): Promise<BackupSummary | null>;
   backupRestore?(input: { consent: true }): Promise<BackupSummary | null>;
   diagnosticsExport?(): Promise<string | null>;
@@ -770,6 +796,10 @@ export interface Extension {
   author: string;
   license: string;
   source: string;
+  slug?: string;
+  files?: number;
+  installed?: boolean;
+  installPath?: string;
   instructions?: string;
   command?: string;
   args?: string[];

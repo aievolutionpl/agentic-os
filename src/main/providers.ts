@@ -52,7 +52,7 @@ export class CodexAdapter implements AgentAdapter {
   readonly rpc: RpcProcess;
   private threadId = "";
   private turnId = "";
-  constructor(spec: ProcessSpec) {
+  constructor(spec: ProcessSpec, private model?: string | null) {
     this.rpc = new RpcProcess(spec);
   }
   async initialize() {
@@ -83,6 +83,7 @@ export class CodexAdapter implements AgentAdapter {
       {
         ...(input.threadId ? { threadId: input.threadId } : {}),
         cwd: input.cwd,
+        ...(this.model ? { model: this.model } : {}),
         approvalPolicy: "never",
         sandbox: input.readOnly ? "read-only" : "workspace-write",
         config,
@@ -185,6 +186,7 @@ export class CodexAdapter implements AgentAdapter {
       const started = await this.rpc.request("turn/start", {
         threadId: this.threadId,
         input: [{ type: "text", text: input.prompt }],
+        ...(this.model ? { model: this.model } : {}),
         approvalPolicy: "never",
         sandboxPolicy: input.readOnly
           ? { type: "readOnly", networkAccess: false }

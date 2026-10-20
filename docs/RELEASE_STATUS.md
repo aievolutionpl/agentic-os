@@ -4,6 +4,8 @@ This document describes current release readiness. Older audits, handoffs, brief
 
 ## Current: 0.5.0-rc.1 public preview candidate
 
+**2026-10-20 Windows workspace update:** [Classic/Grafit UI, model selection, memory graph, complete skills and Kanban](PREMIUM_WORKSPACE.md). Local verification now includes 174 automated tests, native Windows terminal shutdown, Electron smoke and `qa:premium` (Classic at 320/390/768/1440 px). The exact PR's Windows/Linux CI and packaged Windows smoke remain required merge gates. The table below records the earlier Linux candidate verification and its distribution limits; it is not evidence of a signed public release.
+
 The workbench changes have local Linux verification dated **2026-10-20**. This is preparation for review and publication, not an announcement that an installer has been released. No signed/stable 1.0 release is claimed.
 
 | Area | State / evidence |

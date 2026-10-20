@@ -35,7 +35,8 @@ export function layers(tasks: Task[]) {
   for (const t of tasks) visit(t.id, new Set());
   const columns: Task[][] = [];
   for (const t of tasks) (columns[depth.get(t.id)!] ??= []).push(t);
-  return columns.map((c) => c ?? []);
+  // Dense through the deepest column: a cycle can leave a lower one empty.
+  return Array.from({ length: columns.length }, (_, i) => columns[i] ?? []);
 }
 
 /**
@@ -156,12 +157,25 @@ export function TaskGraph({
       <p className="sr-only">
         {shown
           .filter((t) => t.dependencies.length)
-          .map(
-            (t) =>
-              `${t.title} ${pl ? "czeka na" : "waits for"} ${t.dependencies
-                .map((d) => shown.find((x) => x.id === d)?.title ?? d)
-                .join(", ")}`,
-          )
+          .map((t) => {
+            const name = (d: string) =>
+              shown.find((x) => x.id === d)?.title ?? d;
+            const prereqs = t.dependencies.filter((d) =>
+              shown.some((x) => x.id === d),
+            );
+            const waiting = prereqs.filter(
+              (d) => !finished(shown.find((x) => x.id === d)!),
+            );
+            const met = prereqs.filter((d) => !waiting.includes(d));
+            return [
+              waiting.length &&
+                `${t.title} ${pl ? "czeka na" : "waits for"} ${waiting.map(name).join(", ")}`,
+              met.length &&
+                `${t.title}: ${pl ? "spełnione" : "satisfied"} ${met.map(name).join(", ")}`,
+            ]
+              .filter(Boolean)
+              .join(". ");
+          })
           .join(". ")}
       </p>
     </section>

@@ -42,7 +42,12 @@ export function OrchestrationPanel({
         .then((s) => {
           if (alive)
             setState((previous) => {
-              if (previous?.status === "running" && s.status !== "running")
+              // Reload tasks whenever the batch moves (a task finished, the
+              // next one dispatched), not only when it stops running.
+              if (
+                (previous?.status === "running" && s.status !== "running") ||
+                (s.status === "running" && previous?.updatedAt !== s.updatedAt)
+              )
                 queueMicrotask(onChanged);
               return s;
             });

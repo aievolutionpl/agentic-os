@@ -3,7 +3,7 @@ import { existsSync, realpathSync, statSync } from "node:fs";
 import { resolve, relative, dirname, isAbsolute } from "node:path";
 import { RpcProcess, type ProcessSpec } from "./rpc.js";
 import type { AgentAdapter, AgentInput, AgentResult } from "./providers.js";
-import { text, redact } from "./validate.js";
+import { text, redact, redactEnds } from "./validate.js";
 export function workspaceEdit(cwd: string, locations: unknown): boolean {
   if (!Array.isArray(locations) || !locations.length || locations.length > 100)
     return false;
@@ -233,7 +233,11 @@ export class AcpAdapter implements AgentAdapter {
         20 * 60 * 1000,
       );
       if (result.stopReason !== "end_turn") throw Error("ACP_TURN_INCOMPLETE");
-      return { threadId: sessionId, turnId, summary: redact(summary, 8000) };
+      return {
+        threadId: sessionId,
+        turnId,
+        summary: redactEnds(summary, 8000),
+      };
     } finally {
       input.signal.removeEventListener("abort", abort);
       this.rpc.off("notification", notification);

@@ -10,6 +10,8 @@ export class Applications {
     private store: Store,
     private worktrees: Worktrees,
     private clock: () => number = Date.now,
+    /** A task whose new run (a revision) is starting takes no decision. */
+    private busy: (taskId: string) => boolean = () => false,
   ) {}
   async reconcile() {
     for (const project of this.store.projects())
@@ -123,11 +125,21 @@ export class Applications {
     if (!["approve", "reject", "apply"].includes(String(p.action)))
       throw Error("INVALID_ACTION");
     if (p.action === "apply" && run.state === "applied") return;
-    if (run.state !== "awaiting_review" || this.active.has(run.repository))
+    if (
+      run.state !== "awaiting_review" ||
+      this.active.has(run.repository) ||
+      this.busy(run.taskId)
+    )
       throw Error("RUN_NOT_REVIEWABLE");
     this.active.add(run.repository);
     try {
       const artifact = await this.artifact(run);
+      // A revision may have started while the artifact was read.
+      if (
+        this.busy(run.taskId) ||
+        this.store.runs.get(projectId, run.id)?.state !== "awaiting_review"
+      )
+        throw Error("RUN_NOT_REVIEWABLE");
       if (p.action === "approve" || p.action === "reject") {
         if (p.action === "approve" && run.reviewState !== "completed")
           throw Error("INDEPENDENT_REVIEW_REQUIRED");

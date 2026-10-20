@@ -437,3 +437,73 @@ test("Master protocol → research → implementation → review → human apply
     store.close();
   }
 });
+
+test("a no-change mission step whose reviewer requests changes stops the mission", async (t) => {
+  const dir = temp(t),
+    repo = join(dir, "repo");
+  await git(dir, ["init", "--", repo]);
+  writeFileSync(join(repo, "original.txt"), "original\n");
+  await git(repo, ["add", "--all"]);
+  const tree = await gitText(repo, "write-tree"),
+    base = await gitText(repo, "commit-tree", tree, "-m", "fixture");
+  await git(repo, ["update-ref", "HEAD", base]);
+  const store = new Store(join(dir, "db.sqlite"));
+  const p = store.createProject({
+    name: "Review stop",
+    root: repo,
+    master: "codex",
+  });
+  store.runs.configure("codex", process.execPath, [], "codex", "existing");
+  store.runs.configure("claude", process.execPath, [], "acp", "existing");
+  const supervisor = new Supervisor(
+    store,
+    join(dir, "app"),
+    (_agent, cwd) =>
+      new CodexAdapter({
+        command: process.execPath,
+        args: [resolve("tests/fixtures/codex-server.mjs")],
+        cwd,
+        env: { QA_BEHAVIOR: "master", QA_REVIEW_VERDICT: "CHANGES_REQUESTED" },
+      }),
+  );
+  const master = new MasterAgent(store, supervisor);
+  try {
+    const mission = master.plan(input(p.id));
+    await master.waitForProject(p.id);
+    await master.action(execute(p.id, mission.id));
+    await master.waitForProject(p.id);
+    const current = store.missions.get(p.id, mission.id);
+    assert.equal(current.status, "blocked");
+    assert.equal(current.reason, "REVIEW_CHANGES_REQUESTED");
+    const run = store.runs.get(p.id, current.runId);
+    assert.equal(run.state, "completed", "the research step changed no files");
+    assert.equal(
+      store.runs.list(
+        p.id,
+        store.tasks(p.id).find((t) => t.id !== run.taskId).id,
+      ).length,
+      0,
+      "the dependent step never started",
+    );
+    // Continuing while the requested revision still runs waits for it
+    // instead of failing the mission.
+    const revision = await supervisor.start({
+      projectId: p.id,
+      taskId: run.taskId,
+      consent: true,
+      reviseRunId: run.id,
+    });
+    await master.action(execute(p.id, mission.id));
+    await master.waitForProject(p.id);
+    const resumed = store.missions.get(p.id, mission.id);
+    assert.equal(resumed.status, "blocked");
+    // The finished revision changed files, so it now waits for the operator.
+    assert.equal(resumed.reason, "HUMAN_APPROVAL_REQUIRED");
+    assert.equal(resumed.runId, revision.id, "the revision was judged");
+    assert.equal(store.runs.get(p.id, revision.id).reviewState, "completed");
+  } finally {
+    await master.close();
+    await supervisor.close?.();
+    store.close();
+  }
+});

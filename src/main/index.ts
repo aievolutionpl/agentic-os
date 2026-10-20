@@ -337,7 +337,12 @@ app
     );
     mcp = new McpTools(store.extensions, app.getPath("userData"));
     browser = new ProjectBrowser(store, () => window);
-    const applications = new Applications(store, supervisor.worktrees);
+    const applications = new Applications(
+      store,
+      supervisor.worktrees,
+      Date.now,
+      (taskId) => supervisor.starts(taskId),
+    );
     await applications.reconcile();
     session.defaultSession.setPermissionRequestHandler(
       (_wc, _permission, callback) => callback(false),

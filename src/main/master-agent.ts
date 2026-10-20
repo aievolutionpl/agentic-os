@@ -384,6 +384,11 @@ export class MasterAgent {
       this.check(signal);
     }
   }
+  private changesRequested(runId: string) {
+    return (
+      this.store.runs.reviewEvidence(runId)?.verdict === "changes_requested"
+    );
+  }
   private async execute(mission: Mission, signal: AbortSignal) {
     const context = this.store.missions.context(mission.projectId, mission.id);
     for (const step of mission.steps) {
@@ -392,9 +397,30 @@ export class MasterAgent {
       if (
         run &&
         (run.state === "applied" ||
-          (run.state === "completed" && run.reviewState === "completed"))
+          (run.state === "completed" &&
+            run.reviewState === "completed" &&
+            !this.changesRequested(run.id)))
       )
         continue;
+      // A run the operator started for this task (a requested revision, say)
+      // may still be going: wait for it rather than judge it unfinished.
+      if (
+        run &&
+        ["preparing", "running", "reviewing", "applying"].includes(run.state)
+      ) {
+        mission.runId = run.id;
+        await this.supervisor.waitForRun(run.id);
+        this.check(signal);
+        run = this.store.runs.get(mission.projectId, run.id)!;
+        if (
+          ["preparing", "running", "reviewing", "applying"].includes(run.state)
+        ) {
+          mission.status = "blocked";
+          mission.reason = "TASK_RUN_ACTIVE";
+          this.event(mission, mission.reason);
+          return;
+        }
+      }
       if (
         run &&
         [
@@ -468,6 +494,14 @@ export class MasterAgent {
         if (run.reviewState !== "completed") {
           mission.status = "blocked";
           mission.reason = "REVIEW_FAILED";
+          this.event(mission, mission.reason);
+          return;
+        }
+        // A reviewer who asked for changes stops the mission even when the
+        // step changed no files: the operator decides on a revision.
+        if (run.state === "completed" && this.changesRequested(run.id)) {
+          mission.status = "blocked";
+          mission.reason = "REVIEW_CHANGES_REQUESTED";
           this.event(mission, mission.reason);
           return;
         }

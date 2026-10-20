@@ -159,6 +159,12 @@ export function MasterPanel({
         REVIEW_FAILED: pl
           ? "Recenzja nie została ukończona. Otwórz wynik zadania i ponów przegląd przed kontynuowaniem misji."
           : "The review did not complete. Open the task result and explicitly retry review before continuing.",
+        REVIEW_CHANGES_REQUESTED: pl
+          ? "Recenzent poprosił o poprawki. Otwórz wynik zadania i zdecyduj o poprawce, zanim misja ruszy dalej."
+          : "The reviewer requested changes. Open the task result and decide on a revision before the mission continues.",
+        TASK_RUN_ACTIVE: pl
+          ? "Przebieg tego zadania wciąż trwa. Poczekaj, aż się zakończy, a potem kontynuuj misję."
+          : "This task's run is still in progress. Wait for it to finish, then continue the mission.",
         INSPECT_TASK_RESULT: pl
           ? "Sprawdź nieukończony wynik w zadaniach. Możesz jawnie wznowić przebieg, a potem kontynuować misję."
           : "Inspect the unfinished task. Explicitly resume its run, then continue this mission.",

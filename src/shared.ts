@@ -352,8 +352,6 @@ export interface OrchestrationState {
   reason: string | null;
   /** Agent a POLICY_* hold is waiting on (approval or a policy change). */
   policyAgent?: Agent;
-  /** Run whose review the policy refused; resume retries that review. */
-  policyRunId?: string;
   createdAt: number | null;
   updatedAt: number | null;
 }

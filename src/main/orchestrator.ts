@@ -9,7 +9,25 @@ import type {
 } from "../shared.js";
 import { exact, text } from "./validate.js";
 
-type PolicyStep = { taskId: string; agent: Agent; reviewRunId?: string };
+type PolicyStep = { taskId: string; agent: Agent };
+/** Run states a resumed batch settles before dispatching more work; a
+ * completed run of an open task (finished by hand) is counted, not lost. */
+const UNSETTLED = [
+  "preparing",
+  "running",
+  "reviewing",
+  "awaiting_review",
+  "completed",
+];
+
+/** Blocked batches the operator can continue: a policy refusal or a review
+ * that did not finish. */
+function onHold(batch: OrchestrationState) {
+  return (
+    batch.status === "blocked" &&
+    (!!batch.reason?.startsWith("POLICY_") || batch.reason === "REVIEW_FAILED")
+  );
+}
 
 /** A finite, explicitly launched queue. No replay, automatic approvals, or hidden retries. */
 export class Orchestrator {
@@ -76,9 +94,8 @@ export class Orchestrator {
       throw Error("EXPLICIT_CONSENT_REQUIRED");
     this.guard(projectId);
     const latest = this.store.batches.latest(projectId);
-    // A policy hold keeps its progress until it is resumed or abandoned.
-    if (latest?.status === "blocked" && latest.reason?.startsWith("POLICY_"))
-      throw Error("BATCH_HELD_BY_POLICY");
+    // A held batch keeps its progress until it is resumed or abandoned.
+    if (latest && onHold(latest)) throw Error("BATCH_ON_HOLD");
     if (
       !Array.isArray(p.taskIds) ||
       !p.taskIds.length ||
@@ -122,31 +139,33 @@ export class Orchestrator {
     this.guard(projectId);
     const batch = this.store.batches.latest(projectId);
     if (!batch || batch.id !== batchId) throw Error("BATCH_NOT_FOUND");
-    const policyHold =
-      batch.status === "blocked" && !!batch.reason?.startsWith("POLICY_");
-    if (batch.status !== "interrupted" && !policyHold)
+    if (batch.status !== "interrupted" && !onHold(batch))
       throw Error("BATCH_NOT_INTERRUPTED");
-    const heldReview = policyHold ? batch.policyRunId : undefined;
+    // Work started for a batch task (by the queue or by hand from the task)
+    // is settled from its stored run first: waited for, reviewed, or handed
+    // to a human decision. Nothing is inferred from in-memory markers.
+    const open = batch.taskIds.filter(
+      (id) => !batch.completedTaskIds.includes(id),
+    );
+    const held = open
+      .map((id) => this.store.runs.list(projectId, id)[0])
+      .find((run) => run && UNSETTLED.includes(run.state));
     const tasks = this.store.tasks(projectId),
-      remaining = batch.taskIds.filter(
+      remaining = open.filter(
         (id) =>
-          !batch.completedTaskIds.includes(id) &&
+          id !== held?.taskId &&
           tasks.find((t) => t.id === id)?.status === "queued",
       );
-    if (!remaining.length && !heldReview) throw Error("NOTHING_TO_RESUME");
-    if (!heldReview) this.providers(remaining, projectId);
+    if (!remaining.length && !held) throw Error("NOTHING_TO_RESUME");
+    this.providers(remaining, projectId);
     const context = this.store.batches.context(projectId, batchId);
     batch.status = "running";
     batch.reason = null;
     batch.runId = null;
     delete batch.policyAgent;
-    delete batch.policyRunId;
     this.store.batches.save(batch, "resumed");
     this.live.set(projectId, batch);
-    // A refused review is retried first; its result then needs a human
-    // decision, exactly as in an uninterrupted batch.
-    if (heldReview) void this.retryReview(batch, heldReview);
-    else void this.execute(batch, context, remaining);
+    void this.execute(batch, context, remaining, held?.id);
     return { ...batch };
   }
   private save(
@@ -161,12 +180,18 @@ export class Orchestrator {
     batch: OrchestrationState,
     context: BatchContext,
     taskIds = batch.taskIds,
+    heldRunId?: string,
   ) {
     const pending = new Set(taskIds);
     // Which agent's start the policy gate may refuse right now.
-    let step: PolicyStep | null = null;
+    const step: { current: PolicyStep | null } = { current: null };
     try {
-      while (pending.size && batch.status === "running" && !this.closed) {
+      let go = true;
+      if (heldRunId) {
+        const held = this.store.runs.get(batch.projectId, heldRunId)!;
+        go = await this.settle(batch, held.taskId, held.id, step);
+      }
+      while (go && pending.size && batch.status === "running" && !this.closed) {
         const tasks = this.store.tasks(batch.projectId);
         const next = tasks.find(
           (t) =>
@@ -184,7 +209,7 @@ export class Orchestrator {
           this.save(batch, "blocked");
           break;
         }
-        step = { taskId: next.id, agent: next.implementer };
+        step.current = { taskId: next.id, agent: next.implementer };
         const run = await this.supervisor.start(
           {
             projectId: batch.projectId,
@@ -202,56 +227,86 @@ export class Orchestrator {
             runId: run.id,
             action: "cancel",
           });
-        await this.supervisor.waitForRun(run.id);
-        if (batch.status !== "running" || this.closed) break;
-        let result = this.store.runs.get(batch.projectId, run.id)!;
-        if (result.state === "awaiting_review") {
-          if (
-            this.supervisor.settings().find((s) => s.id === result.reviewer)
-              ?.configured
-          ) {
-            this.save(batch, "reviewing", next.id);
-            step = {
-              taskId: next.id,
-              agent: result.reviewer,
-              reviewRunId: run.id,
-            };
-            await this.supervisor.review({
-              projectId: batch.projectId,
-              runId: run.id,
-              consent: true,
-            });
-            await this.supervisor.waitForRun(run.id);
-          }
-          if (batch.status !== "running" || this.closed) break;
-          batch.finished++;
-          batch.status = "blocked";
-          batch.reason = "HUMAN_APPROVAL_REQUIRED";
-          this.save(batch, "blocked", next.id);
-          break;
-        }
-        if (result.state !== "completed") {
-          batch.status = "failed";
-          batch.reason = "RUN_FAILED";
-          this.save(batch, "failed", next.id);
-          break;
-        }
         pending.delete(next.id);
-        batch.completedTaskIds.push(next.id);
-        batch.finished++;
-        batch.runId = null;
-        this.save(batch, "task_completed", next.id);
+        go = await this.settle(batch, next.id, run.id, step);
       }
       if (batch.status === "running" && !this.closed) {
         batch.status = "completed";
         this.save(batch, "completed");
       }
     } catch (e) {
-      this.refused(batch, e, step);
+      this.refused(batch, e, step.current);
     } finally {
       if (this.live.get(batch.projectId) === batch && !this.closed)
         this.live.delete(batch.projectId);
     }
+  }
+  /** Takes one task's run to its outcome from the stored state: waits for it,
+   * reviews a result that has no completed review, and returns true only when
+   * the task completed and the queue may continue. */
+  private async settle(
+    batch: OrchestrationState,
+    taskId: string,
+    runId: string,
+    step: { current: PolicyStep | null },
+  ) {
+    const running = () => batch.status === "running" && !this.closed;
+    // Stop must be able to cancel whatever this run is doing.
+    batch.runId = runId;
+    const wasReviewing =
+      this.store.runs.get(batch.projectId, runId)?.state === "reviewing";
+    await this.supervisor.waitForRun(runId);
+    if (!running()) return false;
+    let result = this.store.runs.get(batch.projectId, runId)!;
+    if (result.state === "awaiting_review") {
+      const reviewer = this.supervisor
+        .settings()
+        .find((s) => s.id === result.reviewer)?.configured;
+      if (reviewer && result.reviewState !== "completed") {
+        // A review that just failed under our watch is not retried silently.
+        if (!wasReviewing) {
+          this.save(batch, "reviewing", taskId);
+          step.current = { taskId, agent: result.reviewer };
+          await this.supervisor.review({
+            projectId: batch.projectId,
+            runId,
+            consent: true,
+          });
+          if (!running()) {
+            // Stop arrived while the policy gate was being checked.
+            await this.supervisor
+              .action({ projectId: batch.projectId, runId, action: "cancel" })
+              .catch(() => {});
+            return false;
+          }
+          await this.supervisor.waitForRun(runId);
+          if (!running()) return false;
+          result = this.store.runs.get(batch.projectId, runId)!;
+        }
+        if (result.reviewState !== "completed") {
+          batch.status = "blocked";
+          batch.reason = "REVIEW_FAILED";
+          this.save(batch, "blocked", taskId);
+          return false;
+        }
+      }
+      batch.finished++;
+      batch.status = "blocked";
+      batch.reason = "HUMAN_APPROVAL_REQUIRED";
+      this.save(batch, "blocked", taskId);
+      return false;
+    }
+    if (result.state !== "completed") {
+      batch.status = "failed";
+      batch.reason = "RUN_FAILED";
+      this.save(batch, "failed", taskId);
+      return false;
+    }
+    batch.completedTaskIds.push(taskId);
+    batch.finished++;
+    batch.runId = null;
+    this.save(batch, "task_completed", taskId);
+    return true;
   }
   /** A policy refusal is a decision for the operator, not a failure: approve
    * or change the policy, then resume. Anything else fails the batch. */
@@ -267,7 +322,6 @@ export class Orchestrator {
       batch.reason = code;
       batch.runId = null;
       if (step) batch.policyAgent = step.agent;
-      if (step?.reviewRunId) batch.policyRunId = step.reviewRunId;
       this.save(batch, "blocked", step?.taskId ?? null);
     } else {
       batch.status = "failed";
@@ -275,56 +329,15 @@ export class Orchestrator {
       this.save(batch, "failed");
     }
   }
-  /** Retries a review the policy refused; the result then waits for a human
-   * decision like any reviewed result. */
-  private async retryReview(batch: OrchestrationState, runId: string) {
-    const run = this.store.runs.get(batch.projectId, runId)!;
-    const step = {
-      taskId: run.taskId,
-      agent: run.reviewer as Agent,
-      reviewRunId: runId,
-    };
-    // Stop must be able to cancel the review while it runs.
-    batch.runId = runId;
-    try {
-      this.save(batch, "reviewing", run.taskId);
-      // The operator may already have run the review from the task: wait for
-      // a running one, accept a finished one, start it only if it never ran.
-      const live = run.state === "reviewing" && run.reviewState === "running";
-      if (!live && run.reviewState !== "completed")
-        await this.supervisor.review({
-          projectId: batch.projectId,
-          runId,
-          consent: true,
-        });
-      await this.supervisor.waitForRun(runId);
-      if (batch.status !== "running" || this.closed) return;
-      batch.finished++;
-      batch.status = "blocked";
-      batch.reason = "HUMAN_APPROVAL_REQUIRED";
-      this.save(batch, "blocked", run.taskId);
-    } catch (e) {
-      this.refused(batch, e, step);
-    } finally {
-      if (this.live.get(batch.projectId) === batch && !this.closed)
-        this.live.delete(batch.projectId);
-    }
-  }
   async stop(input: unknown) {
     const state = this.state(input),
       batch = this.live.get(state.projectId);
-    if (
-      !batch &&
-      state.id &&
-      state.status === "blocked" &&
-      state.reason?.startsWith("POLICY_")
-    ) {
-      // Explicitly abandoning a policy hold, so a new batch can start.
+    if (!batch && state.id && onHold(state)) {
+      // Explicitly abandoning a held batch, so a new batch can start.
       const held = this.store.batches.latest(state.projectId)!;
       held.status = "stopped";
       held.reason = "USER_STOPPED";
       delete held.policyAgent;
-      delete held.policyRunId;
       this.save(held, "stopped");
       return;
     }

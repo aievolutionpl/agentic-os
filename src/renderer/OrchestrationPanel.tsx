@@ -62,6 +62,13 @@ export function OrchestrationPanel({
   // the policy; it is resumed like an interrupted batch.
   const policyHold =
     state?.status === "blocked" && !!state.reason?.startsWith("POLICY_");
+  // A review that did not finish holds the queue the same way.
+  const reviewHold =
+    state?.status === "blocked" && state.reason === "REVIEW_FAILED";
+  const onHold = policyHold || reviewHold;
+  const reviewHoldText = pl
+    ? "Review nie zakończyło się. Kontynuuj, aby uruchomić je ponownie."
+    : "The review did not finish. Continue to run it again.";
   const labels = pl
     ? {
         idle: "Gotowy",
@@ -99,8 +106,9 @@ export function OrchestrationPanel({
             {labels[state.status]} · {state.finished}/{state.taskIds.length}
             {policyHold &&
               ` · ${policyMessage(state.reason!, pl) ?? state.reason}`}
+            {reviewHold && ` · ${reviewHoldText}`}
             {state.status === "blocked" &&
-              !policyHold &&
+              !onHold &&
               (pl
                 ? " · Otwórz wynik zadania, aby przejrzeć i zatwierdzić zmiany."
                 : " · Open the task result to review and approve changes.")}
@@ -127,7 +135,7 @@ export function OrchestrationPanel({
         </button>
       ) : (
         <>
-          {(state?.status === "interrupted" || policyHold) && state?.id && (
+          {(state?.status === "interrupted" || onHold) && state?.id && (
             <button
               className="secondary"
               disabled={busy}
@@ -146,7 +154,7 @@ export function OrchestrationPanel({
           <button
             className="secondary"
             // A policy hold is resumed or abandoned before a new queue starts.
-            disabled={!queued.length || busy || policyHold}
+            disabled={!queued.length || busy || onHold}
             onClick={() => {
               setTaskIds(queued.slice(0, 10).map((t) => t.id));
               setContextIds([]);
@@ -309,7 +317,7 @@ export function OrchestrationPanel({
         className="batch-dialog"
       >
         <h2 id="orchestration-inspect-title">
-          {policyHold
+          {onHold
             ? pl
               ? "Kolejka czeka na decyzję"
               : "Queue waiting for a decision"
@@ -326,7 +334,8 @@ export function OrchestrationPanel({
               )}
           </div>
         )}
-        <p className="helper" hidden={policyHold}>
+        {reviewHold && <p className="helper">{reviewHoldText}</p>}
+        <p className="helper" hidden={onHold}>
           {pl
             ? "Aktywny krok został oznaczony jako przerwany i nie został powtórzony. Jego zapisany workspace sprawdzisz i wznowisz w wyniku zadania. Kontynuacja uruchomi tylko pozostałe zadania, które nadal czekają w kolejce."
             : "The active step was marked interrupted and was not replayed. Inspect and resume its saved workspace from the task result. Continuing only starts remaining tasks that are still queued."}
@@ -384,7 +393,7 @@ export function OrchestrationPanel({
           >
             {pl ? "Zamknij" : "Close"}
           </button>
-          {policyHold && (
+          {onHold && (
             <button
               className="cancel-action"
               disabled={busy}
@@ -408,7 +417,7 @@ export function OrchestrationPanel({
             disabled={
               busy ||
               !state?.id ||
-              (!(policyHold && state.policyRunId) &&
+              (!onHold &&
                 !state.taskIds.some(
                   (id) =>
                     !state.completedTaskIds.includes(id) &&
@@ -434,7 +443,7 @@ export function OrchestrationPanel({
                 .finally(() => setBusy(false));
             }}
           >
-            {policyHold && state?.policyRunId
+            {reviewHold
               ? pl
                 ? "Ponów review"
                 : "Retry review"

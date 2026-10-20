@@ -196,6 +196,15 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
   assert.equal(codex.successes, 2);
   assert.ok(codex.lastSuccessAt);
   assert.ok(codex.lastFailureAt);
+  // Outcome lookups are indexed, not a scan of every event per run.
+  const plan = store.db
+    .prepare(
+      "EXPLAIN QUERY PLAN SELECT MAX(at) FROM run_events WHERE runId=? AND kind='review_outcome'",
+    )
+    .all("x")
+    .map((r) => r.detail)
+    .join(" ");
+  assert.match(plan, /run_events_outcome/);
   // Reviewer history counts only the reviews an agent actually did.
   const reviews = store.runs.evidence("reviewer");
   assert.deepEqual(

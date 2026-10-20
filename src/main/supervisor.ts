@@ -883,7 +883,14 @@ export class Supervisor {
     };
     this.active.set(run.id, active);
     active.promise = (async () => {
-      const timer = setTimeout(() => controller.abort(), 10 * 60 * 1000);
+      let timedOut = false;
+      const timer = setTimeout(
+        () => {
+          timedOut = true;
+          controller.abort();
+        },
+        10 * 60 * 1000,
+      );
       try {
         const result = await adapter.run({
           cwd: run.worktree,
@@ -929,11 +936,11 @@ export class Supervisor {
           reviewState: "failed",
           error: "REVIEW_FAILED",
         });
-        // A stop or app shutdown is not the reviewer's failure.
         this.store.runs.event(
           run.id,
           "review_outcome",
-          controller.signal.aborted ? "interrupted" : "failed",
+          // A timeout is the reviewer's failure; a stop or shutdown is not.
+          controller.signal.aborted && !timedOut ? "interrupted" : "failed",
         );
       } finally {
         clearTimeout(timer);

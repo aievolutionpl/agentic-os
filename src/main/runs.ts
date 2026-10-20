@@ -19,6 +19,18 @@ export class Runs {
       CREATE TABLE run_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,runId TEXT NOT NULL REFERENCES runs(id),kind TEXT NOT NULL,text TEXT NOT NULL,at INTEGER NOT NULL);
       CREATE TABLE provider_settings(id TEXT PRIMARY KEY,command TEXT NOT NULL,args TEXT NOT NULL,protocol TEXT NOT NULL,consent INTEGER NOT NULL DEFAULT 0);
       PRAGMA user_version=6;COMMIT;`);
+    // Outcome lookups for routing evidence read events by run and kind. An
+    // index adds no data, so it is created idempotently on any schema.
+    if (
+      db
+        .prepare(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='run_events'",
+        )
+        .get()
+    )
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS run_events_outcome ON run_events(runId,kind,at)",
+      );
   }
   create(
     projectId: string,

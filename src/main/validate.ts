@@ -19,6 +19,17 @@ export function exact(value: unknown, fields: string[]) {
     throw Error("INVALID_INPUT");
   return p;
 }
+/** Redacted text cut to `max` keeping both ends: a reply's closing block (a
+ * reviewer's verdict and findings) survives a long body. */
+export function redactEnds(value: string, max = 8000): string {
+  const clean = redact(value, Infinity);
+  if (clean.length <= max) return clean;
+  const marker = "\n[…]\n",
+    head = Math.floor((max - marker.length) / 4);
+  return (
+    clean.slice(0, head) + marker + clean.slice(-(max - marker.length - head))
+  );
+}
 export function redact(value: string, max = 4000): string {
   return value
     .replace(

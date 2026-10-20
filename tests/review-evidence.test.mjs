@@ -137,3 +137,14 @@ test("serialized evidence stays valid JSON within its budget", () => {
     50,
   );
 });
+
+test("a long review keeps its closing verdict and findings", async () => {
+  const { redactEnds } = await import("../dist/main/validate.js");
+  const review = `${"Checked carefully. ".repeat(900)}\nVERDICT: CHANGES_REQUESTED\nFINDINGS:\n- src/app.ts:3 — missing guard`;
+  const kept = redactEnds(review, 8000);
+  assert.ok(kept.length <= 8000);
+  const parsed = parseReview(kept, new Set(["src/app.ts"]));
+  assert.equal(parsed.verdict, "changes_requested");
+  assert.equal(parsed.findings[0].path, "src/app.ts");
+  assert.equal(redactEnds("short sk-abcdefghijklmnop"), "short [REDACTED]");
+});

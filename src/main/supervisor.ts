@@ -724,19 +724,18 @@ export class Supervisor {
         throw Error("READ_ONLY_MODE_UNSUPPORTED");
       // Every source check runs before reopen resets the sealed worktree, so
       // a refused revision leaves the reviewed result intact.
+      // Work that already built on this result would silently keep the
+      // superseded version; such a revision is refused.
+      const dependentsStarted = () =>
+        this.store
+          .tasks(projectId)
+          .some(
+            (t) =>
+              t.dependencies.includes(taskId) &&
+              this.store.runs.list(projectId, t.id).length > 0,
+          );
       if (revising) {
-        // Work that already built on this result would silently keep the
-        // superseded version; such a revision is refused.
-        if (
-          this.store
-            .tasks(projectId)
-            .some(
-              (t) =>
-                t.dependencies.includes(taskId) &&
-                this.store.runs.list(projectId, t.id).length > 0,
-            )
-        )
-          throw Error("REVISION_DEPENDENTS_STARTED");
+        if (dependentsStarted()) throw Error("REVISION_DEPENDENTS_STARTED");
         if ((await this.worktrees.inspect(project.root)).base !== revising.base)
           throw Error("BASE_CHANGED");
         // Skills are prepared while the reviewed result is still intact.
@@ -754,6 +753,8 @@ export class Supervisor {
           now.approvalId
         )
           throw Error("INVALID_REVISION");
+        // ...and nothing may have started on it in the meantime either.
+        if (dependentsStarted()) throw Error("REVISION_DEPENDENTS_STARTED");
       }
       const workspace: Workspace = revising
         ? await this.worktrees.reopen({

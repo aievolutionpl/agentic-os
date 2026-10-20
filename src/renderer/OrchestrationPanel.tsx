@@ -145,7 +145,8 @@ export function OrchestrationPanel({
           )}
           <button
             className="secondary"
-            disabled={!queued.length || busy}
+            // A policy hold is resumed or abandoned before a new queue starts.
+            disabled={!queued.length || busy || policyHold}
             onClick={() => {
               setTaskIds(queued.slice(0, 10).map((t) => t.id));
               setContextIds([]);
@@ -383,6 +384,25 @@ export function OrchestrationPanel({
           >
             {pl ? "Zamknij" : "Close"}
           </button>
+          {policyHold && (
+            <button
+              className="cancel-action"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                setError(false);
+                void api.orchestrationStop!({ projectId })
+                  .then(() => {
+                    setInspect(false);
+                    onChanged();
+                  })
+                  .catch(() => setError(true))
+                  .finally(() => setBusy(false));
+              }}
+            >
+              {pl ? "Porzuć kolejkę" : "Abandon queue"}
+            </button>
+          )}
           <button
             className="primary"
             disabled={

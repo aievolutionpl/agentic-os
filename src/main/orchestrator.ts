@@ -75,6 +75,10 @@ export class Orchestrator {
     if (p.consent !== true || this.closed)
       throw Error("EXPLICIT_CONSENT_REQUIRED");
     this.guard(projectId);
+    const latest = this.store.batches.latest(projectId);
+    // A policy hold keeps its progress until it is resumed or abandoned.
+    if (latest?.status === "blocked" && latest.reason?.startsWith("POLICY_"))
+      throw Error("BATCH_HELD_BY_POLICY");
     if (
       !Array.isArray(p.taskIds) ||
       !p.taskIds.length ||
@@ -280,13 +284,18 @@ export class Orchestrator {
       agent: run.reviewer as Agent,
       reviewRunId: runId,
     };
+    // Stop must be able to cancel the review while it runs.
+    batch.runId = runId;
     try {
       this.save(batch, "reviewing", run.taskId);
-      await this.supervisor.review({
-        projectId: batch.projectId,
-        runId,
-        consent: true,
-      });
+      // The operator may already have run the review from the task: wait for
+      // a running one, accept a finished one, start it only if it never ran.
+      if (run.reviewState !== "running" && run.reviewState !== "completed")
+        await this.supervisor.review({
+          projectId: batch.projectId,
+          runId,
+          consent: true,
+        });
       await this.supervisor.waitForRun(runId);
       if (batch.status !== "running" || this.closed) return;
       batch.finished++;
@@ -303,6 +312,21 @@ export class Orchestrator {
   async stop(input: unknown) {
     const state = this.state(input),
       batch = this.live.get(state.projectId);
+    if (
+      !batch &&
+      state.id &&
+      state.status === "blocked" &&
+      state.reason?.startsWith("POLICY_")
+    ) {
+      // Explicitly abandoning a policy hold, so a new batch can start.
+      const held = this.store.batches.latest(state.projectId)!;
+      held.status = "stopped";
+      held.reason = "USER_STOPPED";
+      delete held.policyAgent;
+      delete held.policyRunId;
+      this.save(held, "stopped");
+      return;
+    }
     if (!batch || batch.status !== "running") return;
     batch.status = "stopped";
     batch.reason = "USER_STOPPED";

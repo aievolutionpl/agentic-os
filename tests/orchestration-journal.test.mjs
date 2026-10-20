@@ -370,6 +370,11 @@ test("resume retries a review the policy refused, then waits for a human decisio
 
   approved = true;
   queue.resume({ projectId: project.id, batchId: started.id, consent: true });
+  assert.equal(
+    queue.state({ projectId: project.id }).runId,
+    runId,
+    "stop can cancel the retried review",
+  );
   await until(
     () => queue.state({ projectId: project.id }).status !== "running",
   );
@@ -380,4 +385,93 @@ test("resume retries a review the policy refused, then waits for a human decisio
   assert.equal(done.reason, "HUMAN_APPROVAL_REQUIRED");
   assert.equal(done.finished, 1);
   assert.equal(done.policyRunId, undefined);
+});
+
+test("a review the operator already ran is accepted, and a policy hold blocks new batches", async (t) => {
+  const f = fixture(t);
+  const store = f.open();
+  const { project } = seed(store, 2);
+  const [a, b] = store.tasks(project.id).map((x) => x.id);
+  const fake = runtime(store, project.id, () => "ok");
+  fake.waitForRun = (runId) => {
+    if (store.runs.get(project.id, runId).state !== "awaiting_review")
+      store.runs.update(project.id, runId, { state: "awaiting_review" });
+    return Promise.resolve();
+  };
+  const reviews = [];
+  fake.review = async (p) => {
+    reviews.push(p.runId);
+    throw Error("POLICY_APPROVAL_REQUIRED");
+  };
+  const queue = new Orchestrator(store, fake);
+  const started = queue.start({
+    projectId: project.id,
+    taskIds: [a],
+    contextIds: [],
+    consent: true,
+  });
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  assert.throws(
+    () =>
+      queue.start({
+        projectId: project.id,
+        taskIds: [b],
+        contextIds: [],
+        consent: true,
+      }),
+    /BATCH_HELD_BY_POLICY/,
+  );
+  // The operator approves and runs the review from the task itself.
+  const runId = store.runs.list(project.id, a)[0].id;
+  store.runs.update(project.id, runId, { reviewState: "completed" });
+  queue.resume({ projectId: project.id, batchId: started.id, consent: true });
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  assert.deepEqual(reviews, [runId], "no duplicate review");
+  assert.equal(
+    queue.state({ projectId: project.id }).reason,
+    "HUMAN_APPROVAL_REQUIRED",
+  );
+});
+
+test("abandoning a policy hold frees the queue for a new batch", async (t) => {
+  const f = fixture(t);
+  const store = f.open();
+  const { project } = seed(store, 2);
+  const [a, b] = store.tasks(project.id).map((x) => x.id);
+  const fake = runtime(store, project.id, () => "ok");
+  const start = fake.start;
+  fake.start = async (p, c) => {
+    if (p.taskId === a) throw Error("POLICY_APPROVAL_REQUIRED");
+    return start(p, c);
+  };
+  const queue = new Orchestrator(store, fake);
+  queue.start({
+    projectId: project.id,
+    taskIds: [a],
+    contextIds: [],
+    consent: true,
+  });
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  assert.equal(queue.state({ projectId: project.id }).status, "blocked");
+  await queue.stop({ projectId: project.id });
+  const abandoned = queue.state({ projectId: project.id });
+  assert.equal(abandoned.status, "stopped");
+  assert.equal(abandoned.reason, "USER_STOPPED");
+  const next = queue.start({
+    projectId: project.id,
+    taskIds: [b],
+    contextIds: [],
+    consent: true,
+  });
+  assert.equal(next.status, "running");
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  assert.equal(queue.state({ projectId: project.id }).status, "completed");
 });

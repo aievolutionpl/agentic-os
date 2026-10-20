@@ -54,6 +54,7 @@ export class Batches {
     batch: OrchestrationState,
     kind: OrchestrationEvent["kind"],
     taskId: string | null = null,
+    runId: string | null = batch.runId,
   ) {
     batch.updatedAt = this.clock();
     this.transaction(() => {
@@ -68,7 +69,7 @@ export class Batches {
           batch.projectId,
         );
       if (!result.changes) throw Error("BATCH_NOT_FOUND");
-      this.event(batch, kind, taskId);
+      this.event(batch, kind, taskId, runId);
     });
   }
   events(projectId: string, id: string): OrchestrationEvent[] {
@@ -91,6 +92,7 @@ export class Batches {
     batch: OrchestrationState,
     kind: OrchestrationEvent["kind"],
     taskId: string | null = null,
+    runId: string | null = batch.runId,
   ) {
     this.db
       .prepare(
@@ -101,7 +103,7 @@ export class Batches {
         kind,
         batch.status,
         taskId,
-        batch.runId,
+        runId,
         batch.reason,
         this.clock(),
       );

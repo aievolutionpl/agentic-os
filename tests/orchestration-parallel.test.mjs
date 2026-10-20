@@ -295,3 +295,97 @@ test("a policy refusal in a parallel batch lets the running task finish, then ho
   await until(() => queue.state({ projectId }).status !== "running");
   assert.equal(queue.state({ projectId }).status, "completed");
 });
+
+test("diff headers decode quoted and space-containing paths", async () => {
+  const { diffFiles } = await import("../dist/main/diff-files.js");
+  const diff = [
+    "diff --git a/src/app.ts b/src/app.ts",
+    'diff --git "a/\\303\\251t\\303\\251.ts" "b/\\303\\251t\\303\\251.ts"',
+    "diff --git a/docs/my notes.md b/docs/my notes.md",
+    'diff --git "a/tab\\there.txt" "b/tab\\there.txt"',
+  ].join("\n");
+  assert.deepEqual(
+    [...diffFiles(diff)],
+    ["src/app.ts", "été.ts", "docs/my notes.md", "tab\there.txt"],
+  );
+});
+
+test("a failed dispatch lets the running task finish before the batch fails", async (t) => {
+  const { store, projectId, ids } = setup(t, 2);
+  const fake = runtime(store, projectId);
+  const start = fake.start;
+  fake.start = async (p) => {
+    if (p.taskId === ids[1]) throw Error("WORKTREE_FAILED");
+    return start(p);
+  };
+  const queue = new Orchestrator(store, fake);
+  queue.start({
+    projectId,
+    taskIds: ids,
+    contextIds: [],
+    consent: true,
+    parallel: true,
+  });
+  await until(() => fake.calls.length === 1);
+  await settle();
+  assert.equal(queue.state({ projectId }).status, "running", "still stoppable");
+  fake.end(ids[0]);
+  await until(() => queue.state({ projectId }).status !== "running");
+  const failed = queue.state({ projectId });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.reason, "DISPATCH_FAILED");
+  assert.deepEqual(failed.completedTaskIds, [ids[0]]);
+});
+
+test("journal events name the run that actually completed", async (t) => {
+  const { store, projectId, ids } = setup(t, 2);
+  const fake = runtime(store, projectId);
+  const queue = new Orchestrator(store, fake);
+  queue.start({
+    projectId,
+    taskIds: ids,
+    contextIds: [],
+    consent: true,
+    parallel: true,
+  });
+  await until(() => fake.calls.length === 2);
+  const runOf = (id) => store.runs.list(projectId, id)[0].id;
+  fake.end(ids[0]);
+  await until(() =>
+    queue.events({ projectId }).some((e) => e.kind === "task_completed"),
+  );
+  fake.end(ids[1]);
+  await until(() => queue.state({ projectId }).status !== "running");
+  for (const e of queue.events({ projectId }))
+    if (e.kind === "task_completed" || e.kind === "dispatched")
+      assert.equal(e.runId, runOf(e.taskId));
+});
+
+test("resuming an interrupted parallel batch settles every run it had in flight", async (t) => {
+  const { store, projectId, ids } = setup(t, 3);
+  const fake = runtime(store, projectId);
+  const first = new Orchestrator(store, fake);
+  first.start({
+    projectId,
+    taskIds: ids,
+    contextIds: [],
+    consent: true,
+    parallel: true,
+  });
+  await until(() => fake.calls.length === 2);
+  first.close();
+  // Both runs finished while the app was closed.
+  fake.end(ids[0]);
+  fake.end(ids[1]);
+  const queue = new Orchestrator(store, fake);
+  const batch = queue.state({ projectId });
+  assert.equal(batch.status, "interrupted");
+  queue.resume({ projectId, batchId: batch.id, consent: true });
+  await until(() => fake.calls.length === 3);
+  fake.end(ids[2]);
+  await until(() => queue.state({ projectId }).status !== "running");
+  const done = queue.state({ projectId });
+  assert.equal(done.status, "completed");
+  assert.deepEqual([...done.completedTaskIds].sort(), [...ids].sort());
+  assert.equal(done.finished, 3);
+});

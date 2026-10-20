@@ -679,3 +679,27 @@ test("a policy refusal stops a task run before any run, worktree or process exis
     await f.close();
   }
 });
+
+test("a read-only workflow is refused for an agent without a read-only mode", async () => {
+  const f = await setup();
+  try {
+    const task = f.store.createTask({
+      projectId: f.project.id,
+      title: "Research with Hermes",
+      implementer: "hermes",
+      reviewer: "claude",
+    });
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: task.id,
+        consent: true,
+        workflow: "research",
+      }),
+      /READ_ONLY_MODE_UNSUPPORTED/,
+    );
+    assert.equal(f.store.runs.list(f.project.id, task.id).length, 0);
+  } finally {
+    await f.close();
+  }
+});

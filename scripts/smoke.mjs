@@ -118,6 +118,7 @@ try {
       "policyGet",
       "policySet",
       "policyApprove",
+      "routePreview",
       "memoryList",
       "memoryUpdate",
       "skillCatalog",

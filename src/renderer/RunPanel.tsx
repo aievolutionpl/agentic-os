@@ -126,6 +126,7 @@ export function RunPanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false),
     [policyCode, setPolicyCode] = useState(""),
+    [readOnlyRefused, setReadOnlyRefused] = useState(false),
     [consent, setConsent] = useState(false),
     [ids, setIds] = useState<string[]>([]),
     [instruction, setInstruction] = useState(""),
@@ -205,13 +206,15 @@ export function RunPanel({
     setBusy(true);
     setError(false);
     setPolicyCode("");
+    setReadOnlyRefused(false);
     try {
       await fn();
       await refresh();
       onChanged();
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
-      if (policyMessage(code, true)) setPolicyCode(code);
+      if (code.endsWith("READ_ONLY_UNSUPPORTED")) setReadOnlyRefused(true);
+      else if (policyMessage(code, true)) setPolicyCode(code);
       else setError(true);
     } finally {
       if (alive.current) setBusy(false);
@@ -259,6 +262,13 @@ export function RunPanel({
       {error && (
         <p className="inline-error" role="alert">
           {w.error}
+        </p>
+      )}
+      {readOnlyRefused && (
+        <p className="inline-error" role="alert">
+          {language === "pl"
+            ? "Ten agent nie ma trybu tylko do odczytu, więc nie może wykonać tego workflow. Wybierz implementację albo innego wykonawcę."
+            : "This agent has no read-only mode, so it can't run this workflow. Choose implementation or a different implementer."}
         </p>
       )}
       {policyCode && (

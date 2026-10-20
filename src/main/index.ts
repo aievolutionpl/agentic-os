@@ -519,10 +519,18 @@ app
       providerDetect: () => detectExecutables(),
       openRouterSettings: () => router.settings(),
       openRouterSave: (input) => {
+        const before = router.settings();
         const value = router.save(input);
         quotaMonitor!.invalidate();
-        // OpenCode runs with the router's environment; recheck it.
-        store.capabilities.clear("opencode");
+        // OpenCode runs with the router's inference key and model; recheck it
+        // only when those change. The balance key never reaches OpenCode.
+        const apiKey = (input as { apiKey?: unknown }).apiKey;
+        if (
+          !before.configured ||
+          before.model !== value.model ||
+          (typeof apiKey === "string" && apiKey !== "")
+        )
+          store.capabilities.clear("opencode");
         return value;
       },
       openRouterRemove: () => {

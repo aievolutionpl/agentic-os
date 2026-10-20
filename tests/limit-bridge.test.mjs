@@ -10,6 +10,7 @@ import {
   statSync,
   symlinkSync,
   lstatSync,
+  readdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -422,4 +423,51 @@ test("a previous command that leaves a process behind cannot hang the relay", (t
   const out = relay(data, "claude", { rate_limits: {} });
   assert.ok(Date.now() - started < 8000, "the three-second cap holds");
   assert.equal(out.stdout.trim(), "early");
+});
+
+test("credentials elsewhere in the settings file are never copied", (t) => {
+  const { home, data, bridge } = setup(t);
+  mkdirSync(join(home, ".claude"));
+  const secret = "sk-ant-" + "x".repeat(40);
+  writeFileSync(
+    claudeSettings(home),
+    JSON.stringify({ env: { ANTHROPIC_API_KEY: secret } }),
+  );
+  bridge.install({ agent: "claude", consent: true });
+  const dir = join(data, "limit-bridge");
+  for (const name of readdirSync(dir))
+    assert.ok(
+      !readFileSync(join(dir, name), "utf8").includes(secret),
+      `${name} holds no credential`,
+    );
+  assert.equal(
+    JSON.parse(readFileSync(claudeSettings(home), "utf8")).env
+      .ANTHROPIC_API_KEY,
+    secret,
+    "the user's own file keeps it",
+  );
+});
+
+test("paths with shell metacharacters are passed literally", (t) => {
+  if (process.platform === "win32") return;
+  const root = mkdtempSync(join(tmpdir(), "agenting-bridge-meta-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const odd = join(root, `a$HOME \`x\` "q" 'b'`);
+  mkdirSync(odd);
+  const runtime = join(odd, "node");
+  symlinkSync(process.execPath, runtime);
+  const home = join(root, "home");
+  mkdirSync(home);
+  const bridge = new LimitBridge(join(odd, "data"), runtime, {}, home);
+  bridge.install({ agent: "claude", consent: true });
+  const reset = Math.floor(Date.now() / 1000) + 3600;
+  const out = spawnSync("/bin/sh", ["-c", bridge.command("claude")], {
+    input: JSON.stringify({
+      rate_limits: { five_hour: { used_percentage: 12, resets_at: reset } },
+    }),
+    encoding: "utf8",
+    timeout: 10000,
+  });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /5h 12%/);
 });

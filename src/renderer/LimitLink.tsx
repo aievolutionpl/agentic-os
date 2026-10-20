@@ -159,7 +159,9 @@ export function LimitLink({
           <li>
             {pl ? "Zmieniany plik:" : "File changed:"}{" "}
             <code>{status.settingsPath}</code>{" "}
-            {pl ? "(kopia zapasowa przed zmianą)" : "(backed up first)"}
+            {pl
+              ? "(zmienia się tylko statusLine; poprzedni wpis jest zapisany do przywrócenia)"
+              : "(only statusLine changes; the previous entry is kept for restore)"}
           </li>
           <li>
             {pl ? "Wpis statusLine:" : "statusLine entry:"}{" "}

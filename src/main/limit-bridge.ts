@@ -1,6 +1,5 @@
 import {
   chmodSync,
-  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -51,7 +50,7 @@ export interface BridgeReadings {
  * previous command when there was one, otherwise a short summary.
  */
 const RELAY = String.raw`// Agenting OS limit relay. Generated; safe to delete with "Disconnect".
-import { readFileSync, writeFileSync, renameSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -118,12 +117,25 @@ if (reading) {
     renameSync(file + ".tmp", file);
   } catch {}
 }
+// The previous command was written for the shell the CLI uses: on Windows
+// that is Git Bash when installed and PowerShell otherwise, never cmd.exe.
+function shellFor(command) {
+  if (process.platform !== "win32") return ["/bin/sh", ["-c", command]];
+  const bash = [
+    process.env.CLAUDE_CODE_GIT_BASH_PATH,
+    process.env.ProgramFiles && join(process.env.ProgramFiles, "Git", "bin", "bash.exe"),
+    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Programs", "Git", "bin", "bash.exe"),
+  ].find((p) => p && existsSync(p));
+  return bash
+    ? [bash, ["-c", command]]
+    : ["powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command]];
+}
 const chained = previous();
 if (typeof chained === "string" && chained) {
   // The shell may start further processes that keep the pipe open, so the
   // cap kills the whole tree and finishes the relay itself.
   const win = process.platform === "win32";
-  const child = spawn(chained, { shell: true, detached: !win, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
+  const child = spawn(...shellFor(chained), { detached: !win, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
   let out = "", finished = false;
   const finish = () => {
     if (finished) return;
@@ -146,13 +158,17 @@ if (typeof chained === "string" && chained) {
 } else process.stdout.write(summary(reading));
 `;
 
+/** A POSIX shell literal: nothing inside is expanded. */
+const shellQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
+
 type StatusLine = { command?: unknown; [key: string]: unknown };
 type Settings = { statusLine?: StatusLine; [key: string]: unknown };
 
 /**
  * Optional, explicitly consented link to a CLI's documented status line.
  * Installing adds one `statusLine` entry to that CLI's own settings file
- * (after a backup), chaining any command already there; removing restores it.
+ * (keeping only the previous entry), chaining any command already there;
+ * removing restores it.
  * Nothing reads credentials, and the CLI keeps its own authentication.
  */
 export class LimitBridge {
@@ -181,7 +197,8 @@ export class LimitBridge {
    * may run it through Git Bash or PowerShell; invoking `powershell -File`
    * with forward slashes works in both, a bare quoted path only in Bash. */
   command(agent: BridgeAgent) {
-    if (this.platform !== "win32") return `"${this.wrapper()}" ${agent}`;
+    if (this.platform !== "win32")
+      return `${shellQuote(this.wrapper())} ${agent}`;
     const path = this.wrapper().replace(/\\/g, "/");
     return `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${path}" ${agent}`;
   }
@@ -278,7 +295,7 @@ export class LimitBridge {
     } else {
       writeFileSync(
         this.wrapper(),
-        `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec "${this.runtime}" "${join(this.dir, "relay.mjs")}" "$@"\n`,
+        `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec ${shellQuote(this.runtime)} ${shellQuote(join(this.dir, "relay.mjs"))} "$@"\n`,
       );
       chmodSync(this.wrapper(), 0o755);
     }
@@ -297,9 +314,8 @@ export class LimitBridge {
     const settings = this.read(agent);
     this.files();
     if (!this.ours(settings, agent)) {
-      const path = this.settingsPath(agent);
-      if (existsSync(path))
-        copyFileSync(path, join(this.dir, `${agent}-settings.backup.json`));
+      // Only the statusLine entry is kept for restore: the rest of the file
+      // may hold credentials (env), which are never copied.
       const previous =
         settings.statusLine && typeof settings.statusLine.command === "string"
           ? settings.statusLine

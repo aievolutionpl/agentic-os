@@ -141,6 +141,25 @@ export class Worktrees {
     )
       throw Error("INVALID_WORKTREE");
   }
+  /** Moves a sealed result back to uncommitted changes on its base, so a
+   * revision continues from it and the next seal captures the whole diff. */
+  async reopen(workspace: Workspace): Promise<Workspace> {
+    await this.verify(workspace);
+    if ((await gitText(workspace.path, "rev-parse", "HEAD")) !== workspace.head)
+      throw Error("WORKTREE_HEAD_CHANGED");
+    if (
+      (
+        await git(workspace.path, [
+          "status",
+          "--porcelain=v1",
+          "--untracked-files=all",
+        ])
+      ).length
+    )
+      throw Error("WORKTREE_CHANGED");
+    await git(workspace.path, ["reset", "--mixed", "--quiet", workspace.base]);
+    return { ...workspace, head: workspace.base };
+  }
   async seal(workspace: Workspace): Promise<string> {
     await this.verify(workspace);
     if ((await gitText(workspace.path, "rev-parse", "HEAD")) !== workspace.base)

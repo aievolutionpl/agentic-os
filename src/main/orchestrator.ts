@@ -4,6 +4,7 @@ import type { Supervisor } from "./supervisor.js";
 import type { BatchContext } from "./batches.js";
 import type { OrchestrationEvent, OrchestrationState } from "../shared.js";
 import { exact, text } from "./validate.js";
+import { diffFiles } from "./review-evidence.js";
 
 /** A finite, explicitly launched queue. No replay, automatic approvals, or hidden retries. */
 export class Orchestrator {
@@ -157,12 +158,7 @@ export class Orchestrator {
       taskId,
       run.artifactId,
     );
-    const files = new Set<string>();
-    for (const m of (artifact?.diff.toString("utf8") ?? "").matchAll(
-      /^diff --git a\/(.+?) b\/(.+)$/gm,
-    ))
-      files.add(m[1]!).add(m[2]!);
-    return files;
+    return diffFiles(artifact?.diff.toString("utf8") ?? "");
   }
   /** One task from dispatch to its outcome; reviews run as before. */
   private async follow(

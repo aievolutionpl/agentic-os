@@ -686,3 +686,106 @@ test("a policy refusal stops a task run before any run, worktree or process exis
     await f.close();
   }
 });
+
+test("reviewer evidence drives a bounded, explicitly started revision of the same worktree", async () => {
+  const f = await setup("revise");
+  try {
+    const first = await completed(f);
+    await reviewed(f, first);
+    const review = f.inputs.find((i) => i.readOnly);
+    assert.match(review.prompt, /VERDICT: APPROVE or VERDICT: CHANGES_REQUESTED/);
+    const evidence = f.store.runs.reviewEvidence(first.id);
+    assert.equal(evidence.verdict, "changes_requested");
+    assert.deepEqual(
+      evidence.findings.map((x) => [x.path, x.line, x.inDiff]),
+      [
+        ["result.txt", 1, true],
+        ["docs/missing.md", null, false],
+      ],
+    );
+
+    const second = await f.supervisor.start({
+      projectId: f.project.id,
+      taskId: f.task.id,
+      consent: true,
+      reviseRunId: first.id,
+    });
+    await wait(
+      () =>
+        f.store.runs.get(f.project.id, second.id)?.state === "awaiting_review",
+    );
+    const revised = f.store.runs.get(f.project.id, second.id);
+    assert.equal(revised.previousRunId, first.id);
+    assert.equal(revised.worktree, first.worktree, "same isolated worktree");
+    assert.equal(revised.base, first.base);
+    assert.equal(f.store.runs.get(f.project.id, first.id).state, "rejected");
+    const prompt = f.inputs.filter((i) => !i.readOnly).at(-1).prompt;
+    assert.match(prompt, /This is a revision/);
+    assert.match(prompt, /result\.txt:1 — content must say revised/);
+    const diff = f.store.artifacts
+      .get(f.project.id, f.task.id, revised.artifactId)
+      .diff.toString("utf8");
+    assert.match(diff, /\+revised result/);
+    assert.doesNotMatch(diff, /isolated result/, "one cumulative diff from base");
+    assert.equal(existsSync(join(f.repo, "result.txt")), false, "source untouched");
+
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: revised.id,
+      }),
+      /INVALID_REVISION/,
+      "no revision before the new result is reviewed",
+    );
+    await reviewed(f, revised);
+    const third = await f.supervisor.start({
+      projectId: f.project.id,
+      taskId: f.task.id,
+      consent: true,
+      reviseRunId: revised.id,
+    });
+    await wait(
+      () =>
+        f.store.runs.get(f.project.id, third.id)?.state === "awaiting_review",
+    );
+    await reviewed(f, f.store.runs.get(f.project.id, third.id));
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: third.id,
+      }),
+      /REVISION_LIMIT_REACHED/,
+    );
+    assert.equal(
+      f.store.tasks(f.project.id).find((t) => t.id === f.task.id).attempt,
+      3,
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("a review without a changes-requested verdict cannot start a revision", async () => {
+  const f = await setup();
+  try {
+    const run = await completed(f);
+    await reviewed(f, run);
+    assert.equal(f.store.runs.reviewEvidence(run.id).verdict, "unknown");
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: run.id,
+      }),
+      /INVALID_REVISION/,
+    );
+    assert.equal(f.store.runs.get(f.project.id, run.id).state, "awaiting_review");
+  } finally {
+    await f.close();
+  }
+});

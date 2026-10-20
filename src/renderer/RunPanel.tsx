@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Task, Memory, RuntimeView, Run, Extension } from "../shared";
 import { Icon, Modal, SelectField } from "./ui";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
+import { ReviewEvidence, reviewEvidence } from "./ReviewEvidence";
+
+const MAX_ATTEMPTS = 3;
 const copy = {
   en: {
     title: "Execution & review",
@@ -218,6 +221,17 @@ export function RunPanel({
     }
   }
   const mayStart = ["draft", "queued"].includes(task.status) && !run;
+  const evidence = reviewEvidence(view?.events),
+    activity = (view?.events ?? []).filter((e) => e.kind !== "review_evidence");
+  // A revision needs a reviewer who asked for changes, no approval yet and an
+  // attempt left; each one is started explicitly by the operator.
+  const mayRevise =
+    !!run &&
+    run.state === "awaiting_review" &&
+    run.reviewState === "completed" &&
+    !run.approvalId &&
+    evidence?.verdict === "changes_requested" &&
+    task.attempt < MAX_ATTEMPTS;
   const mayResume =
     task.implementer !== "antigravity" &&
     ["failed", "queued"].includes(task.status) &&
@@ -520,6 +534,34 @@ export function RunPanel({
               <pre>{run.reviewText}</pre>
             </details>
           )}
+          {evidence && (
+            <ReviewEvidence evidence={evidence} pl={language === "pl"} />
+          )}
+          {mayRevise && (
+            <div className="panel-actions">
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void action(() =>
+                    api.runtimeStart({
+                      projectId: task.projectId,
+                      taskId: task.id,
+                      consent: true,
+                      contextIds: ids,
+                      skillIds,
+                      workflow,
+                      reviseRunId: run.id,
+                    }),
+                  )
+                }
+              >
+                {language === "pl"
+                  ? `Popraw według review (próba ${task.attempt + 1} z ${MAX_ATTEMPTS})`
+                  : `Revise from review (attempt ${task.attempt + 1} of ${MAX_ATTEMPTS})`}
+              </button>
+            </div>
+          )}
           {run.state === "awaiting_review" && api.runDecision && (
             <div className="panel-actions">
               <button
@@ -547,13 +589,13 @@ export function RunPanel({
               )}
             </div>
           )}
-          {!!view?.events.length && (
+          {!!activity.length && (
             <details className="run-events">
               <summary>
-                {w.activity} <span className="count">{view.events.length}</span>
+                {w.activity} <span className="count">{activity.length}</span>
               </summary>
               <ol>
-                {view.events.map((event) => (
+                {activity.map((event) => (
                   <li key={event.seq}>
                     <time>
                       {new Date(event.at).toLocaleTimeString(language, {

@@ -106,6 +106,7 @@ export interface TaskEvent {
     | "heartbeat"
     | "failed"
     | "retried"
+    | "revision"
     | "completed"
     | "cancelled";
   failure: FailureCode | null;
@@ -651,6 +652,8 @@ export interface API {
     taskId: string;
     consent: true;
     resumeRunId?: string;
+    /** Revise a reviewed result whose reviewer requested changes. */
+    reviseRunId?: string;
     contextIds?: string[];
     workflow?: string;
     skillIds?: string[];

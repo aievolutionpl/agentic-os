@@ -10,6 +10,13 @@ import { Supervisor } from "../dist/main/supervisor.js";
 import { Orchestrator } from "../dist/main/orchestrator.js";
 
 const settle = () => new Promise((r) => setTimeout(r, 30));
+const until = async (fn) => {
+  for (let i = 0; i < 250; i++) {
+    if (fn()) return;
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  throw Error("Condition timed out");
+};
 function fixture(t) {
   const dir = mkdtempSync(join(tmpdir(), "agenting-journal-"));
   const opened = [];
@@ -97,7 +104,7 @@ test("a crash mid-batch is journaled as interrupted, never replayed, and continu
     consent: true,
   });
   assert.ok(started.id);
-  await settle();
+  await until(() => first.calls.length === 2);
   assert.deepEqual(first.calls, [a, b]);
   const running = queue.state({ projectId: project.id });
   assert.equal(running.status, "running");
@@ -149,7 +156,9 @@ test("a crash mid-batch is journaled as interrupted, never replayed, and continu
     consent: true,
   });
   assert.equal(resumed.status, "running");
-  await settle();
+  await until(
+    () => recovered.state({ projectId: project.id }).status !== "running",
+  );
   assert.deepEqual(second.calls, [c], "only the still-queued task runs");
   const done = recovered.state({ projectId: project.id });
   assert.equal(done.status, "completed");
@@ -178,7 +187,7 @@ test("graceful shutdown persists a running batch as interrupted and keeps finish
     contextIds: [],
     consent: true,
   });
-  await settle();
+  await until(() => fake.calls.length === 1);
   queue.close();
   assert.throws(
     () =>
@@ -205,17 +214,15 @@ test("resume refuses when no queued work remains", async (t) => {
   const f = fixture(t);
   const store = f.open();
   const { project, tasks } = seed(store, 1);
-  const queue = new Orchestrator(
-    store,
-    runtime(store, project.id, () => "hang"),
-  );
+  const hanging = runtime(store, project.id, () => "hang");
+  const queue = new Orchestrator(store, hanging);
   const { id } = queue.start({
     projectId: project.id,
     taskIds: [tasks[0].id],
     contextIds: [],
     consent: true,
   });
-  await settle();
+  await until(() => hanging.calls.length === 1);
   queue.close();
   new Supervisor(store, join(f.dir, "app"));
   const next = new Orchestrator(

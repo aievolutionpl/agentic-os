@@ -628,6 +628,10 @@ export class Supervisor {
         this.contextFor(projectId, p.contextIds, p.workflow, p.skillIds);
       if (task.implementer === "antigravity" && context.readOnly)
         throw Error("ANTIGRAVITY_READ_ONLY_UNSUPPORTED");
+      // A read-only workflow (research, audit) needs an agent that has a
+      // read-only mode; the app refuses rather than trusting the prompt.
+      if (context.readOnly && !READ_ONLY_AGENTS.includes(task.implementer))
+        throw Error("READ_ONLY_MODE_UNSUPPORTED");
       const workspace: Workspace = previous
         ? {
             repository: previous.repository,
@@ -740,8 +744,12 @@ export class Supervisor {
         active.controller.abort();
       }
     }, 15000);
+    let timedOut = false;
     const deadline = setTimeout(
-      () => active.controller.abort(),
+      () => {
+        timedOut = true;
+        active.controller.abort();
+      },
       20 * 60 * 1000,
     );
     try {
@@ -817,7 +825,8 @@ export class Supervisor {
           : "Turn completed without file changes.",
       );
     } catch (error) {
-      const cancelled = active.controller.signal.aborted;
+      // A deadline abort is the run's failure, not an operator cancellation.
+      const cancelled = active.controller.signal.aborted && !timedOut;
       active.adapter.close();
       const stopped = await active.adapter.stopped();
       try {
@@ -845,7 +854,9 @@ export class Supervisor {
         error: stopped
           ? cancelled
             ? "RUN_CANCELLED"
-            : "RUN_FAILED"
+            : timedOut
+              ? "RUN_TIMEOUT"
+              : "RUN_FAILED"
           : "STOP_UNCONFIRMED",
       });
       this.store.runs.event(
@@ -947,7 +958,14 @@ export class Supervisor {
     };
     this.active.set(run.id, active);
     active.promise = (async () => {
-      const timer = setTimeout(() => controller.abort(), 10 * 60 * 1000);
+      let timedOut = false;
+      const timer = setTimeout(
+        () => {
+          timedOut = true;
+          controller.abort();
+        },
+        10 * 60 * 1000,
+      );
       try {
         const result = await this.metered(
           run.reviewer,
@@ -986,6 +1004,7 @@ export class Supervisor {
           reviewState: "completed",
           reviewText: result.summary,
         });
+        this.store.runs.event(run.id, "review_outcome", "completed");
         this.store.runs.event(
           run.id,
           "review",
@@ -999,6 +1018,12 @@ export class Supervisor {
           reviewState: "failed",
           error: "REVIEW_FAILED",
         });
+        this.store.runs.event(
+          run.id,
+          "review_outcome",
+          // A timeout is the reviewer's failure; a stop or shutdown is not.
+          controller.signal.aborted && !timedOut ? "interrupted" : "failed",
+        );
       } finally {
         clearTimeout(timer);
         adapter.close();

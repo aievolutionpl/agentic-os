@@ -222,3 +222,37 @@ test("router: rejection reasons are explicit and combined", () => {
   ]);
   assert.deepEqual(rejectedFor(d, "hermes"), ["NOT_CONFIGURED"]);
 });
+
+test("policy reasons explain a refusal and an approval requirement", () => {
+  const denied = route(
+    req(),
+    facts({
+      codex: {},
+      opencode: {
+        paid: true,
+        policy: "deny",
+        policyReasons: ["POLICY_BUDGET_EXCEEDED"],
+      },
+    }),
+  );
+  assert.deepEqual(rejectedFor(denied, "opencode"), [
+    "POLICY_DENIED",
+    "POLICY_BUDGET_EXCEEDED",
+  ]);
+  const asks = route(
+    req({ mode: "quality-first" }),
+    facts({
+      opencode: {
+        paid: true,
+        policy: "approve",
+        policyReasons: ["POLICY_APPROVAL_REQUIRED", "POLICY_SPEND_UNKNOWN"],
+      },
+    }),
+  );
+  const ranked = asks.ranked.find((r) => r.agent === "opencode");
+  assert.ok(ranked.reasons.includes("-1 NEEDS_APPROVAL"));
+  assert.ok(ranked.reasons.includes("0 POLICY_SPEND_UNKNOWN"));
+  assert.ok(
+    !ranked.reasons.some((r) => r.endsWith(" POLICY_APPROVAL_REQUIRED")),
+  );
+});

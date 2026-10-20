@@ -190,6 +190,9 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
   assert.equal(codex.successes, 2);
   assert.ok(codex.lastSuccessAt);
   assert.ok(codex.lastFailureAt);
+  // Reconfiguring an agent drops its check so old evidence never lights a new setup.
+  store.capabilities.clear("codex");
+  assert.deepEqual(store.capabilities.list(), []);
 });
 
 test("schema v13 migrates to v14 and keeps the orchestration journal", (t) => {

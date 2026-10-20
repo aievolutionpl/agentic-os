@@ -30,6 +30,7 @@ export function useAttachments() {
     files,
     problem,
     add,
+    fail: setProblem,
     remove: (index: number) => setFiles(files.filter((_, i) => i !== index)),
     clear: () => {
       setFiles([]);

@@ -75,6 +75,10 @@ const errors: Record<string, [string, string]> = {
     "Plik jest za duży. Limit to 100 KB na plik i 200 KB łącznie.",
     "The file is too large. The limit is 100 KB per file and 200 KB in total.",
   ],
+  ATTACHMENT_MESSAGE_REQUIRED: [
+    "Dopisz wiadomość — pliki są wysyłane razem z nią.",
+    "Add a message — files are sent together with it.",
+  ],
   ATTACHMENT_NOT_TEXT: [
     "Można dołączać tylko pliki tekstowe (kod, Markdown, JSON, CSV, logi).",
     "Only text files can be attached (code, Markdown, JSON, CSV, logs).",
@@ -199,11 +203,13 @@ export function ChatWorkspace({
       .then((rows) => live.current && setRepositories(rows))
       .catch(() => live.current && setRepositories(null));
   }, [source]);
-  useEffect(() => attached.clear(), [selected]);
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "nearest" });
   }, [chat?.messages.length]);
   async function create() {
+    // Files travel with a message; without one they would be dropped silently.
+    if (attached.files.length && !message.trim())
+      return attached.fail("ATTACHMENT_MESSAGE_REQUIRED");
     setBusy(true);
     setError("");
     try {
@@ -297,6 +303,7 @@ export function ChatWorkspace({
           className="secondary"
           onClick={() => {
             setSelected("");
+            attached.clear();
             setMessage("");
           }}
         >
@@ -324,7 +331,10 @@ export function ChatWorkspace({
             <button
               key={s.id}
               className={selected === s.id ? "active" : ""}
-              onClick={() => setSelected(s.id)}
+              onClick={() => {
+                if (s.id !== selected) attached.clear();
+                setSelected(s.id);
+              }}
             >
               <ProviderIcon provider={s.agent} />
               <span>

@@ -49,6 +49,10 @@ export class CapabilityChecks {
       );
     return health;
   }
+  /** A changed configuration has not been checked yet. */
+  clear(agent: Agent) {
+    this.db.prepare("DELETE FROM capability_checks WHERE agent=?").run(agent);
+  }
   list(): CapabilityEvidence["checks"] {
     return this.db
       .prepare("SELECT * FROM capability_checks ORDER BY agent")

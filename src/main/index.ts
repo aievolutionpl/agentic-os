@@ -265,6 +265,7 @@ app
         const agent = p.agent as Agent,
           command = detectExecutables()[agent];
         if (!command) throw Error("PROVIDER_NOT_FOUND");
+        store.capabilities.clear(agent);
         supervisor.configure({
           agent,
           command,
@@ -366,6 +367,7 @@ app
       runtimeReview: (input) => supervisor.review(input),
       configureProvider: (input) => {
         supervisor.configure(input);
+        store.capabilities.clear((input as { agent: Agent }).agent);
         quotaMonitor!.invalidate();
       },
       providerSettings: () => {

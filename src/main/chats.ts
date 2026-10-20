@@ -33,7 +33,11 @@ export async function githubRepositories(
   try {
     const { stdout } = await run(
       "gh",
-      ["repo", "list", "--limit", "50", "--json", "nameWithOwner,isPrivate"],
+      // Owned, collaborator and organization repositories, most recent first.
+      [
+        "api",
+        "user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member",
+      ],
       {
         windowsHide: true,
         timeout: 20000,
@@ -51,8 +55,8 @@ export async function githubRepositories(
       try {
         return [
           {
-            name: githubRepository(row?.nameWithOwner),
-            private: row?.isPrivate === true,
+            name: githubRepository(row?.full_name),
+            private: row?.private === true,
           },
         ];
       } catch {
@@ -72,11 +76,16 @@ export function attachments(value: unknown) {
   let total = 0;
   return value.map((item) => {
     const p = exact(item, ["name", "content"]);
-    const name =
-      basename(text(p.name, 200).replace(/\\/g, "/")).replace(
+    // Long names are shortened for display and the prompt, keeping the extension.
+    let name =
+      basename(text(p.name, 1024).replace(/\\/g, "/")).replace(
         /[\r\n"<>]/g,
         "_",
       ) || "file";
+    if (name.length > 120) {
+      const ext = /\.[\w-]{1,12}$/.exec(name)?.[0] ?? "";
+      name = `${name.slice(0, 119 - ext.length)}…${ext}`;
+    }
     if (typeof p.content !== "string") throw Error("INVALID_INPUT");
     const bytes = Buffer.byteLength(p.content);
     total += bytes;

@@ -108,6 +108,11 @@ test("attachments are bounded text data, fenced in the prompt and recorded by na
     },
   ]);
   assert.equal(file.name, "_notes__.md");
+  const [long] = attachments([
+    { name: `${"n".repeat(240)}.json`, content: "{}" },
+  ]);
+  assert.equal(long.name.length, 120);
+  assert.match(long.name, /n…\.json$/);
   assert.doesNotMatch(file.content, /sk-abcdefghijklmnop/);
   assert.doesNotMatch(file.content, /FILE>>>/);
 
@@ -151,17 +156,21 @@ test("GitHub repository list comes from the gh login and drops malformed names",
     call = [command, args];
     return {
       stdout: JSON.stringify([
-        { nameWithOwner: "octo/app", isPrivate: true },
-        { nameWithOwner: "bad name/;rm", isPrivate: false },
-        { nameWithOwner: "octo/site" },
+        { full_name: "octo/app", private: true },
+        { full_name: "bad name/;rm", private: false },
+        { full_name: "org/shared" },
       ]),
     };
   });
   assert.equal(call[0], "gh");
-  assert.deepEqual(call[1].slice(0, 2), ["repo", "list"]);
+  assert.equal(call[1][0], "api");
+  assert.match(
+    call[1][1],
+    /^user\/repos\?.*affiliation=owner,collaborator,organization_member/,
+  );
   assert.deepEqual(rows, [
     { name: "octo/app", private: true },
-    { name: "octo/site", private: false },
+    { name: "org/shared", private: false },
   ]);
   assert.equal(
     await githubRepositories(async () => {

@@ -9,7 +9,7 @@ import type {
 } from "../shared.js";
 import { exact, text } from "./validate.js";
 
-type PolicyStep = { taskId: string; agent: Agent };
+type PolicyStep = { taskId: string; agent: Agent; runId?: string };
 /** Run states a resumed batch settles before dispatching more work; a
  * completed run of an open task (finished by hand) is counted, not lost. */
 const UNSETTLED = [
@@ -64,6 +64,19 @@ export class Orchestrator {
   events(input: unknown): OrchestrationEvent[] {
     const state = this.state(input);
     return state.id ? this.store.batches.events(state.projectId, state.id) : [];
+  }
+  /** While a batch is held (policy refusal or failed review), its open tasks
+   * move only through Continue or Abandon: starting, reviewing or deciding
+   * one by hand would race the queue's own reconciliation. */
+  held(projectId: string, taskId: string) {
+    if (this.live.get(projectId)) return false;
+    const batch = this.store.batches.latest(projectId);
+    return (
+      !!batch &&
+      onHold(batch) &&
+      batch.taskIds.includes(taskId) &&
+      !batch.completedTaskIds.includes(taskId)
+    );
   }
   private guard(projectId: string) {
     if (this.live.get(projectId)?.status === "running")
@@ -141,15 +154,21 @@ export class Orchestrator {
     if (!batch || batch.id !== batchId) throw Error("BATCH_NOT_FOUND");
     if (batch.status !== "interrupted" && !onHold(batch))
       throw Error("BATCH_NOT_INTERRUPTED");
-    // Work started for a batch task (by the queue or by hand from the task)
-    // is settled from its stored run first: waited for, reviewed, or handed
-    // to a human decision. Nothing is inferred from in-memory markers.
+    // The run the queue itself had in flight (persisted in runId) is settled
+    // first from its stored state: reviewed, or handed to a human decision.
+    // An interrupted implementation is never replayed.
     const open = batch.taskIds.filter(
       (id) => !batch.completedTaskIds.includes(id),
     );
-    const held = open
-      .map((id) => this.store.runs.list(projectId, id)[0])
-      .find((run) => run && UNSETTLED.includes(run.state));
+    const inFlight = batch.runId
+      ? this.store.runs.get(projectId, batch.runId)
+      : null;
+    const held =
+      inFlight &&
+      open.includes(inFlight.taskId) &&
+      UNSETTLED.includes(inFlight.state)
+        ? inFlight
+        : null;
     const tasks = this.store.tasks(projectId),
       remaining = open.filter(
         (id) =>
@@ -266,7 +285,7 @@ export class Orchestrator {
         // A review that just failed under our watch is not retried silently.
         if (!wasReviewing) {
           this.save(batch, "reviewing", taskId);
-          step.current = { taskId, agent: result.reviewer };
+          step.current = { taskId, agent: result.reviewer, runId };
           await this.supervisor.review({
             projectId: batch.projectId,
             runId,
@@ -320,7 +339,8 @@ export class Orchestrator {
     if (code.startsWith("POLICY_")) {
       batch.status = "blocked";
       batch.reason = code;
-      batch.runId = null;
+      // A refused review keeps its run so resume can settle it.
+      batch.runId = step?.runId ?? null;
       if (step) batch.policyAgent = step.agent;
       this.save(batch, "blocked", step?.taskId ?? null);
     } else {

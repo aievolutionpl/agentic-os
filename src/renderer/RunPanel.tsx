@@ -133,6 +133,7 @@ export function RunPanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false),
     [policyCode, setPolicyCode] = useState(""),
+    [heldByQueue, setHeldByQueue] = useState(false),
     // The agent whose start the policy refused: the reviewer for review runs.
     [policyAgent, setPolicyAgent] = useState<Agent>(task.implementer),
     [consent, setConsent] = useState(false),
@@ -217,13 +218,15 @@ export function RunPanel({
     setBusy(true);
     setError(false);
     setPolicyCode("");
+    setHeldByQueue(false);
     try {
       await fn();
       await refresh();
       onChanged();
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
-      if (policyMessage(code, true)) {
+      if (code === "TASK_HELD_BY_QUEUE") setHeldByQueue(true);
+      else if (policyMessage(code, true)) {
         setPolicyAgent(agent);
         setPolicyCode(code);
       } else setError(true);
@@ -273,6 +276,13 @@ export function RunPanel({
       {error && (
         <p className="inline-error" role="alert">
           {w.error}
+        </p>
+      )}
+      {heldByQueue && (
+        <p className="inline-error" role="alert">
+          {language === "pl"
+            ? "To zadanie czeka w kolejce zespołu. Kontynuuj albo porzuć kolejkę w panelu pracy zespołowej."
+            : "This task is held by the team queue. Continue or abandon the queue in the teamwork panel."}
         </p>
       )}
       {policyCode && (

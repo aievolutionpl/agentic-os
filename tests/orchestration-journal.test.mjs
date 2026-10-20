@@ -652,17 +652,17 @@ test("an app close during a retried review keeps the review reachable on the nex
   );
 });
 
-test("an implementation started by hand during a policy hold is settled on resume", async (t) => {
+test("a held queue owns its open tasks until it is continued or abandoned", async (t) => {
   const f = fixture(t);
   const store = f.open();
-  const { project } = seed(store, 2);
-  const [a, b] = store.tasks(project.id).map((x) => x.id);
+  const { project } = seed(store, 3);
+  const [a, b, c] = store.tasks(project.id).map((x) => x.id);
   const fake = runtime(store, project.id, () => "ok");
   let approved = false;
   const start = fake.start;
-  fake.start = async (p, c) => {
-    if (!approved) throw Error("POLICY_APPROVAL_REQUIRED");
-    return start(p, c);
+  fake.start = async (p, ctx) => {
+    if (p.taskId === b && !approved) throw Error("POLICY_APPROVAL_REQUIRED");
+    return start(p, ctx);
   };
   const queue = new Orchestrator(store, fake);
   const started = queue.start({
@@ -674,19 +674,18 @@ test("an implementation started by hand during a policy hold is settled on resum
   await until(
     () => queue.state({ projectId: project.id }).status !== "running",
   );
-  // After approving, the operator runs task a from its own panel.
+  // Manual start, review and decision of an open task are refused while held.
+  assert.equal(queue.held(project.id, b), true);
+  assert.equal(queue.held(project.id, a), false, "a finished already");
+  assert.equal(queue.held(project.id, c), false, "c is not in the batch");
   approved = true;
-  const manual = await fake.start({ projectId: project.id, taskId: a });
-  fake.calls.length = 0;
   queue.resume({ projectId: project.id, batchId: started.id, consent: true });
+  assert.equal(queue.held(project.id, b), false, "the live queue drives it");
   await until(
     () => queue.state({ projectId: project.id }).status !== "running",
   );
-  const done = queue.state({ projectId: project.id });
-  assert.equal(store.runs.get(project.id, manual.id).state, "completed");
-  assert.deepEqual(fake.calls, [b], "a is settled, not dispatched again");
-  assert.equal(done.status, "completed");
-  assert.deepEqual(done.completedTaskIds, [a, b]);
+  assert.equal(queue.state({ projectId: project.id }).status, "completed");
+  assert.equal(queue.held(project.id, b), false);
 });
 
 test("stop that arrives while a review passes the policy gate cancels that review", async (t) => {

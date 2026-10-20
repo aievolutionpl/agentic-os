@@ -1246,6 +1246,8 @@ function App() {
                         <RoutePreview
                           language={prefs.language}
                           disabled={busy}
+                          current={implementer}
+                          currentReviewer={reviewer}
                           onApply={(chosen, check) => {
                             setImplementer(chosen);
                             setReviewer(check);

@@ -189,7 +189,16 @@ export class Runs {
   }
   /** Real inference evidence: runs whose provider turn actually finished, not configuration. */
   /** Finished and failed work per agent, for the role it played. */
-  evidence(role: "implementer" | "reviewer" = "implementer") {
+  /** Finished and failed work per agent, for the role it played. `accepted`
+   * counts only results that were not rejected (routing quality credit);
+   * without it any finished inference counts (capability "live" evidence). */
+  evidence(
+    role: "implementer" | "reviewer" = "implementer",
+    { accepted = false }: { accepted?: boolean } = {},
+  ) {
+    const ok = accepted
+      ? "('completed','awaiting_review','applied')"
+      : "('completed','awaiting_review','applied','rejected')";
     return this.db
       .prepare(
         // Outcome times come from the events written when a run or review
@@ -197,14 +206,25 @@ export class Runs {
         // success look newer. Rows from before those events fall back to
         // the run's last update.
         role === "implementer"
-          ? `SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes,
-              MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='completed'), updatedAt) END) AS lastSuccessAt,
+          ? `SELECT provider, SUM(state IN ${ok}) AS successes,
+              MAX(CASE WHEN state IN ${ok} THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='completed'), updatedAt) END) AS lastSuccessAt,
               MAX(CASE WHEN state='failed' THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='failed'), updatedAt) END) AS lastFailureAt
             FROM runs GROUP BY provider`
-          : `SELECT reviewer AS provider, SUM(reviewState='completed') AS successes,
-              MAX(CASE WHEN reviewState='completed' THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='completed'), CASE WHEN NOT EXISTS(SELECT 1 FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome') THEN updatedAt END) END) AS lastSuccessAt,
-              MAX(CASE WHEN reviewState='failed' THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='failed'), CASE WHEN NOT EXISTS(SELECT 1 FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome') THEN updatedAt END) END) AS lastFailureAt
-            FROM runs GROUP BY reviewer`,
+          : // Reviews come from their outcome events; an interrupted rerun
+            // never erases an earlier completed review. A run's latest
+            // non-interrupted outcome decides whether it counts as a success.
+            `WITH o AS (
+              SELECT reviewer AS provider, reviewState, updatedAt,
+                EXISTS(SELECT 1 FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome') AS evented,
+                (SELECT e.text FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text IN ('completed','failed') ORDER BY e.seq DESC LIMIT 1) AS latest,
+                (SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='completed') AS doneAt,
+                (SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='failed') AS failAt
+              FROM runs)
+            SELECT provider,
+              SUM(CASE WHEN evented THEN latest='completed' ELSE reviewState='completed' END) AS successes,
+              MAX(CASE WHEN evented THEN doneAt WHEN reviewState='completed' THEN updatedAt END) AS lastSuccessAt,
+              MAX(CASE WHEN evented THEN failAt WHEN reviewState='failed' THEN updatedAt END) AS lastFailureAt
+            FROM o GROUP BY provider`,
       )
       .all()
       .map((row) => ({

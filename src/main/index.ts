@@ -496,7 +496,9 @@ app
         const settings = supervisor.settings(),
           checks = store.capabilities.list(),
           // History for the role being routed: reviews count for reviewers.
-          evidence = store.runs.evidence(p.role as "implementer" | "reviewer"),
+          evidence = store.runs.evidence(p.role as "implementer" | "reviewer", {
+            accepted: true,
+          }),
           policy = store.policies.get();
         // The same spend the execution gate uses, so a capped budget is not
         // proposed and then refused at start.
@@ -516,7 +518,12 @@ app
             !!card &&
             Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
             card.metrics.some(
-              (m) => m.format === "percent" || m.limitValue !== null,
+              (m) =>
+                (m.format === "percent" || m.limitValue !== null) &&
+                // Limits seen in a CLI stream age with their window: only
+                // one that has not reset yet still describes the quota.
+                (card.source !== "cli-stream" ||
+                  (!!m.resetsAt && Date.parse(m.resetsAt) > Date.now())),
             );
           const runs = evidence.find((e) => e.provider === agent);
           const paid = quotaProvider(agent) === "openrouter";

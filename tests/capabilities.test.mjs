@@ -205,6 +205,11 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
     .map((r) => r.detail)
     .join(" ");
   assert.match(plan, /run_events_outcome/);
+  // Routing credit counts only results that were not rejected.
+  assert.equal(
+    store.runs.evidence("implementer", { accepted: true })[0].successes,
+    1,
+  );
   // Reviewer history counts only the reviews an agent actually did.
   const reviews = store.runs.evidence("reviewer");
   assert.deepEqual(
@@ -247,6 +252,12 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
   store.runs.update(project.id, aborted.id, { reviewState: "failed" });
   store.runs.event(aborted.id, "review_outcome", "interrupted");
   assert.equal(store.runs.evidence("reviewer")[0].lastFailureAt, failedAt);
+  // A completed review that is rerun and interrupted keeps its success.
+  const rerun = extra("rerun");
+  store.runs.event(rerun.id, "review_outcome", "completed");
+  store.runs.update(project.id, rerun.id, { reviewState: "failed" });
+  store.runs.event(rerun.id, "review_outcome", "interrupted");
+  assert.equal(store.runs.evidence("reviewer")[0].successes, 2);
   const legacy = extra("legacy");
   store.runs.update(project.id, legacy.id, { reviewState: "failed" });
   assert.equal(

@@ -47,15 +47,20 @@ export function reasonText(reason: string, pl: boolean) {
 export function RoutePreview({
   language,
   disabled,
+  current,
+  currentReviewer,
   onApply,
 }: {
   language: "pl" | "en";
   disabled?: boolean;
+  /** The implementer already chosen in the form; Manual mode checks it. */
+  current?: Agent;
+  currentReviewer?: Agent;
   onApply: (implementer: Agent, reviewer: Agent) => void;
 }) {
   const api = window.agenting!,
     pl = language === "pl";
-  const [mode, setMode] = useState<Exclude<RoutingMode, "manual">>("balanced");
+  const [mode, setMode] = useState<RoutingMode>("balanced");
   const [result, setResult] = useState<{
     implementer: RoutingDecision;
     reviewer: RoutingDecision | null;
@@ -71,6 +76,7 @@ export function RoutePreview({
         mode: next,
         role: "implementer",
         readOnly: false,
+        ...(next === "manual" && current ? { preferred: current } : {}),
       });
       const reviewer = implementer.choice
         ? await api.routePreview!({
@@ -78,6 +84,9 @@ export function RoutePreview({
             role: "reviewer",
             readOnly: true,
             author: implementer.choice,
+            ...(next === "manual" && currentReviewer
+              ? { preferred: currentReviewer }
+              : {}),
           })
         : null;
       setResult({ implementer, reviewer });
@@ -133,6 +142,9 @@ export function RoutePreview({
           </option>
           <option value="quality-first">
             {pl ? "Najpierw jakość" : "Quality first"}
+          </option>
+          <option value="manual">
+            {pl ? "Ręcznie: sprawdź wybór" : "Manual: check my choice"}
           </option>
         </select>
         <button

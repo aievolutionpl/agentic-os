@@ -686,8 +686,12 @@ export class Supervisor {
         active.controller.abort();
       }
     }, 15000);
+    let timedOut = false;
     const deadline = setTimeout(
-      () => active.controller.abort(),
+      () => {
+        timedOut = true;
+        active.controller.abort();
+      },
       20 * 60 * 1000,
     );
     try {
@@ -753,7 +757,8 @@ export class Supervisor {
           : "Turn completed without file changes.",
       );
     } catch (error) {
-      const cancelled = active.controller.signal.aborted;
+      // A deadline abort is the run's failure, not an operator cancellation.
+      const cancelled = active.controller.signal.aborted && !timedOut;
       active.adapter.close();
       const stopped = await active.adapter.stopped();
       try {
@@ -781,7 +786,9 @@ export class Supervisor {
         error: stopped
           ? cancelled
             ? "RUN_CANCELLED"
-            : "RUN_FAILED"
+            : timedOut
+              ? "RUN_TIMEOUT"
+              : "RUN_FAILED"
           : "STOP_UNCONFIRMED",
       });
       this.store.runs.event(

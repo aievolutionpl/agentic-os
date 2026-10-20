@@ -471,6 +471,20 @@ export interface API {
     attachments?: { name: string; content: string }[];
   }): Promise<ChatSession>;
   githubRepositories?(): Promise<{ name: string; private: boolean }[] | null>;
+  policyGet?(): Promise<{
+    policy: WorkspacePolicy;
+    /** This month's paid API spend reported by the provider; null = unknown. */
+    spentUsd: number | null;
+    /** Agents whose runs are paid per token with the current setup. */
+    paidAgents: Agent[];
+  }>;
+  policySet?(input: {
+    allowedAgents: Agent[];
+    paidApi: WorkspacePolicy["paidApi"];
+    monthlyBudgetUsd: number | null;
+  }): Promise<WorkspacePolicy>;
+  /** Approve paid runs for one agent for 30 minutes, in memory only. */
+  policyApprove?(input: { agent: Agent; consent: true }): Promise<void>;
   chatAction?(input: { id: string; action: "stop" | "delete" }): Promise<void>;
   chatRemember?(input: {
     id: string;
@@ -744,6 +758,16 @@ export interface RunEvent {
   kind: string;
   text: string;
   at: number;
+}
+/** Workspace rules the application enforces before any agent starts. */
+export interface WorkspacePolicy {
+  /** Agents allowed to run; empty means every connected agent. */
+  allowedAgents: Agent[];
+  /** Pay-per-token API runs (OpenCode via OpenRouter). */
+  paidApi: "deny" | "ask" | "allow";
+  /** Monthly cap for paid API spend in USD; null means no cap set. */
+  monthlyBudgetUsd: number | null;
+  updatedAt: string | null;
 }
 export interface ProviderSetting {
   id: Agent;

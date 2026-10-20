@@ -329,7 +329,9 @@ export class MasterAgent {
         mission.status = controller.signal.aborted
           ? "stopped"
           : error instanceof Error &&
-              error.message === "PROVIDER_QUOTA_EXHAUSTED" &&
+              (error.message === "PROVIDER_QUOTA_EXHAUSTED" ||
+                // A policy refusal waits for the operator, like a spent quota.
+                error.message.startsWith("POLICY_")) &&
               mission.steps.length
             ? "blocked"
             : "failed";

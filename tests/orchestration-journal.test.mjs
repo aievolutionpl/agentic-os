@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
-import { Store } from "../dist/main/store.js";
+import { Store, SCHEMA_VERSION } from "../dist/main/store.js";
 import { Supervisor } from "../dist/main/supervisor.js";
 import { Orchestrator } from "../dist/main/orchestrator.js";
 
@@ -277,8 +277,11 @@ test("schema v12 migrates to the current schema without losing data and rejects 
   assert.equal(store.batches.latest(project.id), null);
   store.close();
   db = new DatabaseSync(join(f.dir, "db.sqlite"));
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 14);
-  db.exec("PRAGMA user_version=15");
+  assert.equal(
+    db.prepare("PRAGMA user_version").get().user_version,
+    SCHEMA_VERSION,
+  );
+  db.exec(`PRAGMA user_version=${SCHEMA_VERSION + 1}`);
   db.close();
   assert.throws(() => f.open(), /UNSUPPORTED_SCHEMA/);
 });

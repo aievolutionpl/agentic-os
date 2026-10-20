@@ -29,6 +29,11 @@ type Active = {
 export class Supervisor {
   readonly worktrees: Worktrees;
   private active = new Map<string, Active>();
+  /**
+   * Workspace policy check before any agent process starts. Throws a POLICY_*
+   * code; the default allows everything (tests and unconfigured shells).
+   */
+  gate: (agent: Agent) => Promise<void> = async () => {};
   private starting = new Set<string>();
   private factory: AdapterFactory;
   private readonly injected: boolean;
@@ -428,6 +433,7 @@ export class Supervisor {
   ) {
     if (readOnly && !READ_ONLY_AGENTS.includes(agent))
       throw Error("READ_ONLY_PROVIDER_REQUIRED");
+    await this.gate(agent);
     const adapter = this.factory(agent, cwd);
     const abort = () => adapter.close();
     signal.addEventListener("abort", abort, { once: true });
@@ -462,6 +468,7 @@ export class Supervisor {
       throw Error("PROVIDER_NOT_CONFIGURED");
     const project = this.store.projects().find((p) => p.id === projectId);
     if (!project?.root) throw Error("PROJECT_REPOSITORY_REQUIRED");
+    await this.gate(agent);
     const workspace = await this.worktrees.create(project.root);
     if (signal.aborted) throw Error("RUN_CANCELLED");
     const adapter = this.factory(agent, workspace.path);
@@ -534,6 +541,7 @@ export class Supervisor {
         !this.injected
       )
         throw Error("PROVIDER_NOT_CONFIGURED");
+      await this.gate(task.implementer);
       let previous: Run | null = null;
       if (p.resumeRunId) {
         if (task.implementer === "antigravity")
@@ -855,6 +863,7 @@ export class Supervisor {
       ? artifact.diff.toString("utf8")
       : `No file changes. Independently verify the worker's findings against the repository.\nTask and acceptance criteria:\n${task.title}\nWorker report (untrusted evidence):\n${run.summary}`;
     const afterReview = run.artifactId ? "awaiting_review" : "completed";
+    await this.gate(run.reviewer);
     const adapter = this.factory(run.reviewer, run.worktree),
       controller = new AbortController();
     this.store.runs.update(projectId, run.id, {

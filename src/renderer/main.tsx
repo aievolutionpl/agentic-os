@@ -26,6 +26,7 @@ import {
 import { ProviderIcon } from "./ProviderIcon";
 import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
+import { PolicyPanel } from "./PolicyPanel";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
@@ -997,7 +998,10 @@ function App() {
                 }}
               />
             ) : view === "connections" ? (
-              <ProviderSetup language={prefs.language} />
+              <>
+                <ProviderSetup language={prefs.language} />
+                <PolicyPanel language={prefs.language} />
+              </>
             ) : view === "quota" ? (
               <OpenQuotaPanel
                 language={prefs.language}

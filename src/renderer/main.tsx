@@ -368,8 +368,16 @@ function App() {
       setSaved(true);
       setToast({ message });
       return true;
-    } catch {
+    } catch (e) {
       setError(true);
+      if (e instanceof Error && e.message === "TASK_HELD_BY_QUEUE")
+        setToast({
+          message:
+            prefs.language === "pl"
+              ? "To zadanie należy do kolejki zespołu. Zatrzymaj, kontynuuj albo porzuć kolejkę."
+              : "This task belongs to the team queue. Stop, continue or abandon the queue.",
+          error: true,
+        });
       return false;
     } finally {
       setBusy(false);

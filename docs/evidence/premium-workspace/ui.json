@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "checks": [
+    "per-conversation-model-changed-over-real-ipc-and-protocol",
+    "one-click-full-skill-package-and-project-memory",
+    "kanban-card-opens-exact-task",
+    "every-configured-subscription-has-a-full-card-with-honest-unknowns",
+    "Classic-palette-selects-and-persists-over-ipc"
+  ],
+  "screens": [
+    {
+      "name": "classic-chat-1440",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "classic-chat-768",
+      "width": 768,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "classic-chat-390",
+      "width": 390,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "classic-chat-320",
+      "width": 320,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "classic-skills-1440",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "classic-memory-1440",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "classic-kanban-1440",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "classic-quota-1440",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "graphite-chat-1440",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    }
+  ],
+  "errors": [],
+  "scope": "Native Electron + local protocol fixture; sample data, no live inference."
+}

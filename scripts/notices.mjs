@@ -35,6 +35,11 @@ function visit(dir) {
         copied.push(target);
       } catch {}
     }
+    // Upstream memory tarballs omit LICENSE even though package metadata points to it.
+    // Keep the original repository text in our release; never relabel mixed licenses.
+    const fallback = p.name === "@lobehub/icons-static-svg" ? "lobe-icons-LICENSE" : p.name === "@modelcontextprotocol/server-memory" ? "mcp-servers-LICENSE"
+      : p.name.startsWith("@modelcontextprotocol/") ? "mcp-typescript-sdk-LICENSE" : null;
+    if (!copied.length && fallback && existsSync(join("licenses/upstream", fallback))) copied.push(`upstream/${fallback}`);
     inventory.push({
       name: p.name,
       version: p.version,

@@ -8,4 +8,8 @@ dist/renderer/licenses in packaged builds) and the
 Electron/Chromium license files supplied alongside the packaged runtime.
 Sora: src/renderer/fonts/Sora-OFL.txt (SIL OFL 1.1).
 Bundled Superpowers instructions: resources/skills/*/LICENSE (MIT).
+Bundled Anthropic skill packages: resources/skills/*/LICENSE.txt (Apache-2.0).
+Provider artwork: Lobe Icons 1.95.1, licenses/upstream/lobe-icons-LICENSE (MIT).
+Memory engine: @modelcontextprotocol/server-memory 2.0.0;
+original combined licensing notice: licenses/upstream/mcp-servers-LICENSE.
 Generated illustration provenance: docs/research/harness-assets-2026-10-19.md.

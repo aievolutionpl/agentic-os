@@ -2,6 +2,13 @@
 
 ## 0.5.0-rc.1 — kandydat, jeszcze nieopublikowany
 
+- Workspace premium: motywy Grafit/Jasny/Classic · Terra, klasyczny nagłówek, kompaktowe opcje w polu rozmowy i rzeczywiste logotypy dostawców.
+- Model wybierany osobno dla rozmowy i przekazywany do właściwego adaptera. Antigravity pozostaje; Gemini CLI znika z aktywnego interfejsu.
+- Automatyczny lokalny graf pamięci MCP, dwukierunkowe notatki Markdown, jawne relacje i dobór kontekstu w granicach projektu.
+- Osiem pełnych, przypiętych pakietów Anthropic/Superpowers instalowanych jednym przyciskiem z dokumentacją, licencją i zapisem w pamięci.
+- Kanban „Praca i pytania”, rzeczywiste zdarzenia pracy agentów i pełne karty wszystkich skonfigurowanych subskrypcji.
+- Nieblokujące wczytywanie projektów podczas odczytów CLI i poprawka wycieku workera ConPTY po zamknięciu terminala. [Opis, źródła i ograniczenia](docs/PREMIUM_WORKSPACE.md).
+
 - Wbudowany terminal PTY: sześć kart, katalog projektu, PowerShell/Bash/sh, zachowanie sesji podczas nawigacji, potwierdzenie zamknięcia i ograniczony bufor wyjścia.
 - Czat: bezpieczne renderowanie Markdown/GFM, kopiowanie kodu i całej rozmowy, wyszukiwanie historii, zmiana nazwy i osobne szkice z załącznikami. Przewijanie za odpowiedzią tylko przy końcu rozmowy.
 - Poprawione wykorzystanie miejsca w małych oknach, oba motywy, stany pracy i krótkie animacje respektujące ograniczenie ruchu.

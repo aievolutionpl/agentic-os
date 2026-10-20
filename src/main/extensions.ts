@@ -7,6 +7,7 @@ import type { ContextSkill } from "./knowledge.js";
 import { RpcProcess } from "./rpc.js";
 import type { Extension, McpTool } from "../shared.js";
 import { COMMUNITY_SKILLS } from "./community-skills.js";
+import { skillCatalog, installSkillFiles } from "./skill-library.js";
 
 const BUILTINS: Extension[] = [
   {
@@ -77,7 +78,9 @@ const BUILTINS: Extension[] = [
   },
 ];
 export class Extensions {
-  catalog(): Extension[] { return [...BUILTINS, ...COMMUNITY_SKILLS]; }
+  catalog(): Extension[] {
+    return skillCatalog();
+  }
   constructor(private db: DatabaseSync) {
     if (Number(db.prepare("PRAGMA user_version").get()!.user_version) === 7)
       db.exec(`BEGIN IMMEDIATE;
@@ -94,8 +97,15 @@ export class Extensions {
   }
   list(projectId: string): Extension[] {
     this.project(projectId);
+    const installed = new Map(
+      this.installed(projectId).map((s) => [s.catalogId, s]),
+    );
     return [
-      ...this.catalog(),
+      ...this.catalog().map((s) => ({
+        ...s,
+        installed: installed.has(s.id),
+        installPath: installed.get(s.id)?.installPath,
+      })),
       ...this.db
         .prepare(
           "SELECT id,manifest FROM extensions WHERE projectId=? ORDER BY createdAt,id",
@@ -104,11 +114,15 @@ export class Extensions {
         .map((row) => ({
           ...JSON.parse(String(row.manifest)),
           id: String(row.id),
-        })),
+        }))
+        .filter((row) => !row.catalogId),
     ];
   }
   get(projectId: string, id: string) {
-    const extension = this.list(projectId).find((item) => item.id === text(id));
+    const extension =
+      this.list(projectId).find((item) => item.id === text(id)) ??
+      BUILTINS.find((item) => item.id === id) ??
+      COMMUNITY_SKILLS.find((item) => item.id === id);
     if (!extension) throw Error("EXTENSION_NOT_FOUND");
     return extension;
   }
@@ -181,7 +195,13 @@ export class Extensions {
       new Set(ids).size !== ids.length
     )
       throw Error("INVALID_SKILLS");
-    return ids.map((id) => {
+    const selected = [
+      ...new Set([
+        ...ids,
+        ...this.installed(projectId).map((s) => s.catalogId),
+      ]),
+    ];
+    return selected.map((id) => {
       const item = this.get(projectId, text(id));
       if (item.kind !== "skill") throw Error("INVALID_SKILLS");
       return {
@@ -190,9 +210,47 @@ export class Extensions {
         version: item.version,
         source: item.source,
         license: item.license,
-        instructions: item.instructions!,
+        instructions:
+          item.installed && item.installPath
+            ? `Installed skill: ${item.name}. Read the full instructions at ${item.installPath}/SKILL.md when applicable. Supporting references and scripts are in the same directory. Installation does not authorize arbitrary script execution.\n${item.instructions?.match(/^description:\s*(.+)$/m)?.[1] ?? ""}`
+            : item.instructions!,
       };
     });
+  }
+  private installed(
+    projectId: string,
+  ): { catalogId: string; installPath: string }[] {
+    return this.db
+      .prepare("SELECT manifest FROM extensions WHERE projectId=?")
+      .all(projectId)
+      .map((r) => JSON.parse(String(r.manifest)))
+      .filter(
+        (m) =>
+          typeof m.catalogId === "string" && typeof m.installPath === "string",
+      );
+  }
+  async install(projectId: string, id: string) {
+    this.project(projectId);
+    const skill = this.catalog().find((s) => s.id === id);
+    if (!skill) throw Error("EXTENSION_NOT_FOUND");
+    const project = this.db
+      .prepare("SELECT root FROM projects WHERE id=?")
+      .get(projectId)!;
+    if (!project.root) throw Error("FOLDER_REQUIRED");
+    const installPath = await installSkillFiles(String(project.root), skill);
+    const rowId = `installed:${projectId}:${id}`;
+    this.db
+      .prepare(
+        "INSERT INTO extensions(id,projectId,manifest,createdAt) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET manifest=excluded.manifest",
+      )
+      .run(
+        rowId,
+        projectId,
+        JSON.stringify({ catalogId: id, installPath }),
+        new Date().toISOString(),
+      );
+    this.event(projectId, id, "installed");
+    return { ...skill, installed: true, installPath };
   }
   event(projectId: string, id: string, action: string) {
     this.db

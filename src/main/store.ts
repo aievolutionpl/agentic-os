@@ -345,7 +345,7 @@ export class Store {
   allMemory(): Memory[] {
     return this.db
       .prepare(
-        "SELECT * FROM memory ORDER BY pinned DESC,createdAt DESC LIMIT 500",
+        "SELECT * FROM memory ORDER BY pinned DESC,createdAt DESC",
       )
       .all() as unknown as Memory[];
   }
@@ -385,7 +385,7 @@ export class Store {
       typeof p.language !== "string" ||
       typeof p.theme !== "string" ||
       !["pl", "en"].includes(p.language) ||
-      !["light", "dark"].includes(p.theme)
+      !["light", "dark", "classic"].includes(p.theme)
     )
       throw Error("INVALID_INPUT");
     this.db

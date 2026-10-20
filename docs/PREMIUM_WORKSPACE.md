@@ -33,7 +33,7 @@ The [catalog](../resources/skills/catalog.json) records full Git commits, source
 
 Select a project and click **Add to workspace**. The complete pinned package, including references, examples, scripts and license, installs atomically under `.agents/skills/<slug>`. Existing unmanaged folders are preserved; a provenance marker makes repeat installation idempotent. Only that package is added to local Git `info/exclude` so installation does not dirty the source repository or block isolated runs.
 
-Installed skills become available automatically through progressive instruction references in that project's agent context. Installation records provenance in project memory. A click copies files; scripts execute only when subsequently invoked under existing task/tool rules. Legacy explicit skill IDs and imported instructions remain compatible.
+Installed skills become available automatically through progressive instruction references in that project's agent context. Isolated task and master worktrees receive the same pinned packages, with paths relative to that workspace, so restricted agents can read the instructions and supporting files. These local copies are excluded from code diffs. Installation records provenance in project memory. A click copies files; scripts execute only when subsequently invoked under existing task/tool rules. Legacy explicit skill IDs and imported instructions remain compatible.
 
 ## Work, questions and usage
 

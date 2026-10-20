@@ -212,7 +212,7 @@ export class Extensions {
         license: item.license,
         instructions:
           item.installed && item.installPath
-            ? `Installed skill: ${item.name}. Read the full instructions at ${item.installPath}/SKILL.md when applicable. Supporting references and scripts are in the same directory. Installation does not authorize arbitrary script execution.\n${item.instructions?.match(/^description:\s*(.+)$/m)?.[1] ?? ""}`
+            ? `Installed skill: ${item.name}. Read the full instructions at .agents/skills/${item.slug}/SKILL.md inside the current workspace when applicable. Supporting references and scripts are in the same directory. Installation does not authorize arbitrary script execution.\n${item.instructions?.match(/^description:\s*(.+)$/m)?.[1] ?? ""}`
             : item.instructions!,
       };
     });
@@ -228,6 +228,17 @@ export class Extensions {
         (m) =>
           typeof m.catalogId === "string" && typeof m.installPath === "string",
       );
+  }
+  /** A Git worktree does not inherit ignored local packages. Materialize the
+   * same pinned packages inside it so restricted agents can read all references. */
+  async prepareWorkspace(projectId: string, workspace: string) {
+    this.project(projectId);
+    const catalog = this.catalog();
+    for (const item of this.installed(projectId)) {
+      const skill = catalog.find((s) => s.id === item.catalogId);
+      if (!skill) throw Error("EXTENSION_NOT_FOUND");
+      await installSkillFiles(workspace, skill);
+    }
   }
   async install(projectId: string, id: string) {
     this.project(projectId);

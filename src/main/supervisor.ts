@@ -565,6 +565,7 @@ export class Supervisor {
     if (!project?.root) throw Error("PROJECT_REPOSITORY_REQUIRED");
     await this.gate(agent);
     const workspace = await this.worktrees.create(project.root);
+    await this.store.extensions.prepareWorkspace(projectId, workspace.path);
     if (signal.aborted) throw Error("RUN_CANCELLED");
     const adapter = this.factory(agent, workspace.path);
     const abort = () => adapter.close();
@@ -695,6 +696,7 @@ export class Supervisor {
           }
         : await this.worktrees.create(project.root);
       await this.worktrees.verify(workspace);
+      await this.store.extensions.prepareWorkspace(projectId, workspace.path);
       if (
         previous &&
         (await this.worktrees.inspect(project.root)).base !== previous.base

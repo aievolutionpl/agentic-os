@@ -224,7 +224,11 @@ test("skill installation copies the full pinned package, stays local to a projec
   assert.ok(
     store.extensions
       .skills(project.id, [])
-      .some((s) => s.id === skill.id && s.instructions.includes(path)),
+      .some(
+        (s) =>
+          s.id === skill.id &&
+          s.instructions.includes(`.agents/skills/${skill.slug}/SKILL.md`),
+      ),
   );
   assert.equal(store.extensions.skills(other.id, []).length, 0);
   await store.extensions.install(project.id, skill.id);

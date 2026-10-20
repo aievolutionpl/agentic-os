@@ -118,6 +118,7 @@ export class Runs {
         "application",
         "approval",
         "review",
+        "review_outcome",
       ].includes(kind)
     )
       return;
@@ -181,7 +182,9 @@ export class Runs {
       .prepare(
         role === "implementer"
           ? "SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes, MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN state='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY provider"
-          : "SELECT reviewer AS provider, SUM(reviewState='completed') AS successes, MAX(CASE WHEN reviewState='completed' THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN reviewState='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY reviewer",
+          : // Outcome times come from review_outcome events: later run
+            // updates (approval, apply) must not make a review look newer.
+            "SELECT r.reviewer AS provider, SUM(r.reviewState='completed') AS successes, (SELECT MAX(e.at) FROM run_events e JOIN runs x ON x.id=e.runId WHERE x.reviewer=r.reviewer AND e.kind='review_outcome' AND e.text='completed') AS lastSuccessAt, (SELECT MAX(e.at) FROM run_events e JOIN runs x ON x.id=e.runId WHERE x.reviewer=r.reviewer AND e.kind='review_outcome' AND e.text='failed') AS lastFailureAt FROM runs r GROUP BY r.reviewer",
       )
       .all()
       .map((row) => ({

@@ -177,6 +177,8 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
       ...(i === 3 && { reviewState: "completed" }),
       ...(i === 4 && { reviewState: "failed" }),
     });
+    if (i === 3) store.runs.event(run.id, "review_outcome", "completed");
+    if (i === 4) store.runs.event(run.id, "review_outcome", "failed");
   }
   store.close();
   store = new Store(join(dir, "db.sqlite"));
@@ -200,7 +202,16 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
     reviews.map((r) => [r.provider, r.successes]),
     [["claude", 1]],
   );
+  assert.ok(reviews[0].lastSuccessAt);
   assert.ok(reviews[0].lastFailureAt);
+  // A later run update (approval, apply) does not move the review outcome.
+  const before = reviews[0].lastSuccessAt;
+  const reviewed = store.runs.list(
+    project.id,
+    store.tasks(project.id)[3].id,
+  )[0];
+  store.runs.update(project.id, reviewed.id, { state: "applied" });
+  assert.equal(store.runs.evidence("reviewer")[0].lastSuccessAt, before);
   // A late, older probe never replaces newer evidence.
   store.capabilities.record({
     agent: "codex",

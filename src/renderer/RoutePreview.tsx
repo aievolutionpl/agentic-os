@@ -79,6 +79,8 @@ export function RoutePreview({
         : null;
       setResult({ implementer, reviewer });
     } catch {
+      // A stale proposal from another mode must not stay applicable.
+      setResult(null);
       setFailed(true);
     } finally {
       setBusy(false);
@@ -179,7 +181,10 @@ export function RoutePreview({
             type="button"
             className="primary"
             disabled={
-              disabled || !result.implementer.choice || !result.reviewer?.choice
+              disabled ||
+              busy ||
+              !result.implementer.choice ||
+              !result.reviewer?.choice
             }
             onClick={() =>
               onApply(result.implementer.choice!, result.reviewer!.choice!)

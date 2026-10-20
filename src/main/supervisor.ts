@@ -915,6 +915,7 @@ export class Supervisor {
           reviewState: "completed",
           reviewText: result.summary,
         });
+        this.store.runs.event(run.id, "review_outcome", "completed");
         this.store.runs.event(
           run.id,
           "review",
@@ -928,6 +929,7 @@ export class Supervisor {
           reviewState: "failed",
           error: "REVIEW_FAILED",
         });
+        this.store.runs.event(run.id, "review_outcome", "failed");
       } finally {
         clearTimeout(timer);
         adapter.close();

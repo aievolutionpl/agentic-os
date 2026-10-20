@@ -353,8 +353,17 @@ app
       missionAction: (input) => masterAgent!.action(input),
       missionRemember: (input) => masterAgent!.remember(input),
       localModelSettings: () => localModel.settings(),
-      localModelSave: (input) => localModel.save(input),
-      localModelRemove: () => localModel.remove(),
+      // A changed endpoint makes an earlier connection check stale.
+      localModelSave: (input) => {
+        const value = localModel.save(input);
+        store.capabilities.clear("local");
+        return value;
+      },
+      localModelRemove: () => {
+        const value = localModel.remove();
+        store.capabilities.clear("local");
+        return value;
+      },
       orchestrationStart: (input) => orchestrator!.start(input),
       orchestrationState: (input) => orchestrator!.state(input),
       orchestrationStop: (input) => orchestrator!.stop(input),
@@ -366,11 +375,14 @@ app
       openRouterSave: (input) => {
         const value = router.save(input);
         quotaMonitor!.invalidate();
+        // OpenCode runs with the router's environment; recheck it.
+        store.capabilities.clear("opencode");
         return value;
       },
       openRouterRemove: () => {
         const value = router.remove();
         quotaMonitor!.invalidate();
+        store.capabilities.clear("opencode");
         return value;
       },
       openRouterModels: () => router.models(),

@@ -377,6 +377,37 @@ export interface Capability {
     | "needs-connection"
     | "needs-install";
 }
+/** Something the operator should know about or decide, aggregated across projects. */
+export interface AttentionItem {
+  kind:
+    | "run_review"
+    | "run_interrupted"
+    | "apply_uncertain"
+    | "run_failed"
+    | "batch_interrupted"
+    | "batch_blocked"
+    | "mission_ready"
+    | "mission_blocked"
+    | "mission_interrupted"
+    | "mission_needs_changes"
+    | "run_active"
+    | "batch_running"
+    | "mission_active";
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  agent: string | null;
+  reason: string | null;
+  at: number;
+  /** Where the operator acts on it. */
+  target: "tasks" | "master";
+}
+export interface Attention {
+  observedAt: string;
+  decisions: AttentionItem[];
+  active: AttentionItem[];
+}
 export interface CapabilityEvidence {
   checks: {
     agent: Agent;
@@ -487,6 +518,7 @@ export interface API {
     projectId: string;
   }): Promise<OrchestrationState>;
   orchestrationStop?(input: { projectId: string }): Promise<void>;
+  attention?(): Promise<Attention>;
   orchestrationEvents?(input: {
     projectId: string;
   }): Promise<OrchestrationEvent[]>;

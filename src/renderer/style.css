@@ -3594,3 +3594,203 @@ html[data-theme="light"] .glyph-opencode {
 .capability-matrix small {
   color: var(--text-muted);
 }
+/* Inbox, right-now strip, nav counter and command palette */
+.nav-count {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: var(--t-xs);
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.inbox-list {
+  list-style: none;
+  display: grid;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-6);
+  padding: 0;
+}
+.inbox-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--tone, var(--border-strong));
+  border-radius: var(--r-card);
+}
+.inbox-copy {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+  flex: 1;
+}
+.inbox-copy strong {
+  overflow-wrap: anywhere;
+}
+.inbox-copy small {
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+.inbox-copy .state-badge {
+  justify-self: start;
+}
+.inbox-item > button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+.inbox-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--text-muted);
+  margin: 0 0 var(--s-6);
+}
+.now-strip {
+  margin-bottom: var(--s-6);
+}
+.now-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.now-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
+  padding: var(--s-4);
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--tone, var(--border));
+  border-radius: var(--r-card);
+}
+button.now-tile:hover {
+  background: var(--surface-hover);
+}
+.now-tile .stat-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.palette-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 32px;
+  padding: 0 var(--s-3);
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: var(--t-sm);
+}
+.palette-trigger:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+kbd {
+  font: inherit;
+  font-size: var(--t-xs);
+  padding: 1px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+dialog.command-palette {
+  width: 600px;
+  padding: 0;
+  margin-top: 12vh;
+  overflow: hidden;
+}
+.palette-search {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border);
+}
+.palette-search input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
+  box-shadow: none;
+}
+/* One focus ring for the whole search row instead of a nested input ring. */
+.palette-search input:focus-visible {
+  outline: none;
+}
+.palette-search:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--r-card) var(--r-card) 0 0;
+}
+.command-palette [role="listbox"] {
+  list-style: none;
+  margin: 0;
+  padding: var(--s-2);
+  max-height: min(420px, 60dvh);
+  overflow-y: auto;
+}
+.command-palette [role="option"] {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-3);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.command-palette [role="option"] span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.command-palette [role="option"] small {
+  color: var(--text-muted);
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.command-palette [role="option"].active {
+  background: var(--surface-hover);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.command-palette .palette-empty {
+  color: var(--text-muted);
+  cursor: default;
+}
+@media (max-width: 720px) {
+  .now-grid {
+    grid-template-columns: 1fr;
+  }
+  .inbox-item {
+    flex-wrap: wrap;
+  }
+  .palette-trigger span,
+  .palette-trigger kbd {
+    display: none;
+  }
+  dialog.command-palette {
+    margin-top: var(--s-4);
+  }
+}

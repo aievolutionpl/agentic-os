@@ -44,6 +44,7 @@ import {
   Code2,
   BookOpen,
   type LucideIcon,
+  Inbox,
 } from "lucide-react";
 const iconLibrary: Record<string, LucideIcon> = {
   layers: Layers3,
@@ -87,6 +88,7 @@ const iconLibrary: Record<string, LucideIcon> = {
   palette: Palette,
   code: Code2,
   skill: BookOpen,
+  inbox: Inbox,
 };
 
 export function Icon({

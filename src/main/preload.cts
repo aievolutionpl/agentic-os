@@ -28,6 +28,7 @@ const api: API = {
     ipcRenderer.invoke("app:orchestrationState", input),
   orchestrationStop: (input) =>
     ipcRenderer.invoke("app:orchestrationStop", input),
+  attention: () => ipcRenderer.invoke("app:attention"),
   orchestrationEvents: (input) =>
     ipcRenderer.invoke("app:orchestrationEvents", input),
   orchestrationResume: (input) =>

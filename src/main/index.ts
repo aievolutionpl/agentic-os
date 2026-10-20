@@ -25,6 +25,7 @@ import { OpenRouterConnection } from "./openrouter.js";
 import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
 import { capabilityMatrix } from "./capabilities.js";
+import { attention } from "./attention.js";
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
 import { Chats } from "./chats.js";
@@ -258,6 +259,7 @@ app
       orchestrationStart: (input) => orchestrator!.start(input),
       orchestrationState: (input) => orchestrator!.state(input),
       orchestrationStop: (input) => orchestrator!.stop(input),
+      attention: () => attention(store),
       orchestrationEvents: (input) => orchestrator!.events(input),
       orchestrationResume: (input) => orchestrator!.resume(input),
       providerDetect: () => detectExecutables(),

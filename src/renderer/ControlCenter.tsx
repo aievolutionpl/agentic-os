@@ -1,5 +1,11 @@
 import React from "react";
-import type { ConnectorScan, ConnectorStatus } from "../shared";
+import type {
+  Attention,
+  AttentionItem,
+  ConnectorScan,
+  ConnectorStatus,
+} from "../shared";
+import { attentionWords } from "./Inbox";
 import { ccWords } from "./cc-i18n";
 import { Icon, relativeTime } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
@@ -57,6 +63,9 @@ export function ControlCenter({
   onConfigure,
   onNewProject,
   projectCount = 0,
+  work = null,
+  onOpenInbox,
+  onOpenAttention,
 }: {
   language: "pl" | "en";
   scan: ConnectorScan | null;
@@ -67,6 +76,9 @@ export function ControlCenter({
   onConfigure?: () => void;
   onNewProject?: () => void;
   projectCount?: number;
+  work?: Attention | null;
+  onOpenInbox?: () => void;
+  onOpenAttention?: (item: AttentionItem) => void;
 }) {
   const t = ccWords[language];
   const connectors = scan?.connectors ?? [];
@@ -184,6 +196,72 @@ export function ControlCenter({
           </div>
         </div>
       </div>
+      {work && (
+        <section className="now-strip" aria-labelledby="now-title">
+          <h2 id="now-title" className="cc-section">
+            {language === "pl" ? "Teraz" : "Right now"}
+          </h2>
+          <div className="now-grid">
+            <button
+              className={`now-tile ${work.decisions.length ? "tone-warning" : ""}`}
+              onClick={onOpenInbox}
+            >
+              <span className="stat-value">
+                <Icon name="inbox" />
+                {work.decisions.length}
+              </span>
+              <span className="stat-label">
+                {language === "pl"
+                  ? "czeka na Twoją decyzję →"
+                  : "waiting for your decision →"}
+              </span>
+            </button>
+            <button className="now-tile" onClick={onOpenInbox}>
+              <span className="stat-value">
+                <Icon name="clock" />
+                {work.active.length}
+              </span>
+              <span className="stat-label">
+                {language === "pl" ? "prac w toku" : "items in progress"}
+              </span>
+            </button>
+            <div className="now-tile">
+              <span className="stat-value">
+                <Icon name="shield" />
+                {scan?.capabilities
+                  ? `${scan.capabilities.filter((c) => c.verdict === "verified").length}/${scan.capabilities.filter((c) => c.configured).length}`
+                  : "–"}
+              </span>
+              <span className="stat-label">
+                {language === "pl"
+                  ? "połączonych agentów zweryfikowanych realnym zadaniem"
+                  : "connected agents verified by a real run"}
+              </span>
+            </div>
+          </div>
+          {work.decisions.length > 0 && (
+            <ul className="inbox-list now-list">
+              {work.decisions.slice(0, 3).map((item) => (
+                <li className="inbox-item" key={`${item.kind}:${item.id}`}>
+                  <div className="inbox-copy">
+                    <strong>{attentionWords[language].kinds[item.kind]}</strong>
+                    <small>
+                      {item.projectName} · {item.title}
+                    </small>
+                  </div>
+                  <button
+                    className="secondary"
+                    onClick={() => onOpenAttention?.(item)}
+                  >
+                    {attentionWords[language].open}
+                    <Icon name="chevron" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       <div className="cc-head">
         <div>
           <h1 id="cc-title">{t.title}</h1>

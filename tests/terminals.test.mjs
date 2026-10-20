@@ -16,12 +16,13 @@ function setup(t) {
   });
   t.after(async () => {
     await terminals.dispose();
-    // Windows releases a shell's working folder a moment after it exits.
+    // Windows releases a shell's working folder a moment after it exits;
+    // linear backoff, so 10 × 100 ms retries wait about 5.5 s in total.
     rmSync(dir, {
       recursive: true,
       force: true,
-      maxRetries: 50,
-      retryDelay: 200,
+      maxRetries: 10,
+      retryDelay: 100,
     });
   });
   return { terminals, project };

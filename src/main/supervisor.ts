@@ -129,6 +129,22 @@ export class Supervisor {
         });
       });
     for (const run of store.runs.active()) {
+      if (run.state === "reviewing") {
+        // A review cut short leaves the captured result intact: it goes back
+        // to waiting for review, with the review marked failed so it can be
+        // run again explicitly.
+        store.runs.update(run.projectId, run.id, {
+          state: run.artifactId ? "awaiting_review" : "completed",
+          reviewState: "failed",
+          error: "REVIEW_INTERRUPTED",
+        });
+        store.runs.event(
+          run.id,
+          "recovery",
+          "The app stopped during review. The result is unchanged; run the review again explicitly.",
+        );
+        continue;
+      }
       store.runs.update(run.projectId, run.id, {
         state: run.state === "applying" ? "apply_uncertain" : "interrupted",
         error: "APP_INTERRUPTED",

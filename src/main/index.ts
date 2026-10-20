@@ -259,12 +259,18 @@ app
       }
     };
     supervisor.gate = async (agent) => {
-      const policy = store.policies.get(),
-        paid = quotaProvider(agent) === "openrouter";
+      const paid = quotaProvider(agent) === "openrouter";
+      // Spend is fetched first; policy and approval are read after the await so
+      // a change made meanwhile (stricter budget, revoked approval) applies.
+      const spent =
+        paid && store.policies.get().monthlyBudgetUsd !== null
+          ? await monthlySpend()
+          : null;
+      const policy = store.policies.get();
       const decision = evaluatePolicy(
         { agent, paid, approved: paidApprovals.has(agent) },
         policy,
-        paid && policy.monthlyBudgetUsd !== null ? await monthlySpend() : null,
+        spent,
       );
       if (decision.verdict !== "allow") throw Error(decision.reasons[0]);
       // A fresh provider reading that says the limit is used up stops the run
@@ -335,6 +341,15 @@ app
       setupOf({ agent: health.agent }) === before
         ? store.capabilities.record(health)
         : health;
+    // A held team queue owns its open tasks until it is continued or abandoned.
+    const heldRun = (input: unknown) => {
+      const p = input as { projectId?: unknown; runId?: unknown } | null;
+      if (typeof p?.projectId !== "string" || typeof p.runId !== "string")
+        return;
+      const run = store.runs.get(p.projectId, p.runId);
+      if (run && orchestrator!.held(p.projectId, run.taskId))
+        throw Error("TASK_HELD_BY_QUEUE");
+    };
     const handlers: Record<string, (input: unknown) => unknown> = {
       chatList: () => chats!.list(),
       chatCreate: (input) => chats!.create(input),
@@ -466,7 +481,10 @@ app
         store.extensions.get(projectId, id);
         return mcp!.disconnect(projectId, id);
       },
-      runDecision: (input) => applications.decide(input),
+      runDecision: (input) => {
+        heldRun(input);
+        return applications.decide(input);
+      },
       memorySearch: (input) => {
         const p = exact(input, ["projectId", "query"]);
         return store.knowledge.search(
@@ -489,9 +507,21 @@ app
         );
       },
       runtimeView: (input) => supervisor.view(input),
-      runtimeStart: (input) => supervisor.start(input),
+      runtimeStart: (input) => {
+        const p = input as { projectId?: unknown; taskId?: unknown } | null;
+        if (
+          typeof p?.projectId === "string" &&
+          typeof p.taskId === "string" &&
+          orchestrator!.held(p.projectId, p.taskId)
+        )
+          throw Error("TASK_HELD_BY_QUEUE");
+        return supervisor.start(input);
+      },
       runtimeAction: (input) => supervisor.action(input),
-      runtimeReview: (input) => supervisor.review(input),
+      runtimeReview: (input) => {
+        heldRun(input);
+        return supervisor.review(input);
+      },
       configureProvider: (input) => {
         supervisor.configure(input);
         store.capabilities.clear((input as { agent: Agent }).agent);
@@ -771,7 +801,16 @@ app
         const p = exact(input, ["url"]);
         return shell.openExternal(externalWebUrl(p.url));
       },
-      taskAction: (input) => store.taskAction(input),
+      taskAction: (input) => {
+        const p = input as { projectId?: unknown; id?: unknown } | null;
+        if (
+          typeof p?.projectId === "string" &&
+          typeof p.id === "string" &&
+          orchestrator!.held(p.projectId, p.id)
+        )
+          throw Error("TASK_HELD_BY_QUEUE");
+        return store.taskAction(input);
+      },
       createProject: (input) => store.createProject(input),
       createTask: (input) => store.createTask(input),
       createMemory: (input) => store.createMemory(input),
@@ -813,6 +852,7 @@ app
             throw Error(code);
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
+          if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
           if (name.startsWith("terminal") && code.startsWith("TERMINAL_"))
             throw Error(code);
           if (

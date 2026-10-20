@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "at": "2026-10-20T15:22:17.534Z",
+  "platform": "linux",
+  "electron": "43.8.0",
+  "checks": [
+    "packaged executable starts",
+    "preload works from ASAR",
+    "isolated first-launch profile",
+    "packaged native PTY opens, executes and closes through trusted IPC"
+  ],
+  "installerExecution": "not performed",
+  "codeSigning": "unsigned",
+  "buildCommand": "npm exec electron-builder -- --linux dir --x64 --publish never -c.npmRebuild=false",
+  "nativeRebuild": "Existing N-API module rebuilt by npm rebuild node-pty; Electron-specific rebuild blocked by unavailable home cache in this runner."
+}

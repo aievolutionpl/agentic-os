@@ -1,0 +1,5 @@
+
+> agenting-os@0.5.0-rc.1 smoke:package
+> node scripts/package-smoke.mjs
+
+Packaged executable smoke passed

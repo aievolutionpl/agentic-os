@@ -1,0 +1,12 @@
+✔ native terminal startup failure leaves no phantom session and permits a later retry (22.080277ms)
+✔ terminal requires explicit consent and a known directory; rejects renderer-selected executables and invalid input (8.405872ms)
+✔ real PTY runs in the chosen directory, accepts resize and Ctrl+C, and preserves independent sessions (439.328573ms)
+✔ terminal output and session count are bounded, shutdown removes all shells (224.874754ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 805.394639

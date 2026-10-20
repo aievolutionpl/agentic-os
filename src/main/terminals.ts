@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, realpathSync, statSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module";
+import { execFile } from "node:child_process";
 import type { IPty } from "node-pty";
 import type { TerminalSession, TerminalRead } from "../shared.js";
 import { exact, text } from "./validate.js";
@@ -22,7 +23,21 @@ function dimension(value: unknown, min: number, max: number): number {
   return Number(value);
 }
 
-const KILL_WAIT_MS = process.platform === "win32" ? 8000 : 1500;
+const WINDOWS = process.platform === "win32";
+
+/** Ends a Windows shell and every process it started, and resolves once
+ * taskkill has finished. node-pty's own kill relies on a helper that can
+ * fail to start, which leaves descendants (and the folders they hold). */
+function killTree(pid: number) {
+  return new Promise<boolean>((resolve) =>
+    execFile(
+      "taskkill",
+      ["/PID", String(pid), "/T", "/F"],
+      { windowsHide: true, timeout: 10_000 },
+      (error) => resolve(!error),
+    ),
+  );
+}
 
 /** Explicitly opened, user-operated shells. Never used by the agent supervisor. */
 export class Terminals {
@@ -158,26 +173,33 @@ export class Terminals {
     const p = exact(input, ["id"]);
     const entry = this.entry(p.id);
     if (entry.info.state === "running") {
-      try {
-        entry.pty.kill();
-      } catch {
-        /* Process may have just exited. */
-      }
+      // After a successful tree kill node-pty cleans up on the exit event by
+      // itself; calling its kill() then would schedule a delayed kill of the
+      // bare shell PID, which Windows may already have reused (node-pty#967).
+      const ended = WINDOWS && (await killTree(entry.pty.pid));
+      if (!ended)
+        try {
+          entry.pty.kill();
+        } catch {
+          /* Process may have just exited. */
+        }
       let timer: ReturnType<typeof setTimeout> | undefined;
       await Promise.race([
         entry.stopped,
         new Promise<void>((resolve) => {
-          timer = setTimeout(() => {
-            try {
-              entry.pty.kill("SIGKILL");
-            } catch {
-              /* Already exited. */
-            }
-            resolve();
-            // On Windows node-pty may wait up to 5 s for its console-list
-            // helper before killing the shell; wait it out so a closed
-            // session never leaves a shell (or a locked folder) behind.
-          }, KILL_WAIT_MS);
+          timer = setTimeout(
+            () => {
+              if (!ended)
+                try {
+                  entry.pty.kill("SIGKILL");
+                } catch {
+                  /* Already exited. */
+                }
+              resolve();
+            },
+            // node-pty flushes output before it reports a Windows exit.
+            ended ? 5000 : 1500,
+          );
         }),
       ]);
       clearTimeout(timer);

@@ -368,7 +368,9 @@ test("backups are owner-only and a failed second staging keeps the earlier stage
     "the earlier staged restore survives",
   );
   assert.deepEqual(
-    readdirSync(target).filter((f) => f.includes("partial")),
+    readdirSync(target).filter(
+      (f) => f.includes("partial") || f.startsWith(".agenting-"),
+    ),
     [],
   );
   assert.equal(applyPendingRestore(target), "restored");
@@ -422,6 +424,8 @@ test("applying a restore keeps the old database as one self-contained file, WAL 
     [kept],
     "no separate -wal/-shm companions for the kept copy",
   );
+  if (process.platform !== "win32")
+    assert.equal(statSync(join(target, kept)).mode & 0o077, 0);
   const previous = new Store(join(target, kept));
   assert.deepEqual(
     previous.projects().map((p) => p.name),
@@ -445,7 +449,25 @@ test("temporary files are never left behind and use unpredictable names", (t) =>
   stageRestore(join(root), join(root, "a.sqlite"));
   store.close();
   assert.deepEqual(
-    readdirSync(root).filter((f) => f.includes("partial")),
+    readdirSync(root).filter(
+      (f) => f.includes("partial") || f.startsWith(".agenting-"),
+    ),
+    [],
+  );
+});
+
+test("long target names still get a valid temporary file in the same folder", (t) => {
+  const root = dirs(t);
+  const store = new Store(join(root, DATABASE));
+  seed(store, "P");
+  const name = `${"a".repeat(220)}.sqlite`;
+  assert.equal(createBackup(store, join(root, name)).projects, 1);
+  writeDiagnostics(join(root, `${"d".repeat(220)}.json`), store.file, {});
+  store.close();
+  assert.deepEqual(
+    readdirSync(root).filter(
+      (f) => f.includes("partial") || f.startsWith(".agenting-"),
+    ),
     [],
   );
 });

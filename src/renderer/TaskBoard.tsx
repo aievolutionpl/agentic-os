@@ -12,6 +12,7 @@ import {
 } from "./ui";
 
 type Props = {
+  requestedTask?: string | null;
   memory?: Memory[];
   onRunChanged?: () => void;
   tasks: Task[];
@@ -93,6 +94,7 @@ export function TaskBoard(props: Props) {
   } = props;
   const w = words[language];
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  useEffect(() => { if (props.requestedTask) setSelectedId(props.requestedTask); }, [props.requestedTask]);
   const [cancelling, setCancelling] = useState<Task | null>(null);
   const [dismissed, setDismissed] = useState(() => {
     try {

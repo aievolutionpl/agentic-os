@@ -25,6 +25,20 @@ function dimension(value: unknown, min: number, max: number): number {
 
 const WINDOWS = process.platform === "win32";
 
+/** node-pty 1.1.0 leaves its ConPTY output worker alive after an external tree
+ * kill or natural shell exit. Dispose only its I/O bridge, never call kill()
+ * after exit: that method can later signal a recycled shell PID. Keep this
+ * narrow compatibility adapter covered by a child-process shutdown test. */
+function releaseExitedWindowsIO(pty: IPty) {
+  if (!WINDOWS) return;
+  const agent = (pty as IPty & { _agent?: {
+    _conoutSocketWorker?: { dispose(): void };
+    inSocket?: { destroy(): void };
+  } })._agent;
+  agent?.inSocket?.destroy();
+  agent?._conoutSocketWorker?.dispose();
+}
+
 /** Ends a Windows shell and every process it started, and resolves once
  * taskkill has finished. node-pty's own kill relies on a helper that can
  * fail to start, which leaves descendants (and the folders they hold). */
@@ -125,6 +139,7 @@ export class Terminals {
     child.onExit(({ exitCode }) => {
       info.state = "exited";
       info.exitCode = exitCode;
+      releaseExitedWindowsIO(child);
       resolveStopped();
     });
     return { ...info };
@@ -173,8 +188,8 @@ export class Terminals {
     const p = exact(input, ["id"]);
     const entry = this.entry(p.id);
     if (entry.info.state === "running") {
-      // After a successful tree kill node-pty cleans up on the exit event by
-      // itself; calling its kill() then would schedule a delayed kill of the
+      // After a successful tree kill release I/O on exit; calling kill() again
+      // would schedule a delayed kill of the
       // bare shell PID, which Windows may already have reused (node-pty#967).
       const ended = WINDOWS && (await killTree(entry.pty.pid));
       if (!ended)

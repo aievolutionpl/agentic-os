@@ -72,9 +72,17 @@ for (const name of [
   "@xterm/addon-fit",
   "react-markdown",
   "remark-gfm",
+  "@lobehub/icons-static-svg",
+  "@modelcontextprotocol/server-memory",
 ]) {
   if (!inventory.some((entry) => entry.name === name))
     throw Error(`Missing license inventory: ${name}`);
+}
+const skillCatalog = JSON.parse(readFileSync("resources/skills/catalog.json", "utf8"));
+for (const skill of skillCatalog) {
+  if (!/^[a-f0-9]{40}$/.test(skill.version) || !skill.source.includes(skill.version)) throw Error(`Unpinned skill: ${skill.id}`);
+  const dir = resolve("resources/skills", skill.slug);
+  if (!existsSync(resolve(dir, "SKILL.md")) || !["LICENSE", "LICENSE.txt"].some(file => existsSync(resolve(dir, file)))) throw Error(`Missing skill instructions or license: ${skill.id}`);
 }
 console.log(
   `Release audit passed: ${files.length} release input paths; documentation links and dependency inventory checked.`,

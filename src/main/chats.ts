@@ -120,6 +120,7 @@ export class Chats {
   async create(input: unknown) {
     const p = exact(input, [
       "agent",
+      "model",
       "mode",
       "source",
       "path",
@@ -219,6 +220,7 @@ export class Chats {
       title,
       projectId: project.id,
       agent,
+      model: p.model == null || p.model === "" ? null : text(p.model, 240),
       mode: p.mode as ChatSession["mode"],
       source,
       root,
@@ -243,6 +245,7 @@ export class Chats {
       "skillIds",
       "consent",
       "attachments",
+      "model",
     ]);
     if (p.consent !== true) throw Error("EXPLICIT_CONSENT_REQUIRED");
     const files = attachments(p.attachments);
@@ -255,6 +258,7 @@ export class Chats {
     )
       throw Error("PROVIDER_NOT_CONFIGURED");
     const message = text(p.message, 12000);
+    const model = p.model === undefined ? chat.model : p.model == null || p.model === "" ? null : text(p.model, 240);
     const skills = this.store.extensions.skills(
       chat.projectId,
       p.skillIds ?? [],
@@ -264,6 +268,7 @@ export class Chats {
       p.contextIds ?? [],
       "research",
       skills,
+      message,
     );
     const history = chat.messages
       .filter((m) => m.status === "complete")
@@ -307,6 +312,7 @@ export class Chats {
     chat.messages.push(reply);
     if (chat.messages.length === 2) chat.title = message.slice(0, 70);
     chat.contextIds = context.memoryIds;
+    chat.model = model;
     chat.skillIds = skills.map((s) => s.id);
     chat.activity = [];
     chat.error = null;
@@ -359,6 +365,7 @@ export class Chats {
             savedAt = Date.now();
           }
         },
+        chat.model,
       );
       reply.content = redact(result, 16000);
       reply.status = "complete";

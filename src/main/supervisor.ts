@@ -17,7 +17,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 const execute = promisify(execFile);
 
-export type AdapterFactory = (agent: Agent, cwd: string) => AgentAdapter;
+export type AdapterFactory = (
+  agent: Agent,
+  cwd: string,
+  model?: string | null,
+) => AgentAdapter;
 type Active = {
   controller: AbortController;
   adapter: AgentAdapter;
@@ -105,9 +109,10 @@ export class Supervisor {
     this.worktrees = new Worktrees(join(dataDir, "workspaces"));
     this.factory =
       factory ??
-      ((agent, cwd) => {
-        const config = store.runs.provider(agent);
-        if (!config?.consent) throw Error("PROVIDER_NOT_CONFIGURED");
+      ((agent, cwd, model) => {
+        const saved = store.runs.provider(agent);
+        if (!saved?.consent) throw Error("PROVIDER_NOT_CONFIGURED");
+        const config = { ...saved, model: model ?? saved.model };
         const home = join(dataDir, "providers", agent);
         mkdirSync(home, { recursive: true });
         if (
@@ -119,9 +124,7 @@ export class Supervisor {
               command: config.command,
               args: [
                 ...config.args,
-                ...(agent === "antigravity" && config.model
-                  ? ["--model", config.model]
-                  : []),
+                ...(config.model ? ["--model", config.model] : []),
               ],
               cwd,
             },
@@ -159,12 +162,15 @@ export class Supervisor {
             },
           );
         }
-        return new CodexAdapter({
-          command: config.command,
-          args: [...config.args, "app-server", "--listen", "stdio://"],
-          cwd,
-          env: config.profile === "existing" ? {} : { CODEX_HOME: home },
-        });
+        return new CodexAdapter(
+          {
+            command: config.command,
+            args: [...config.args, "app-server", "--listen", "stdio://"],
+            cwd,
+            env: config.profile === "existing" ? {} : { CODEX_HOME: home },
+          },
+          config.model,
+        );
       });
     for (const run of store.runs.active()) {
       if (run.state === "reviewing") {
@@ -317,6 +323,11 @@ export class Supervisor {
         return {
           ...result,
           state: body.loggedIn === true ? "connected" : "needs-auth",
+          models: [
+            { id: "sonnet", name: "Claude Sonnet" },
+            { id: "opus", name: "Claude Opus" },
+            { id: "haiku", name: "Claude Haiku" },
+          ],
           detail:
             body.loggedIn === true
               ? "CLI_SIGN_IN_VERIFIED"
@@ -348,10 +359,30 @@ export class Supervisor {
       if (adapter instanceof CodexAdapter) {
         await adapter.initialize();
         const auth = await adapter.account();
+        const catalog = await adapter.rpc
+          .request("model/list", { limit: 100 })
+          .catch(() => ({ data: [] }));
         return {
           ...result,
           state: auth.account ? "connected" : "needs-auth",
           detail: auth.account ? "CLI_SIGN_IN_VERIFIED" : "SIGN_IN_REQUIRED",
+          models: Array.isArray(catalog.data)
+            ? catalog.data
+                .flatMap((m: any) =>
+                  typeof m.model === "string"
+                    ? [
+                        {
+                          id: m.model,
+                          name:
+                            typeof m.displayName === "string"
+                              ? m.displayName
+                              : m.model,
+                        },
+                      ]
+                    : [],
+                )
+                .slice(0, 100)
+            : [],
         };
       }
       if (adapter instanceof AcpAdapter) {
@@ -484,11 +515,12 @@ export class Supervisor {
     readOnly: boolean,
     signal: AbortSignal,
     activity: (kind: string, message: string) => void,
+    model?: string | null,
   ) {
     if (readOnly && !READ_ONLY_AGENTS.includes(agent))
       throw Error("READ_ONLY_PROVIDER_REQUIRED");
     await this.gate(agent);
-    const adapter = this.factory(agent, cwd);
+    const adapter = this.factory(agent, cwd, model);
     const abort = () => adapter.close();
     signal.addEventListener("abort", abort, { once: true });
     try {
@@ -533,6 +565,7 @@ export class Supervisor {
     if (!project?.root) throw Error("PROJECT_REPOSITORY_REQUIRED");
     await this.gate(agent);
     const workspace = await this.worktrees.create(project.root);
+    await this.store.extensions.prepareWorkspace(projectId, workspace.path);
     if (signal.aborted) throw Error("RUN_CANCELLED");
     const adapter = this.factory(agent, workspace.path);
     const abort = () => adapter.close();
@@ -641,7 +674,13 @@ export class Supervisor {
         throw Error("DEPENDENCIES_NOT_READY");
       const context =
         frozenContext ??
-        this.contextFor(projectId, p.contextIds, p.workflow, p.skillIds);
+        this.contextFor(
+          projectId,
+          p.contextIds,
+          p.workflow,
+          p.skillIds,
+          task.title,
+        );
       if (task.implementer === "antigravity" && context.readOnly)
         throw Error("ANTIGRAVITY_READ_ONLY_UNSUPPORTED");
       // A read-only workflow (research, audit) needs an agent that has a
@@ -657,6 +696,7 @@ export class Supervisor {
           }
         : await this.worktrees.create(project.root);
       await this.worktrees.verify(workspace);
+      await this.store.extensions.prepareWorkspace(projectId, workspace.path);
       if (
         previous &&
         (await this.worktrees.inspect(project.root)).base !== previous.base
@@ -732,12 +772,14 @@ export class Supervisor {
     ids: unknown,
     workflow: unknown,
     skills: unknown,
+    query: string,
   ) {
     return this.store.knowledge.build(
       projectId,
       ids ?? [],
       workflow,
       this.store.extensions.skills(projectId, skills ?? []),
+      query,
     );
   }
   private async execute(

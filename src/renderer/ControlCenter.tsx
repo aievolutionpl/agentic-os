@@ -86,7 +86,7 @@ export function ControlCenter({
   agents?: ProviderSetting[];
 }) {
   const t = ccWords[language];
-  const connectors = scan?.connectors ?? [];
+  const connectors = (scan?.connectors ?? []).filter(c => c.id !== "gemini");
   const runnable = connectors.filter((c) => c.adapter === "available");
   const ready = runnable.filter((c) => c.state === "ready").length;
   const attention = connectors.filter(

@@ -1,12 +1,13 @@
 // Local protocol fixture, never selected by production environment variables or IPC.
 import { createInterface } from "node:readline";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
 const send = (value) => process.stdout.write(JSON.stringify(value) + "\n");
 let cwd = process.cwd();
 createInterface({ input: process.stdin }).on("line", (line) => {
   const m = JSON.parse(line),
     p = m.params ?? {};
+  if (process.env.QA_PROTOCOL_LOG) appendFileSync(process.env.QA_PROTOCOL_LOG, JSON.stringify(m) + "\n");
   const reply = (result) => send({ id: m.id, result });
   if (m.method === "initialize")
     reply({ userAgent: "Agenting OS protocol fixture" });
@@ -34,6 +35,7 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     reply({ account: null, requiresOpenaiAuth: true });
   else if (m.method === "account/rateLimits/read") reply({rateLimits:{primary:{usedPercent:25,windowDurationMins:300,resetsAt:2000000000}}});
   else if (m.method === "account/usage/read") reply({});
+  else if (m.method === "model/list") reply({ data: [{ model: "fixture-model", displayName: "Fixture model" }], nextCursor: null });
   else if (m.method === "turn/start") {
     reply({ turn: { id: "fixture-turn", status: "inProgress" } });
     if (process.env.QA_BEHAVIOR === "disconnect") {

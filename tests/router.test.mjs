@@ -82,8 +82,8 @@ const scenarios = [
   [
     "read-only step skips agents without read-only mode",
     req({ readOnly: true }),
-    facts({ hermes: { successes: 5 }, gemini: {} }),
-    "gemini",
+    facts({ hermes: { successes: 5 }, codex: {} }),
+    "codex",
   ],
   [
     "exhausted quota is rejected",
@@ -188,8 +188,8 @@ for (const [name, request, f, choice, reason] of scenarios)
     const d = route(request, f);
     assert.equal(d.choice, choice);
     if (reason) assert.equal(d.reason, reason);
-    // Every agent is accounted for exactly once, with reasons.
-    assert.equal(d.ranked.length + d.rejected.length, AGENTS.length);
+    // Every available agent is accounted for exactly once, with reasons.
+    assert.equal(d.ranked.length + d.rejected.length, AGENTS.length - 1);
     for (const r of d.rejected) assert.ok(r.reasons.length);
     for (const r of d.ranked)
       assert.ok(r.reasons.every((x) => /^[+-]\d+ [A-Z_0-9]+$/.test(x)));
@@ -204,6 +204,21 @@ test("router: identical facts always give the identical decision", () => {
   const a = route(req(), f),
     b = route(req(), [...f].reverse());
   assert.deepEqual(a, b);
+});
+
+test("retired Gemini CLI is excluded even when an old connection is healthy", () => {
+  const legacy = facts({ codex: {}, gemini: { successes: 50 } });
+  const automatic = route(req({ mode: "quality-first" }), legacy);
+  assert.equal(automatic.choice, "codex");
+  assert.ok(
+    ![...automatic.ranked, ...automatic.rejected].some(
+      (r) => r.agent === "gemini",
+    ),
+  );
+  assert.equal(
+    route(req({ mode: "manual", preferred: "gemini" }), legacy).choice,
+    null,
+  );
 });
 
 test("router: rejection reasons are explicit and combined", () => {

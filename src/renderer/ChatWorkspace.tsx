@@ -8,7 +8,12 @@ import type {
   Project,
   ProviderSetting,
 } from "../shared";
-import { AGENTS, READ_ONLY_AGENTS, chatMarkdown } from "../shared";
+import {
+  AVAILABLE_AGENTS as AGENTS,
+  READ_ONLY_AGENTS,
+  chatMarkdown,
+} from "../shared";
+import { ModelPicker } from "./ModelPicker";
 import { Icon, Modal, agentName, connectionLabel, connectionState } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
@@ -94,6 +99,7 @@ const draft = {
   message: "",
   files: [] as { name: string; content: string }[],
   agent: "codex" as Agent,
+  model: "",
   mode: "chat" as "chat" | "plan",
   source: "default" as "default" | "local" | "github",
   path: "",
@@ -133,6 +139,7 @@ export function ChatWorkspace({
     [source, setSource] = useState<"default" | "local" | "github">(
       draft.source,
     );
+  const [model, setModel] = useState(draft.model);
   const [path, setPath] = useState(draft.path),
     [repository, setRepository] = useState(draft.repository),
     [existing, setExisting] = useState(draft.existing);
@@ -155,6 +162,29 @@ export function ChatWorkspace({
   const [rename, setRename] = useState<string | null>(null);
   const [unseen, setUnseen] = useState(false);
   const autoFollow = useRef(true);
+  useEffect(() => {
+    const close = (event: PointerEvent | KeyboardEvent) => {
+      document
+        .querySelectorAll<HTMLDetailsElement>(".composer-menu[open]")
+        .forEach((menu) => {
+          if (
+            event instanceof KeyboardEvent
+              ? event.key === "Escape"
+              : !menu.contains(event.target as Node)
+          ) {
+            menu.open = false;
+            if (event instanceof KeyboardEvent)
+              menu.querySelector("summary")?.focus();
+          }
+        });
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, []);
   const attached = useAttachments(draft.files),
     drop = useDrop((files) => void attached.add(files));
   const [repositories, setRepositories] = useState<
@@ -195,6 +225,7 @@ export function ChatWorkspace({
     };
   }, []);
   useEffect(() => {
+    setModel(chat?.model ?? "");
     setMemoryIds(chat?.contextIds ?? []);
     setSkillIds(chat?.skillIds ?? []);
     setError("");
@@ -243,13 +274,22 @@ export function ChatWorkspace({
     draft.files = attached.files;
     drafts.set(selected, { message, files: attached.files });
     // The draft keeps its target too: agent, mode and where it will run.
-    Object.assign(draft, { agent, mode, source, path, repository, existing });
+    Object.assign(draft, {
+      agent,
+      model,
+      mode,
+      source,
+      path,
+      repository,
+      existing,
+    });
   }, [
     selected,
     message,
     attached.files,
     agent,
     mode,
+    model,
     source,
     path,
     repository,
@@ -281,6 +321,7 @@ export function ChatWorkspace({
     try {
       const row = await api.chatCreate!({
         agent,
+        model: model || null,
         mode,
         source,
         ...(source === "local"
@@ -307,6 +348,7 @@ export function ChatWorkspace({
   async function deliver(target: ChatSession, contextIds: string[]) {
     const row = await api.chatSend!({
       id: target.id,
+      model: model || null,
       message,
       contextIds,
       skillIds: target.id === chat?.id ? skillIds : [],
@@ -466,194 +508,24 @@ export function ChatWorkspace({
         <div className="chat-stage">
           {!chat ? (
             <>
-              <header className="evolution-banner chat-banner">
+              <header className="conversation-welcome">
                 <div>
                   <span className="banner-kicker">
-                    ONE WORKSPACE. YOUR AGENTS.
+                    <Icon name="layers" />
                   </span>
                   <h2>
                     {pl
-                      ? "Twój pomysł.\nTwój agent."
-                      : "Your idea.\nYour agent."}
+                      ? "Dobry pomysł zaczyna się tutaj."
+                      : "A good idea starts here."}
                   </h2>
                   <p>
                     {pl
-                      ? "Rozmawiaj, planuj i przekazuj zadania zespołowi. Z pamięcią, która zostaje z Tobą."
-                      : "Chat, plan and hand work to your team. With memory that stays with you."}
+                      ? "Nad czym dziś pracujemy?"
+                      : "What are we working on today?"}
                   </p>
                 </div>
               </header>
               <div className="chat-start-form">
-                <AgentStrip
-                  value={agent}
-                  providers={providers}
-                  pl={pl}
-                  onChange={(id) => {
-                    setAgent(id);
-                    if (!READ_ONLY_AGENTS.includes(id)) setMode("chat");
-                  }}
-                />
-                <div
-                  className="mode-toggle"
-                  role="group"
-                  aria-label={pl ? "Tryb pracy" : "Work mode"}
-                >
-                  {(["chat", "plan"] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={mode === value}
-                      className={mode === value ? "chosen" : ""}
-                      disabled={
-                        value === "plan" && !READ_ONLY_AGENTS.includes(agent)
-                      }
-                      title={
-                        value === "plan" && !READ_ONLY_AGENTS.includes(agent)
-                          ? pl
-                            ? "Ten agent nie ma zweryfikowanego trybu tylko do odczytu"
-                            : "This agent has no verified read-only mode"
-                          : undefined
-                      }
-                      onClick={() => setMode(value)}
-                    >
-                      <Icon name={value === "plan" ? "plan" : "message"} />
-                      {value === "plan"
-                        ? pl
-                          ? "Planowanie"
-                          : "Planning"
-                        : pl
-                          ? "Rozmowa"
-                          : "Chat"}
-                    </button>
-                  ))}
-                </div>
-                <fieldset className="workspace-source">
-                  <legend>
-                    {pl ? "Gdzie pracujemy?" : "Where are we working?"}
-                  </legend>
-                  {(["default", "local", "github"] as const).map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      aria-pressed={source === value}
-                      className={source === value ? "chosen" : ""}
-                      onClick={() => setSource(value)}
-                    >
-                      <Icon
-                        name={
-                          value === "default"
-                            ? "spark"
-                            : value === "local"
-                              ? "folder"
-                              : "github"
-                        }
-                      />
-                      <strong>
-                        {value === "default"
-                          ? pl
-                            ? "Domyślny"
-                            : "Default"
-                          : value === "local"
-                            ? pl
-                              ? "Folder lokalny"
-                              : "Local folder"
-                            : "GitHub"}
-                      </strong>
-                      <small>
-                        {value === "default"
-                          ? pl
-                            ? "Osobna przestrzeń rozmowy"
-                            : "A separate chat workspace"
-                          : value === "local"
-                            ? pl
-                              ? "Projekt z Twojego dysku"
-                              : "A project on your device"
-                            : pl
-                              ? "Klon przez Twoje konto gh"
-                              : "Clone with your gh account"}
-                      </small>
-                    </button>
-                  ))}
-                </fieldset>
-                {source === "local" && (
-                  <>
-                    <label>
-                      {pl ? "Istniejący projekt" : "Existing project"}
-                      <select
-                        aria-label={
-                          pl ? "Istniejący projekt" : "Existing project"
-                        }
-                        value={existing}
-                        onChange={(e) => setExisting(e.target.value)}
-                      >
-                        <option value="">
-                          {pl
-                            ? "Wybierz inny folder…"
-                            : "Choose another folder…"}
-                        </option>
-                        {projects
-                          .filter((p) => p.root)
-                          .map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                      </select>
-                    </label>
-                    {!existing && (
-                      <div className="path-picker">
-                        <input
-                          aria-label={pl ? "Folder projektu" : "Project folder"}
-                          placeholder="C:\Projects\my-app"
-                          value={path}
-                          onChange={(e) => setPath(e.target.value)}
-                        />
-                        <button
-                          className="secondary"
-                          onClick={() =>
-                            void api.chooseRepository().then((p) => {
-                              if (p) setPath(p);
-                            })
-                          }
-                        >
-                          {pl ? "Wybierz folder" : "Browse"}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-                {source === "github" && (
-                  <label>
-                    {pl ? "Repozytorium GitHub" : "GitHub repository"}
-                    <input
-                      placeholder="owner/repository"
-                      list="github-repositories"
-                      value={repository}
-                      onChange={(e) => setRepository(e.target.value)}
-                    />
-                    <datalist id="github-repositories">
-                      {(repositories ?? []).map((r) => (
-                        <option key={r.name} value={r.name}>
-                          {r.private ? (pl ? "prywatne" : "private") : ""}
-                        </option>
-                      ))}
-                    </datalist>
-                    <small className="github-state">
-                      <Icon name="github" />
-                      {repositories === undefined
-                        ? pl
-                          ? "Sprawdzam logowanie GitHub CLI…"
-                          : "Checking GitHub CLI sign-in…"
-                        : repositories === null
-                          ? pl
-                            ? "GitHub CLI niepołączone. Uruchom gh auth login, aby wybierać z listy; adres owner/repo działa dla repozytoriów publicznych."
-                            : "GitHub CLI not connected. Run gh auth login to pick from a list; owner/repo works for public repositories."
-                          : pl
-                            ? `Połączono z GitHub · ${repositories.length} repozytoriów do wyboru. Pobierzemy lokalny klon.`
-                            : `Connected to GitHub · ${repositories.length} repositories to pick from. A local clone is created.`}
-                    </small>
-                  </label>
-                )}
                 <div
                   className={`chat-composer start-composer${drop.over ? " drop-over" : ""}`}
                   {...drop.props}
@@ -664,7 +536,7 @@ export function ChatWorkspace({
                     maxLength={12000}
                     placeholder={
                       pl
-                        ? "Opisz, co chcesz zrobić (opcjonalnie) — możesz też upuścić tu pliki…"
+                        ? "Opisz swój pomysł lub dodaj pliki…"
                         : "Describe what you want to do (optional) — or drop files here…"
                     }
                     disabled={busy}
@@ -703,30 +575,223 @@ export function ChatWorkspace({
                       disabled={busy}
                       onFiles={(f) => void attached.add(f)}
                     />
-                    <span className="composer-chip">
-                      <ProviderIcon provider={agent} />
-                      {agentName(agent)}
-                    </span>
-                    <span className="composer-chip">
-                      <Icon
-                        name={
-                          source === "github"
-                            ? "github"
-                            : source === "local"
-                              ? "folder"
-                              : "spark"
-                        }
-                      />
-                      {source === "github"
-                        ? repository || "GitHub"
-                        : source === "local"
-                          ? (projects.find((p) => p.id === existing)?.name ??
-                            (path.split(/[\\/]/).filter(Boolean).pop() ||
-                              (pl ? "Folder" : "Folder")))
-                          : pl
-                            ? "Domyślny workspace"
-                            : "Default workspace"}
-                    </span>
+                    <details className="composer-menu agent-menu">
+                      <summary>
+                        <ProviderIcon provider={agent} />
+                        <span>{agentName(agent)}</span>
+                        <Icon name="down" />
+                      </summary>
+                      <div className="composer-popover">
+                        <AgentStrip
+                          value={agent}
+                          providers={providers}
+                          pl={pl}
+                          onChange={(id) => {
+                            setAgent(id);
+                            setModel("");
+                            if (!READ_ONLY_AGENTS.includes(id)) setMode("chat");
+                            const menu =
+                              document.querySelector<HTMLDetailsElement>(
+                                ".agent-menu",
+                              );
+                            if (menu) {
+                              menu.open = false;
+                              menu.querySelector("summary")?.focus();
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={onConfigure}
+                        >
+                          <Icon name="connections" />
+                          {pl ? "Połączenia i modele" : "Connections & models"}
+                        </button>
+                      </div>
+                    </details>
+                    <ModelPicker
+                      agent={agent}
+                      value={model}
+                      provider={providers.find((p) => p.id === agent)}
+                      pl={pl}
+                      disabled={busy}
+                      onChange={setModel}
+                    />
+                    <details className="composer-menu workspace-menu">
+                      <summary>
+                        <Icon
+                          name={
+                            source === "github"
+                              ? "github"
+                              : source === "local"
+                                ? "folder"
+                                : "spark"
+                          }
+                        />
+                        {source === "github"
+                          ? repository || "GitHub"
+                          : source === "local"
+                            ? (projects.find((p) => p.id === existing)?.name ??
+                              (path.split(/[\\/]/).filter(Boolean).pop() ||
+                                (pl ? "Folder" : "Folder")))
+                            : pl
+                              ? "Domyślny workspace"
+                              : "Default workspace"}
+                        <Icon name="down" />
+                      </summary>
+                      <div className="composer-popover workspace-options">
+                        {" "}
+                        <fieldset className="workspace-source">
+                          <legend>
+                            {pl ? "Gdzie pracujemy?" : "Where are we working?"}
+                          </legend>
+                          {(["default", "local", "github"] as const).map(
+                            (value) => (
+                              <button
+                                key={value}
+                                type="button"
+                                aria-pressed={source === value}
+                                className={source === value ? "chosen" : ""}
+                                onClick={() => setSource(value)}
+                              >
+                                <Icon
+                                  name={
+                                    value === "default"
+                                      ? "spark"
+                                      : value === "local"
+                                        ? "folder"
+                                        : "github"
+                                  }
+                                />
+                                <strong>
+                                  {value === "default"
+                                    ? pl
+                                      ? "Domyślny"
+                                      : "Default"
+                                    : value === "local"
+                                      ? pl
+                                        ? "Folder lokalny"
+                                        : "Local folder"
+                                      : "GitHub"}
+                                </strong>
+                                <small>
+                                  {value === "default"
+                                    ? pl
+                                      ? "Osobna przestrzeń rozmowy"
+                                      : "A separate chat workspace"
+                                    : value === "local"
+                                      ? pl
+                                        ? "Projekt z Twojego dysku"
+                                        : "A project on your device"
+                                      : pl
+                                        ? "Klon przez Twoje konto gh"
+                                        : "Clone with your gh account"}
+                                </small>
+                              </button>
+                            ),
+                          )}
+                        </fieldset>
+                        {source === "local" && (
+                          <>
+                            <label>
+                              {pl ? "Istniejący projekt" : "Existing project"}
+                              <select
+                                aria-label={
+                                  pl ? "Istniejący projekt" : "Existing project"
+                                }
+                                value={existing}
+                                onChange={(e) => setExisting(e.target.value)}
+                              >
+                                <option value="">
+                                  {pl
+                                    ? "Wybierz inny folder…"
+                                    : "Choose another folder…"}
+                                </option>
+                                {projects
+                                  .filter((p) => p.root)
+                                  .map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            </label>
+                            {!existing && (
+                              <div className="path-picker">
+                                <input
+                                  aria-label={
+                                    pl ? "Folder projektu" : "Project folder"
+                                  }
+                                  placeholder="C:\Projects\my-app"
+                                  value={path}
+                                  onChange={(e) => setPath(e.target.value)}
+                                />
+                                <button
+                                  className="secondary"
+                                  onClick={() =>
+                                    void api.chooseRepository().then((p) => {
+                                      if (p) setPath(p);
+                                    })
+                                  }
+                                >
+                                  {pl ? "Wybierz folder" : "Browse"}
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {source === "github" && (
+                          <label>
+                            {pl ? "Repozytorium GitHub" : "GitHub repository"}
+                            <input
+                              placeholder="owner/repository"
+                              list="github-repositories"
+                              value={repository}
+                              onChange={(e) => setRepository(e.target.value)}
+                            />
+                            <datalist id="github-repositories">
+                              {(repositories ?? []).map((r) => (
+                                <option key={r.name} value={r.name}>
+                                  {r.private
+                                    ? pl
+                                      ? "prywatne"
+                                      : "private"
+                                    : ""}
+                                </option>
+                              ))}
+                            </datalist>
+                            <small className="github-state">
+                              <Icon name="github" />
+                              {repositories === undefined
+                                ? pl
+                                  ? "Sprawdzam logowanie GitHub CLI…"
+                                  : "Checking GitHub CLI sign-in…"
+                                : repositories === null
+                                  ? pl
+                                    ? "GitHub CLI niepołączone. Uruchom gh auth login, aby wybierać z listy; adres owner/repo działa dla repozytoriów publicznych."
+                                    : "GitHub CLI not connected. Run gh auth login to pick from a list; owner/repo works for public repositories."
+                                  : pl
+                                    ? `Połączono z GitHub · ${repositories.length} repozytoriów do wyboru. Pobierzemy lokalny klon.`
+                                    : `Connected to GitHub · ${repositories.length} repositories to pick from. A local clone is created.`}
+                            </small>
+                          </label>
+                        )}
+                      </div>
+                    </details>
+                    <button
+                      type="button"
+                      className="planning-toggle"
+                      role="switch"
+                      aria-checked={mode === "plan"}
+                      disabled={!READ_ONLY_AGENTS.includes(agent)}
+                      onClick={() => setMode(mode === "chat" ? "plan" : "chat")}
+                    >
+                      <span className="switch-track">
+                        <i />
+                      </span>
+                      {pl ? "Planowanie" : "Planning"}
+                    </button>
                     <button
                       className="primary composer-send"
                       disabled={
@@ -753,10 +818,102 @@ export function ChatWorkspace({
                     {explain(attached.problem)}
                   </p>
                 )}
-                <div className="panel-actions">
-                  <button className="secondary" onClick={onConfigure}>
-                    <Icon name="connections" />
-                    {pl ? "Połącz subskrypcję" : "Connect subscription"}
+                <div className="conversation-starters">
+                  {[
+                    {
+                      icon: "plan",
+                      title: pl ? "Zaplanuj projekt" : "Plan a project",
+                      detail: pl
+                        ? "Rozłóż pomysł na konkretne kroki."
+                        : "Turn your idea into concrete steps.",
+                      prompt: pl
+                        ? "Pomóż mi zaplanować projekt. Zacznijmy od celu i ograniczeń."
+                        : "Help me plan a project. Let's begin with the goal and constraints.",
+                    },
+                    {
+                      icon: "spark",
+                      title: pl ? "Uporządkuj pomysły" : "Organize ideas",
+                      detail: pl
+                        ? "Połącz notatki, pytania i kierunki."
+                        : "Connect notes, questions and directions.",
+                      prompt: pl
+                        ? "Chcę uporządkować pomysły. Pomóż mi określić priorytety."
+                        : "I'd like to organize my ideas. Help me prioritize.",
+                    },
+                    {
+                      icon: "code",
+                      title: pl ? "Przejrzyj kod" : "Review code",
+                      detail: pl
+                        ? "Znajdź problemy i kolejne usprawnienia."
+                        : "Find issues and useful improvements.",
+                      prompt: pl
+                        ? "Przejrzyj ten projekt i wskaż najważniejsze usprawnienia na podstawie kodu."
+                        : "Review this project and identify the most useful improvements based on its code.",
+                    },
+                  ].map((item) => (
+                    <button
+                      key={item.icon}
+                      type="button"
+                      onClick={() => {
+                        setMessage(item.prompt);
+                        document
+                          .querySelector<HTMLTextAreaElement>(
+                            ".start-composer textarea",
+                          )
+                          ?.focus();
+                      }}
+                    >
+                      <Icon name={item.icon} />
+                      <span>
+                        <strong>{item.title}</strong>
+                        <small>{item.detail}</small>
+                      </span>
+                      <Icon name="arrow" />
+                    </button>
+                  ))}
+                </div>
+                {!!projects.filter((p) => p.root).length && (
+                  <section className="return-projects">
+                    <h3>{pl ? "Wróć do pracy" : "Return to work"}</h3>
+                    {projects
+                      .filter((p) => p.root)
+                      .slice(0, 3)
+                      .map((p) => (
+                        <button
+                          type="button"
+                          key={p.id}
+                          onClick={() => {
+                            setSource("local");
+                            setExisting(p.id);
+                            setPath(p.root);
+                            document
+                              .querySelector<HTMLTextAreaElement>(
+                                ".start-composer textarea",
+                              )
+                              ?.focus();
+                          }}
+                        >
+                          <Icon name="folder" />
+                          <span>
+                            <strong>{p.name}</strong>
+                            <small>
+                              {pl ? "Projekt lokalny" : "Local project"}
+                            </small>
+                          </span>
+                          <Icon name="chevron" />
+                        </button>
+                      ))}
+                  </section>
+                )}
+                <div className="conversation-footnote">
+                  <Icon name="memory" />
+                  <span>
+                    {pl
+                      ? "Pamięć projektu pod ręką"
+                      : "Project memory within reach"}
+                  </span>
+                  <button type="button" onClick={onConfigure}>
+                    {pl ? "Zarządzaj połączeniami" : "Manage connections"}
                   </button>
                 </div>
               </div>
@@ -797,8 +954,9 @@ export function ChatWorkspace({
                         : pl
                           ? "domyślny workspace"
                           : "default workspace"}
-                    {providers.find((p) => p.id === chat.agent)?.model
-                      ? ` · ${providers.find((p) => p.id === chat.agent)!.model}`
+                    {chat.model ||
+                    providers.find((p) => p.id === chat.agent)?.model
+                      ? ` · ${chat.model || providers.find((p) => p.id === chat.agent)!.model}`
                       : ""}
                   </small>
                   <span className="chat-root" title={chat.root}>
@@ -1147,6 +1305,18 @@ export function ChatWorkspace({
                   </p>
                 )}
                 <div className="composer-toolbar">
+                  <span className="composer-chip">
+                    <ProviderIcon provider={chat.agent} />
+                    {agentName(chat.agent)}
+                  </span>
+                  <ModelPicker
+                    agent={chat.agent}
+                    value={model}
+                    provider={providers.find((p) => p.id === chat.agent)}
+                    pl={pl}
+                    disabled={busy || running}
+                    onChange={setModel}
+                  />
                   <AttachButton
                     pl={pl}
                     disabled={busy || running}
@@ -1369,7 +1539,7 @@ export function ChatWorkspace({
             value={reviewer}
             onChange={(e) => setReviewer(e.target.value as Agent)}
           >
-            {READ_ONLY_AGENTS.filter((a) => a !== chat?.agent).map((a) => (
+            {READ_ONLY_AGENTS.filter((a) => a !== "gemini" && a !== chat?.agent).map((a) => (
               <option key={a} value={a}>
                 {agentName(a)}
               </option>

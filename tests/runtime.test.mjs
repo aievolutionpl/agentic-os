@@ -86,6 +86,7 @@ async function setup(behavior = "write", clock = Date.now) {
 test("supervised protocol run seals a real worktree, redacts output and keeps the source unchanged", async () => {
   const f = await setup();
   try {
+    await f.store.extensions.install(f.project.id, "builtin:webapp-testing");
     await assert.rejects(
       f.supervisor.start({ projectId: f.project.id, taskId: f.task.id }),
       /CONSENT/,
@@ -99,6 +100,11 @@ test("supervised protocol run seals a real worktree, redacts output and keeps th
       () => f.store.runs.get(f.project.id, run.id)?.state === "awaiting_review",
     );
     const saved = f.store.runs.get(f.project.id, run.id);
+    const skillPath = ".agents/skills/webapp-testing/SKILL.md";
+    assert.ok(f.inputs[0].prompt.includes(skillPath));
+    assert.ok(!f.inputs[0].prompt.includes(join(f.repo, ".agents")));
+    assert.ok(existsSync(join(saved.worktree, skillPath)));
+    assert.ok(existsSync(join(saved.worktree, ".agents/skills/webapp-testing/scripts/with_server.py")));
     assert.notEqual(saved.head, f.base);
     assert.equal(saved.threadId, "fixture-thread");
     assert.equal(saved.turnId, "fixture-turn");
@@ -110,6 +116,7 @@ test("supervised protocol run seals a real worktree, redacts output and keeps th
       saved.artifactId,
     );
     assert.ok(artifact.diff.toString().includes("isolated result"));
+    assert.ok(!artifact.diff.toString().includes(".agents/skills"));
     assert.equal(await gitText(f.repo, "rev-parse", "HEAD"), f.base);
     assert.equal(existsSync(join(f.repo, "result.txt")), false);
     assert.ok(

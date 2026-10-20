@@ -1,8 +1,21 @@
 // Runs inside the actual Electron renderer. No theme-token assumptions.
 export function collectContrast() {
   const parse = (s) => {
+    const srgb = s.match(/^color\(srgb\s+([\d.e+-]+)\s+([\d.e+-]+)\s+([\d.e+-]+)(?:\s*\/\s*([\d.e+-]+))?\)$/i);
+    if (srgb) return [Number(srgb[1]) * 255, Number(srgb[2]) * 255, Number(srgb[3]) * 255, Number(srgb[4] ?? 1)];
     const m = s.match(/^rgba?\(([^)]+)\)$/);
-    if (!m) throw Error(`Unsupported color: ${s}`);
+    if (!m) {
+      // Chromium may resolve animated color-mix values to OKLab or display-p3.
+      // Rasterize the reported CSS color into sRGB instead of assuming its space.
+      if (typeof CSS !== "undefined" && CSS.supports("color", s)) {
+        const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
+        const context = canvas.getContext("2d", { willReadFrequently: true });
+        context.fillStyle = s; context.fillRect(0, 0, 1, 1);
+        const rgba = context.getImageData(0, 0, 1, 1).data;
+        return [rgba[0], rgba[1], rgba[2], rgba[3] / 255];
+      }
+      throw Error(`Unsupported color: ${s}`);
+    }
     const v = m[1].split(",").map(Number);
     return [...v.slice(0, 3), v[3] ?? 1];
   };
@@ -77,7 +90,7 @@ export function collectContrast() {
         text: label.slice(0, 160),
         size: parseFloat(style.fontSize),
         weight: parseInt(style.fontWeight) || 400,
-        color: parse(style.color),
+        color: parse(el.namespaceURI === "http://www.w3.org/2000/svg" && el.tagName === "text" ? style.fill : style.color),
         layers,
         disabled: !!el.closest(":disabled"),
         unsupported,

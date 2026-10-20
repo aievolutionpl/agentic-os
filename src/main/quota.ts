@@ -440,6 +440,7 @@ export async function scanAllQuotas(
       "CLAUDE_USE_OFFICIAL_USAGE",
     ),
     unavailable("gemini", "Gemini CLI", "GEMINI_USE_OFFICIAL_USAGE"),
+    unavailable("opencode", "OpenCode", "PROVIDER_USAGE_UNAVAILABLE"),
     unavailable("hermes", "Hermes", "PROVIDER_USAGE_UNAVAILABLE"),
     unavailable("local", "Local LLM", "LOCAL_MODEL_NO_SUBSCRIPTION_QUOTA"),
     router ?? unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),

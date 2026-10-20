@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  AGENTS,
+  AVAILABLE_AGENTS as AGENTS,
   READ_ONLY_AGENTS,
   type Agent,
   type Extension,
@@ -46,7 +46,9 @@ export function MasterPanel({
   const [providers, setProviders] = useState<ProviderSetting[]>([]),
     [skills, setSkills] = useState<Extension[]>([]);
   const [master, setMaster] = useState<Agent>(
-    READ_ONLY_AGENTS.includes(project.master) ? project.master : "codex",
+    project.master !== "gemini" && READ_ONLY_AGENTS.includes(project.master)
+      ? project.master
+      : "codex",
   );
   const [workers, setWorkers] = useState<Agent[]>([]),
     [goal, setGoal] = useState("");
@@ -71,7 +73,11 @@ export function MasterPanel({
         if (!alive) return;
         setProviders(settings);
         setSkills(extensions.filter((e) => e.kind === "skill"));
-        setWorkers(settings.filter((s) => s.configured).map((s) => s.id));
+        setWorkers(
+          settings
+            .filter((s) => s.configured && s.id !== "gemini")
+            .map((s) => s.id),
+        );
       })
       .catch(() => {
         if (alive) setError("LOAD_FAILED");
@@ -336,16 +342,18 @@ export function MasterPanel({
               label="Master Agent"
               value={master}
               onChange={(v) => setMaster(v as Agent)}
-              options={READ_ONLY_AGENTS.map((id) => ({
-                value: id,
-                label:
-                  agentName(id) +
-                  (providers.some((p) => p.id === id && p.configured)
-                    ? ""
-                    : pl
-                      ? " · do podłączenia"
-                      : " · connect first"),
-              }))}
+              options={READ_ONLY_AGENTS.filter((id) => id !== "gemini").map(
+                (id) => ({
+                  value: id,
+                  label:
+                    agentName(id) +
+                    (providers.some((p) => p.id === id && p.configured)
+                      ? ""
+                      : pl
+                        ? " · do podłączenia"
+                        : " · connect first"),
+                }),
+              )}
               disabled={busy || active}
             />
             <button type="button" className="secondary" onClick={onConnections}>
@@ -356,29 +364,31 @@ export function MasterPanel({
             <legend>
               {pl ? "Zespół dostępny dla Mastera" : "Available team"}
             </legend>
-            {providers.map((p) => (
-              <label className="dependency-choice" key={p.id}>
-                <input
-                  type="checkbox"
-                  disabled={!p.configured || busy || active}
-                  checked={workers.includes(p.id)}
-                  onChange={() => setWorkers(toggle(workers, p.id))}
-                />
-                <span>
-                  {agentName(p.id)}
-                  {!READ_ONLY_AGENTS.includes(p.id) && (
-                    <small>
-                      {pl ? "Tylko wykonawca" : "Implementation only"}
-                    </small>
-                  )}
-                </span>
-              </label>
-            ))}
+            {providers
+              .filter((p) => p.id !== "gemini")
+              .map((p) => (
+                <label className="dependency-choice" key={p.id}>
+                  <input
+                    type="checkbox"
+                    disabled={!p.configured || busy || active}
+                    checked={workers.includes(p.id)}
+                    onChange={() => setWorkers(toggle(workers, p.id))}
+                  />
+                  <span>
+                    {agentName(p.id)}
+                    {!READ_ONLY_AGENTS.includes(p.id) && (
+                      <small>
+                        {pl ? "Tylko wykonawca" : "Implementation only"}
+                      </small>
+                    )}
+                  </span>
+                </label>
+              ))}
           </fieldset>
           <p className="helper">
             {pl
-              ? "Wybierz co najmniej dwóch agentów, aby wykonawca i recenzent byli niezależni. Gemini wymaga trybu plan w ACP. Hermes i Antigravity są dostępni jako wykonawcy."
-              : "Select at least two agents for independent implementation and review. Gemini requires ACP plan mode. Hermes and Antigravity are workers only."}
+              ? "Wybierz co najmniej dwóch agentów, aby wykonawca i recenzent byli niezależni. Hermes i Antigravity są dostępni jako wykonawcy."
+              : "Select at least two agents for independent implementation and review. Hermes and Antigravity are workers only."}
           </p>
           <details className="mission-context">
             <summary>

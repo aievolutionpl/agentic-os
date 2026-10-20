@@ -64,6 +64,7 @@ try {
   await page
     .getByRole("button", { name: "Otwórz rozmowę", exact: true })
     .waitFor();
+  await page.locator(".agent-menu > summary").click();
   assert.equal(
     await page
       .getByRole("group", { name: "Agent czatu", exact: true })
@@ -71,6 +72,7 @@ try {
       .innerText(),
     "Codex",
   );
+  await page.locator(".agent-menu > summary").click();
   await page
     .getByRole("button", { name: "Otwórz rozmowę", exact: true })
     .click();
@@ -107,7 +109,7 @@ try {
       { exact: true },
     )
     .waitFor();
-  await page.getByRole("button", { name: "Edytuj wpis", exact: true }).click();
+  await page.locator(".memory-library article").filter({ hasText: "Standard QA:" }).getByRole("button", { name: "Edytuj wpis", exact: true }).click();
   dialog = page.getByRole("dialog");
   await dialog.getByRole("checkbox").check();
   await dialog.getByRole("button", { name: "Zapisz", exact: true }).click();
@@ -137,9 +139,12 @@ try {
   assert.match(await dialog.locator("pre").innerText(), /Root Cause/);
   await dialog.getByRole("button", { name: "Zamknij", exact: true }).click();
   await page.getByRole("textbox", { name: "Szukaj skilli" }).fill("");
-  assert.equal(await page.locator(".skill-library article").count(), 9);
-  report.checks.push("nine-skills-search-and-licensed-source-preview");
+  assert.equal(await page.locator(".skill-library article").count(), 8);
+  report.checks.push("eight-complete-skills-search-and-licensed-source-preview");
   await nav("Czaty");
+  await page.locator(".chat-history>button").first().waitFor({ state: "attached" });
+  if (!(await page.locator(".chat-history").isVisible()))
+    await page.getByRole("button", { name: "Historia", exact: true }).click();
   await page.locator(".chat-history>button").first().click();
   await page
     .getByRole("textbox", { name: "Wiadomość do agenta" })
@@ -147,7 +152,7 @@ try {
   await page.getByRole("button", { name: "Wyślij", exact: true }).click();
   chat = await waitChat();
   assert.equal(chat.messages.length, 4);
-  assert.equal(chat.contextIds.length, 1);
+  assert.ok(chat.contextIds.includes(memory[0].id));
   report.checks.push("multi-turn-history-and-pinned-shared-memory");
   await page
     .locator(".message-actions")
@@ -243,6 +248,9 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForFunction(() => !document.querySelector(".projects-toggle"));
   await nav("Czaty");
+  await page.locator(".chat-history>button").first().waitFor({ state: "attached" });
+  if (!(await page.locator(".chat-history").isVisible()))
+    await page.getByRole("button", { name: "Historia", exact: true }).click();
   await page.locator(".chat-history>button").first().click();
   for (const width of [1440, 900]) {
     await page.setViewportSize({ width, height: 900 });

@@ -1,5 +1,5 @@
 import {
-  AGENTS,
+  AVAILABLE_AGENTS as AGENTS,
   READ_ONLY_AGENTS,
   type Agent,
   type RoutingDecision,
@@ -105,7 +105,9 @@ export function route(
   // Stable order: score, then the fixed agent order, so ties never flip.
   ranked.sort(
     (a, b) =>
-      b.score - a.score || AGENTS.indexOf(a.agent) - AGENTS.indexOf(b.agent),
+      b.score - a.score ||
+      AGENTS.findIndex((id) => id === a.agent) -
+        AGENTS.findIndex((id) => id === b.agent),
   );
   if (request.mode === "manual") {
     const pick = request.preferred;

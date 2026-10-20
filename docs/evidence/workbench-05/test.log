@@ -1,0 +1,165 @@
+
+> agenting-os@0.5.0-rc.1 pretest
+> npm run build
+
+
+> agenting-os@0.5.0-rc.1 build
+> tsc -p tsconfig.main.json && vite build
+
+vite v7.3.7 building client environment for production...
+transforming...
+node_modules/lucide-react/dist/esm/context.mjs (2:0): Module level directives cause errors when bundled, "use client" in "node_modules/lucide-react/dist/esm/context.mjs" was ignored.
+node_modules/lucide-react/dist/esm/Icon.mjs (2:0): Module level directives cause errors when bundled, "use client" in "node_modules/lucide-react/dist/esm/Icon.mjs" was ignored.
+✓ 2221 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/renderer/index.html                               0.66 kB │ gzip:   0.38 kB
+dist/renderer/assets/Sora-Variable-Bqpd64dN.ttf      111.40 kB
+dist/renderer/assets/InterVariable-H_M6nIbt.ttf      862.94 kB
+dist/renderer/assets/shared-archive-Dj-m42FU.png   1,693.65 kB
+dist/renderer/assets/evolution-orbit-BOBch8nR.png  1,816.94 kB
+dist/renderer/assets/TerminalPanel-DDGTF8rc.css        3.62 kB │ gzip:   0.99 kB
+dist/renderer/assets/index-DLSeE_QN.css               95.72 kB │ gzip:  18.44 kB
+dist/renderer/assets/TerminalPanel-CqhvsZMP.js       338.19 kB │ gzip:  86.61 kB
+dist/renderer/assets/index-CZApOTRF.js               585.42 kB │ gzip: 182.99 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.14s
+
+> agenting-os@0.5.0-rc.1 test
+> node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs tests/chats.test.mjs tests/orchestration-journal.test.mjs tests/capabilities.test.mjs tests/attention.test.mjs tests/backup.test.mjs tests/policy.test.mjs tests/observations.test.mjs tests/terminals.test.mjs
+
+✔ provider probes use only the documented fixed commands and redact command output (4.290261ms)
+✔ missing or timed-out commands remain unknown without claiming installation or auth (0.373572ms)
+✔ integration smoke contract: passed, with seven unprobed entries (20.45192ms)
+✔ integration smoke contract: unavailable, with seven unprobed entries (9.730698ms)
+✔ integration smoke contract: timed_out, with seven unprobed entries (9.408918ms)
+✔ integration smoke contract: failed, with seven unprobed entries (7.479185ms)
+✔ inbox aggregates decisions across projects from the latest attempt only and never acts (16.050908ms)
+✔ an approval-blocked queue is not listed twice next to its run awaiting review (11.063698ms)
+✔ backup snapshots the live database and restore replaces it only at the next start, keeping the old one (36.681482ms)
+✔ invalid files are refused before staging and a corrupted pending restore is set aside (28.51827ms)
+✔ an older-schema backup restores and migrates forward (16.754177ms)
+✔ diagnostics carry counts and states but no content, paths or credentials (9.780728ms)
+✔ the live database is refused as a backup target or restore source and stays intact (16.220606ms)
+✔ staging a restore from a database that is still open keeps rows that live only in its WAL (16.399448ms)
+✔ a backup missing tables or columns its schema requires is refused (30.059881ms)
+✔ diagnostics keep only the executable name even for another platform's path (12.146926ms)
+✔ diagnostics never overwrite the live database and are written owner-only (8.849314ms)
+✔ backups are owner-only and a failed second staging keeps the earlier staged restore (24.908709ms)
+✔ a backup with orphaned rows is refused (12.200225ms)
+✔ applying a restore keeps the old database as one self-contained file, WAL included (29.437957ms)
+✔ temporary files are never left behind and use unpredictable names (21.397196ms)
+✔ long target names still get a valid temporary file in the same folder (13.312163ms)
+✔ capability matrix keeps detection, sign-in, handshake and real inference as separate facts (1.426246ms)
+✔ connection checks persist and real-run evidence ignores interrupted and cancelled runs (10.520997ms)
+✔ schema v13 migrates to v14 and keeps the orchestration journal (9.595681ms)
+✔ portable transcript preserves incomplete turns and code without exporting hidden context or paths (0.538358ms)
+✔ GitHub context validates exact repository names and rejects injection, credentials and non-GitHub URLs (0.454134ms)
+✔ attachments are bounded text data, fenced in the prompt and recorded by name only (63.087904ms)
+✔ GitHub repository list comes from the gh login and drops malformed names (1.234788ms)
+✔ CLI discovery follows new and legacy Gemini npm entries and rejects package traversal; Hermes cmd launches a bounded Python bootstrap (11.012754ms)
+✔ Gemini path migration and selected ACP models persist without changing another provider (8.944997ms)
+✔ ACP authenticates before creating a session and applies the saved model before a prompt (147.587022ms)
+✔ provider errors expose safe migration and TLS codes without retaining raw OAuth payloads (0.355911ms)
+✔ closing the application cancels a pending provider sign-in and waits for process exit (113.662422ms)
+✔ shared pinned memory is automatic for all contexts while private project pins remain isolated and edits are searchable (12.635857ms)
+✔ chat retains multi-turn history, freezes selected context per turn and supports explicit memory/task handoff (59.630118ms)
+✔ chat quota gate, concurrent send rejection and cancellation are durable without automatic replay (71.424569ms)
+✔ chat only gates OpenCode against OpenRouter when that backend is selected (71.84031ms)
+✔ chat runs the real Codex app-server protocol in read-only mode and ACP handshake uses no model prompt (134.874806ms)
+✔ quota monitor deduplicates concurrent callers, caches, invalidates and retries failed reads (1.215695ms)
+✔ skills retain pinned GitHub provenance and local markdown imports never execute supporting files (11.501158ms)
+✔ scan classifies real-world outputs honestly and never leaks credentials (1.790512ms)
+✔ unauthenticated and broken tools are reported as such, not as connected (0.795248ms)
+✔ local servers: models from loopback JSON, down server is degraded, absent is needs-install (0.96924ms)
+✔ every spawned command is a fixed, read-only version or status query (0.420838ms)
+✔ PATH resolution is strict, and the HTTP probe refuses non-loopback hosts (1.650469ms)
+✔ local run counters are exact and separate from provider quota (8.209432ms)
+✔ agents installed outside PATH are found in documented install folders, native binaries first (1.826544ms)
+✔ other agent CLIs appear only when installed, as detected with a planned adapter (0.432077ms)
+✔ WCAG reference ratios and sRGB transfer (0.670278ms)
+✔ source-over alpha and transparent ancestor backgrounds (0.64301ms)
+✔ group opacity applies to foreground AND background before parent compositing (0.163807ms)
+✔ large-text thresholds use points converted to CSS px; never round a fail up (0.643949ms)
+✔ DOM collector reads rendered styles, input values, placeholders and rejects complex paint (145.308768ms)
+✔ extension import is scoped, explicit and contributes versioned frozen context (19.906398ms)
+✔ MCP uses versioned handshake and pagination, rejects cross-project and unapproved calls (61.96619ms)
+✔ browser only accepts safe explicit web URLs and blocks local navigation from remote content (0.494185ms)
+✔ persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry and restart (415.055289ms)
+✔ lifecycle persists, fences two claimants and journals failures/retries atomically (13.455981ms)
+✔ expired lease cannot heartbeat or finish; explicit recovery and retry required (12.45991ms)
+✔ dependencies, cycles, invalid transitions and workspace separation fail closed (16.992468ms)
+✔ heartbeat extends ownership, retry is bounded and invalid requests leave no events (13.116462ms)
+✔ migration preserves original v1 data and events are atomic with task mutations (12.380222ms)
+✔ two simultaneous worker connections produce exactly one claim (122.002395ms)
+✔ cross-project dependency edges and worker writes are rejected (14.6289ms)
+✔ all connections close before restart; expired attempt is preserved and recovered once (11.853205ms)
+✔ Codex thread overrides disable inherited MCP/plugins without forwarding secrets or writing config (0.227151ms)
+✔ master validates a bounded DAG, independent review, providers and structured evaluation (0.851512ms)
+✔ local model configuration rejects remote endpoints and confines OpenCode to the chosen model (1.006614ms)
+✔ ACP grants only located in-worktree edits, denies traversal, Git metadata and hardlinks (0.762484ms)
+✔ ACP actual permission exchange permits one scoped edit but never a read-only or outside edit (147.97236ms)
+✔ master freezes explicitly selected shared memory, preserves private scope and survives restart (16.575118ms)
+✔ exhausted verified quota blocks inference; unknown quota is explicit and cancellation is durable (25.788703ms)
+✔ invalid model plan creates no tasks and atomic task binding rolls back on launch failure (12.29953ms)
+✔ Master protocol → research → implementation → review → human apply → evaluation → shared memory (1682.281063ms)
+✔ Antigravity's documented step_update stream becomes live activity and full token usage (43.491084ms)
+✔ Claude's rate_limit_event is recorded as a limit window, not guessed (41.582988ms)
+✔ observations build an honest quota card: expired windows drop, unknown stays unknown (1.181571ms)
+✔ a crash mid-batch is journaled as interrupted, never replayed, and continues only on explicit consent (94.04183ms)
+✔ graceful shutdown persists a running batch as interrupted and keeps finished batches intact (13.693171ms)
+✔ resume refuses when no queued work remains (13.572151ms)
+✔ a failed v13 migration rolls back and leaves v12 data untouched (12.167709ms)
+✔ schema v12 migrates to the current schema without losing data and rejects newer schemas (11.934897ms)
+✔ policy decisions: allow-list, paid API modes, budget and unknown spend (0.415301ms)
+✔ paid approvals expire and are cleared on rule changes (0.374599ms)
+✔ workspace policy persists, validates input and migrates v14 to v15 without losing data (10.226703ms)
+✔ the gate runs before any agent process starts in chat (36.01107ms)
+✔ supervised protocol run seals a real worktree, redacts output and keeps the source unchanged (809.6674ms)
+✔ orchestrator dispatches a real worktree run and reviewer, shares frozen memory, then waits for human approval (697.924031ms)
+✔ FTS retrieval and frozen context keep source provenance, budgets and project scope (79.129868ms)
+✔ only independently reviewed, exact approved artifacts apply by fast-forward; replay is idempotent (1599.204691ms)
+✔ dirty or changed source and expired approvals cannot apply or overwrite user work (1363.812373ms)
+✔ protected files and a reviewer that modifies the captured worktree fail closed (1953.911609ms)
+✔ ACP v1 uses read-only mode and rejects permission grants with an actual stdio process (43.912239ms)
+✔ interrupted runs survive a real database reopen and resume only on an explicit action (673.09452ms)
+✔ application never overwrites an ignored local file even when the proposal changes gitignore (1840.686493ms)
+✔ cancellation terminates the provider and leaves durable cancelled state and source files intact (309.597989ms)
+✔ provider crash fails closed; invalid project, dirty repository and unconsented executable are rejected (447.487039ms)
+✔ a policy refusal stops a task run before any run, worktree or process exists (633.559216ms)
+✔ only exact local main frame gets app IPC (0.255685ms)
+✔ message links open only ordinary HTTP(S) URLs, never executable or credential-bearing schemes (0.206596ms)
+✔ empty launch, persisted projects, tasks, memory and preferences survive reopen (12.151329ms)
+✔ memory and tasks are isolated and deletion is project scoped (13.916786ms)
+✔ invalid and oversized input, unknown projects, invalid roles fail closed (9.395825ms)
+✔ unconfigured integrations never report quota values or observed provenance (8.346135ms)
+✔ exact diff approval records persist and fail closed on scope, bytes, expiry and input (19.202234ms)
+✔ approval v2 migration preserves data; SQLite rejects mutation and malformed hashes (19.441966ms)
+✔ diff artifact capture persists exact bytes from isolated committed worktree (716.95139ms)
+✔ v4 migration preserves unbound history and rolls back failed schema changes (28.873651ms)
+✔ native terminal startup failure leaves no phantom session and permits a later retry (13.275479ms)
+✔ terminal requires explicit consent and a known directory; rejects renderer-selected executables and invalid input (7.423845ms)
+✔ real PTY runs in the chosen directory, accepts resize and Ctrl+C, and preserves independent sessions (465.111679ms)
+✔ terminal output and session count are bounded, shutdown removes all shells (232.789106ms)
+✔ built React UI with real SQLite bridge: drafts, scoped memory, deletion and persisted settings (601.225418ms)
+✔ quota readings preserve unknown data, multi-bucket windows, reset duration and real daily usage (1.697741ms)
+✔ OpenRouter key resets use remaining budget instead of lifetime spend; unlimited is unknown, zero is exhausted (0.417495ms)
+✔ manual budgets reject invalid data, preserve overrun and migrate plaintext key fields out of legacy records (1.946062ms)
+✔ OpenRouter vault keeps credentials out of public settings and plaintext disk; unencrypted storage is refused (3.601134ms)
+✔ workspace memory is explicit, searchable and frozen for all providers; project memory stays isolated after restart (15.336791ms)
+✔ native CLI uses stdin, constrained tools and process cancellation; malformed or denied results fail closed (726.73173ms)
+✔ detected CLI is not a configured connection and isolated Codex does not inherit global auth claims (0.61103ms)
+✔ recorded connection checks give every screen the same agent state (0.947965ms)
+✔ orchestrator is finite, shares context, reviews changes and pauses without applying or starting the next task (52.881225ms)
+ℹ tests 123
+ℹ suites 0
+ℹ pass 123
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18198.087582

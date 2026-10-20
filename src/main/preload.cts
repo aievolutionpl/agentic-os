@@ -1,6 +1,15 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  terminalList: () => ipcRenderer.invoke("app:terminalList"),
+  terminalOpen: (input) => ipcRenderer.invoke("app:terminalOpen", input),
+  terminalRead: (input) => ipcRenderer.invoke("app:terminalRead", input),
+  terminalWrite: (input) => ipcRenderer.invoke("app:terminalWrite", input),
+  terminalResize: (input) => ipcRenderer.invoke("app:terminalResize", input),
+  terminalClose: (input) => ipcRenderer.invoke("app:terminalClose", input),
+  chatRename: (input) => ipcRenderer.invoke("app:chatRename", input),
+  openExternalLink: (input) =>
+    ipcRenderer.invoke("app:openExternalLink", input),
   chatList: () => ipcRenderer.invoke("app:chatList"),
   chatCreate: (input) => ipcRenderer.invoke("app:chatCreate", input),
   chatSend: (input) => ipcRenderer.invoke("app:chatSend", input),

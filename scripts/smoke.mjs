@@ -8,7 +8,9 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 const profile = mkdtempSync(join(tmpdir(), "agenting-smoke-"));
-const evidence = resolve(process.env.AGENTING_QA_OUTPUT || "docs/evidence/release-04/smoke");
+const evidence = resolve(
+  process.env.AGENTING_QA_OUTPUT || "docs/evidence/release-04/smoke",
+);
 mkdirSync(evidence, { recursive: true });
 rmSync(join(evidence, "smoke-failure.png"), { force: true });
 writeFileSync(
@@ -66,7 +68,10 @@ async function create(name) {
     .getByRole("button", { name: "Utwórz projekt", exact: true })
     .click();
   await page.getByRole("heading", { name, exact: true }).waitFor();
-  await page.locator(".tabs").getByRole("button", { name: /^Zadania/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /^Zadania/ })
+    .click();
 }
 async function choose(label, option, scope = page) {
   await scope.getByRole("button", { name: label, exact: true }).click();
@@ -95,12 +100,59 @@ try {
     (await page.evaluate(() => Object.keys(window.agenting))).sort(),
     [
       "snapshot",
-      "chatList", "chatCreate", "chatSend", "chatAction", "chatRemember", "chatTask", "githubRepositories", "policyGet", "policySet", "policyApprove", "memoryList", "memoryUpdate", "skillCatalog", "skillImportFile", "providerCheck", "providerSignIn", "providerConnectDetected",
+      "terminalList",
+      "terminalOpen",
+      "terminalRead",
+      "terminalWrite",
+      "terminalResize",
+      "terminalClose",
+      "chatRename",
+      "openExternalLink",
+      "chatList",
+      "chatCreate",
+      "chatSend",
+      "chatAction",
+      "chatRemember",
+      "chatTask",
+      "githubRepositories",
+      "policyGet",
+      "policySet",
+      "policyApprove",
+      "memoryList",
+      "memoryUpdate",
+      "skillCatalog",
+      "skillImportFile",
+      "providerCheck",
+      "providerSignIn",
+      "providerConnectDetected",
       "connectorScan",
-      "orchestrationStart", "orchestrationState", "orchestrationStop", "orchestrationEvents", "orchestrationResume", "attention", "backupCreate", "backupRestore", "diagnosticsExport", "restoreStatus", "restartApp",
-      "missionPlan", "missionList", "missionAction", "missionRemember", "localModelSettings", "localModelSave", "localModelRemove",
-      "providerDetect", "openRouterSettings", "openRouterSave", "openRouterRemove", "openRouterModels",
-      "quotaScan", "quotaSaveCustom", "quotaDeleteCustom", "quotaRefresh",
+      "orchestrationStart",
+      "orchestrationState",
+      "orchestrationStop",
+      "orchestrationEvents",
+      "orchestrationResume",
+      "attention",
+      "backupCreate",
+      "backupRestore",
+      "diagnosticsExport",
+      "restoreStatus",
+      "restartApp",
+      "missionPlan",
+      "missionList",
+      "missionAction",
+      "missionRemember",
+      "localModelSettings",
+      "localModelSave",
+      "localModelRemove",
+      "providerDetect",
+      "openRouterSettings",
+      "openRouterSave",
+      "openRouterRemove",
+      "openRouterModels",
+      "quotaScan",
+      "quotaSaveCustom",
+      "quotaDeleteCustom",
+      "quotaRefresh",
       "projectData",
       "createProject",
       "createTask",
@@ -122,7 +174,13 @@ try {
       "runDecision",
       "memorySearch",
       "contextPreview",
-      "extensionList","extensionImport","extensionRemove","mcpConnect","mcpCall","mcpDisconnect","browserAction",
+      "extensionList",
+      "extensionImport",
+      "extensionRemove",
+      "mcpConnect",
+      "mcpCall",
+      "mcpDisconnect",
+      "browserAction",
     ].sort(),
   );
   const settings = await desktop.evaluate(({ BrowserWindow }) => {
@@ -169,8 +227,14 @@ try {
   await page
     .getByLabel("Opisz zadanie", { exact: true })
     .fill("Unsaved A input");
-  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
-  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /Wspólna pamięć/ })
+    .click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /^(Zadania|Tasks)/ })
+    .click();
   assert.equal(
     await page.locator("#task-title").inputValue(),
     "Unsaved A input",
@@ -186,13 +250,22 @@ try {
   await choose("Filtruj według statusu", "Anulowane");
   assert.equal(await page.locator(".task-list h3").count(), 0);
   await page.getByRole("button", { name: "Wyczyść filtry" }).click();
-  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /Wspólna pamięć/ })
+    .click();
   await memory("<script>window.pwned=true</script> Client A secret-free fact");
   assert.equal(await page.evaluate(() => window.pwned), undefined);
   await create("Client B");
-  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /^(Zadania|Tasks)/ })
+    .click();
   assert.equal(await page.locator("#task-title").inputValue(), "");
-  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /Wspólna pamięć/ })
+    .click();
   assert.equal(
     await page
       .getByText(
@@ -223,13 +296,19 @@ try {
     })
     .waitFor();
   await page.getByRole("button", { name: /Client A/, exact: false }).click();
-  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /^(Zadania|Tasks)/ })
+    .click();
   assert.equal(
     await page.locator("#task-title").inputValue(),
     "Unsaved A input",
   );
   await page.locator("#task-title").fill("");
-  await page.locator(".tabs").getByRole("button", { name: /Wspólna pamięć/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /Wspólna pamięć/ })
+    .click();
   await page
     .getByText("<script>window.pwned=true</script> Client A secret-free fact", {
       exact: true,
@@ -273,7 +352,10 @@ try {
     () => document.documentElement.dataset.theme === "light",
   );
   await page.setViewportSize({ width: 1440, height: 940 });
-  await page.locator(".tabs").getByRole("button", { name: /^(Zadania|Tasks)/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /^(Zadania|Tasks)/ })
+    .click();
   await page.screenshot({
     path: join(evidence, "desktop-light-1440.png"),
     fullPage: true,
@@ -288,7 +370,10 @@ try {
   );
   // The app now opens on the Control Center; persisted projects stay in the sidebar.
   await page.locator(".project-link", { hasText: "Client A" }).click();
-  await page.locator(".tabs").getByRole("button", { name: /^Tasks/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /^Tasks/ })
+    .click();
   await page.getByRole("heading", { name: "Client A", exact: true }).waitFor();
   await page
     .getByRole("heading", { name: "Review project boundaries", exact: true })
@@ -459,7 +544,10 @@ try {
     .getByRole("button", { name: "Create project", exact: true })
     .click();
   await page.locator("main[aria-busy=false]").waitFor();
-  await page.locator(".tabs").getByRole("button", { name: /^Tasks/ }).click();
+  await page
+    .locator(".tabs")
+    .getByRole("button", { name: /^Tasks/ })
+    .click();
   await page.locator("#task-title").fill("Long_task_".repeat(300));
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await page.locator(".task-list h3").waitFor();

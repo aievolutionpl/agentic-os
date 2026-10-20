@@ -1,0 +1,5 @@
+
+> agenting-os@0.5.0-rc.1 release:audit
+> node scripts/release-audit.mjs
+
+Release audit passed: 1318 release input paths; documentation links and dependency inventory checked.

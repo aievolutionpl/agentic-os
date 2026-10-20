@@ -1,6 +1,6 @@
 {
   "name": "agenting-os",
-  "version": "0.4.0",
+  "version": "0.5.0-rc.1",
   "private": true,
   "type": "module",
   "main": "dist/main/index.js",
@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.main.json && vite build",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit",
-    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs tests/chats.test.mjs tests/orchestration-journal.test.mjs tests/capabilities.test.mjs tests/attention.test.mjs tests/backup.test.mjs tests/policy.test.mjs tests/observations.test.mjs",
+    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs tests/chats.test.mjs tests/orchestration-journal.test.mjs tests/capabilities.test.mjs tests/attention.test.mjs tests/backup.test.mjs tests/policy.test.mjs tests/observations.test.mjs tests/terminals.test.mjs",
     "start": "npm run build && npm run runtime:install && electron .",
     "runtime:install": "node node_modules/electron/install.js",
     "smoke": "node scripts/smoke.mjs",
@@ -25,12 +25,19 @@
     "smoke:package": "node scripts/package-smoke.mjs",
     "qa:tools": "node scripts/tools-qa.mjs",
     "qa:workspace": "node scripts/workspace-qa.mjs",
-    "qa:harness": "node scripts/harness-qa.mjs"
+    "qa:harness": "node scripts/harness-qa.mjs",
+    "qa:workbench": "node scripts/workbench-qa.mjs",
+    "release:audit": "node scripts/release-audit.mjs"
   },
   "dependencies": {
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
     "lucide-react": "1.59.0",
+    "node-pty": "1.1.0",
     "react": "https://registry.npmjs.org/react/-/react-19.2.7.tgz",
-    "react-dom": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.7.tgz"
+    "react-dom": "https://registry.npmjs.org/react-dom/-/react-dom-19.2.7.tgz",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1"
   },
   "devDependencies": {
     "@types/node": "https://registry.npmjs.org/@types/node/-/node-24.13.3.tgz",
@@ -38,6 +45,7 @@
     "@types/react-dom": "https://registry.npmjs.org/@types/react-dom/-/react-dom-19.2.3.tgz",
     "electron": "https://registry.npmjs.org/electron/-/electron-43.8.0.tgz",
     "electron-builder": "26.17.0",
+    "esbuild": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
     "jsdom": "https://registry.npmjs.org/jsdom/-/jsdom-20.0.3.tgz",
     "playwright": "https://registry.npmjs.org/playwright/-/playwright-1.64.0.tgz",
     "typescript": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
@@ -57,7 +65,6 @@
     "esbuild": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
     "source-map-js": "https://registry.npmjs.org/source-map-js/-/source-map-js-1.2.2.tgz",
     "debug": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
-    "env-paths": "https://registry.npmjs.org/env-paths/-/env-paths-3.0.0.tgz",
     "semver": "https://registry.npmjs.org/semver/-/semver-7.8.5.tgz",
     "@napi-rs/lzma-linux-x64-gnu": "https://registry.npmjs.org/@napi-rs/lzma-linux-x64-gnu/-/lzma-linux-x64-gnu-1.5.1.tgz",
     "sumchecker": "https://registry.npmjs.org/sumchecker/-/sumchecker-3.0.1.tgz",
@@ -148,11 +155,12 @@
     "jsdom": "$jsdom",
     "ws": "https://registry.npmjs.org/ws/-/ws-8.22.0.tgz",
     "form-data": "https://registry.npmjs.org/form-data/-/form-data-4.0.6.tgz",
-    "@tootallnate/once": "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.1.tgz"
+    "@tootallnate/once": "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.1.tgz",
+    "env-paths@^3.0.0": "https://registry.npmjs.org/env-paths/-/env-paths-3.0.0.tgz"
   },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aievolutionpl/agenting-os.git"
+    "url": "https://github.com/aievolutionpl/agentic-os.git"
   }
 }

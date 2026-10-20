@@ -1,0 +1,961 @@
+{
+  "status": "passed",
+  "at": "2026-10-20T15:12:49.262Z",
+  "platform": "linux",
+  "scope": "Rendered text and placeholders against WCAG 1.4.3 ratios; disabled controls exempt. Solid backgrounds, alpha and group opacity. Complex paint fails unresolved. Not a complete accessibility audit: non-text contrast, assistive technology and every interaction state remain outside this check.",
+  "measurements": 4902,
+  "failures": 0,
+  "errors": [],
+  "screens": [
+    {
+      "name": "dark-320-control-center",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 236
+    },
+    {
+      "name": "dark-320-tasks",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 33
+    },
+    {
+      "name": "dark-320-listbox",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 40
+    },
+    {
+      "name": "dark-320-task-panel",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "dark-320-confirmation",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "dark-320-memory",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 23
+    },
+    {
+      "name": "dark-320-integrations",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 167
+    },
+    {
+      "name": "dark-320-extensions",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 64
+    },
+    {
+      "name": "dark-320-browser",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 22
+    },
+    {
+      "name": "dark-320-navigation",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 15
+    },
+    {
+      "name": "dark-320-dialog",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "dark-390-tasks",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 33
+    },
+    {
+      "name": "dark-390-listbox",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 40
+    },
+    {
+      "name": "dark-390-task-panel",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "dark-390-confirmation",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "dark-390-memory",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 23
+    },
+    {
+      "name": "dark-390-integrations",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 167
+    },
+    {
+      "name": "dark-390-extensions",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 64
+    },
+    {
+      "name": "dark-390-browser",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 22
+    },
+    {
+      "name": "dark-390-navigation",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 15
+    },
+    {
+      "name": "dark-390-dialog",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "dark-768-tasks",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 54
+    },
+    {
+      "name": "dark-768-listbox",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 61
+    },
+    {
+      "name": "dark-768-task-panel",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "dark-768-confirmation",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "dark-768-memory",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 42
+    },
+    {
+      "name": "dark-768-integrations",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 186
+    },
+    {
+      "name": "dark-768-extensions",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 82
+    },
+    {
+      "name": "dark-768-browser",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 40
+    },
+    {
+      "name": "dark-768-dialog",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "dark-1024-tasks",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 54
+    },
+    {
+      "name": "dark-1024-listbox",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 61
+    },
+    {
+      "name": "dark-1024-task-panel",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "dark-1024-confirmation",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "dark-1024-memory",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 42
+    },
+    {
+      "name": "dark-1024-integrations",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 186
+    },
+    {
+      "name": "dark-1024-extensions",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 83
+    },
+    {
+      "name": "dark-1024-browser",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 41
+    },
+    {
+      "name": "dark-1024-dialog",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "dark-1440-tasks",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 55
+    },
+    {
+      "name": "dark-1440-listbox",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 62
+    },
+    {
+      "name": "dark-1440-task-panel",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "dark-1440-confirmation",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "dark-1440-memory",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 42
+    },
+    {
+      "name": "dark-1440-integrations",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 186
+    },
+    {
+      "name": "dark-1440-extensions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 83
+    },
+    {
+      "name": "dark-1440-browser",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 41
+    },
+    {
+      "name": "dark-1440-dialog",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "light-320-tasks",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 33
+    },
+    {
+      "name": "light-320-listbox",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 40
+    },
+    {
+      "name": "light-320-task-panel",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "light-320-confirmation",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "light-320-memory",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 23
+    },
+    {
+      "name": "light-320-integrations",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 167
+    },
+    {
+      "name": "light-320-extensions",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 64
+    },
+    {
+      "name": "light-320-browser",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 22
+    },
+    {
+      "name": "light-320-navigation",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 15
+    },
+    {
+      "name": "light-320-dialog",
+      "viewport": {
+        "width": 320,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "light-390-tasks",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 33
+    },
+    {
+      "name": "light-390-listbox",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 40
+    },
+    {
+      "name": "light-390-task-panel",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "light-390-confirmation",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "light-390-memory",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 23
+    },
+    {
+      "name": "light-390-integrations",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 167
+    },
+    {
+      "name": "light-390-extensions",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 64
+    },
+    {
+      "name": "light-390-browser",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 22
+    },
+    {
+      "name": "light-390-navigation",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 15
+    },
+    {
+      "name": "light-390-dialog",
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "light-768-tasks",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 54
+    },
+    {
+      "name": "light-768-listbox",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 61
+    },
+    {
+      "name": "light-768-task-panel",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "light-768-confirmation",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "light-768-memory",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 41
+    },
+    {
+      "name": "light-768-integrations",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 185
+    },
+    {
+      "name": "light-768-extensions",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 82
+    },
+    {
+      "name": "light-768-browser",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 40
+    },
+    {
+      "name": "light-768-dialog",
+      "viewport": {
+        "width": 768,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "light-1024-tasks",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 54
+    },
+    {
+      "name": "light-1024-listbox",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 61
+    },
+    {
+      "name": "light-1024-task-panel",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "light-1024-confirmation",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "light-1024-memory",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 42
+    },
+    {
+      "name": "light-1024-integrations",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 186
+    },
+    {
+      "name": "light-1024-extensions",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 83
+    },
+    {
+      "name": "light-1024-browser",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 41
+    },
+    {
+      "name": "light-1024-dialog",
+      "viewport": {
+        "width": 1024,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    },
+    {
+      "name": "light-1440-tasks",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 55
+    },
+    {
+      "name": "light-1440-listbox",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 62
+    },
+    {
+      "name": "light-1440-task-panel",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 26
+    },
+    {
+      "name": "light-1440-confirmation",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 5
+    },
+    {
+      "name": "light-1440-memory",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 42
+    },
+    {
+      "name": "light-1440-integrations",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 186
+    },
+    {
+      "name": "light-1440-extensions",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 83
+    },
+    {
+      "name": "light-1440-browser",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 41
+    },
+    {
+      "name": "light-1440-dialog",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "overflow": false,
+      "failures": [],
+      "measurements": 10
+    }
+  ]
+}

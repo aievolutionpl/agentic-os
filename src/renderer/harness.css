@@ -1902,3 +1902,91 @@ summary:focus-visible {
   min-height: 34px;
   padding-block: 6px;
 }
+
+/* Task dependency graph (Team view). */
+.task-graph {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.task-graph header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+}
+.task-graph header span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.task-graph-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.task-graph-canvas {
+  position: relative;
+}
+.task-graph-canvas svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.task-graph-edge {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+.task-graph-edge.satisfied {
+  stroke: var(--success);
+  stroke-dasharray: none;
+}
+.task-graph-canvas ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.task-node {
+  position: absolute;
+  box-sizing: border-box;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 12px;
+}
+.task-node strong {
+  line-height: 1.4;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.task-node span,
+.task-node small {
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+.task-node.status-running {
+  border-left-color: var(--accent);
+}
+.task-node.status-completed {
+  border-left-color: var(--success);
+}
+.task-node.status-failed {
+  border-left-color: var(--danger);
+}
+.task-node.status-queued {
+  border-left-color: var(--warning);
+}
+.task-node.in-batch {
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}

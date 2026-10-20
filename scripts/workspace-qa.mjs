@@ -28,11 +28,24 @@ const b = store.createProject({
   root: "",
   master: "claude",
 });
-store.createTask({
+const first = store.createTask({
   projectId: a.id,
   title: "Sprawdź dostępność nowego interfejsu",
   implementer: "codex",
   reviewer: "claude",
+});
+// A dependent task, so the Team view also shows its task graph.
+const second = store.createTask({
+  projectId: a.id,
+  title: "Opisz wyniki przeglądu",
+  implementer: "claude",
+  reviewer: "codex",
+});
+store.taskAction({
+  projectId: a.id,
+  id: second.id,
+  action: "dependencies",
+  dependencyIds: [first.id],
 });
 store.createMemory({
   projectId: a.id,

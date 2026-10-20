@@ -52,6 +52,22 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
       projectData: async (id) => s.projectData(id),
       taskAction: async (x) => s.taskAction(x),
       setPreferences: async (x) => s.setPreferences(x),
+      // Team queue read-only: the dependency graph renders, nothing starts.
+      orchestrationState: async ({ projectId }) => ({
+        id: null,
+        projectId,
+        status: "idle",
+        taskIds: [],
+        completedTaskIds: [],
+        finished: 0,
+        runId: null,
+        reason: null,
+        createdAt: null,
+        updatedAt: null,
+      }),
+      orchestrationStart: async () => {
+        throw Error("NOT_IN_THIS_TEST");
+      },
     };
     dom.window.eval(bundle);
   }
@@ -91,6 +107,20 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     dom.window.document
       .querySelector('.task-panel button[aria-label="Zamknij"]')
       .click();
+    // The dependency is drawn: Parent in the first column, Child after it.
+    await wait(
+      () => dom.window.document.querySelectorAll(".task-node").length === 2,
+    );
+    const graph = dom.window.document.querySelector(".task-graph");
+    assert.ok(graph.textContent.includes("Child czeka na Parent"));
+    assert.ok(
+      Number.parseFloat(
+        graph.querySelector(`[data-task-node="${child.id}"]`).style.left,
+      ) >
+        Number.parseFloat(
+          graph.querySelector(`[data-task-node="${parent.id}"]`).style.left,
+        ),
+    );
     await wait(
       () => !row("Child").querySelector(".task-quick-action").disabled,
     );

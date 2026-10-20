@@ -1,0 +1,158 @@
+import React from "react";
+import type { OrchestrationState, Task } from "../shared";
+import { agentName } from "./ui";
+
+const COL = 232,
+  ROW = 92,
+  NODE_W = 200,
+  NODE_H = 68;
+
+const STATUS: Record<Task["status"], [string, string]> = {
+  draft: ["Szkic", "Draft"],
+  queued: ["W kolejce", "Queued"],
+  running: ["Pracuje", "Running"],
+  completed: ["Gotowe", "Done"],
+  failed: ["Błąd", "Failed"],
+  cancelled: ["Anulowane", "Cancelled"],
+};
+
+/** Depth of each task in its dependency graph; a cycle never loops forever. */
+export function layers(tasks: Task[]) {
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const depth = new Map<string, number>();
+  const visit = (id: string, path: Set<string>): number => {
+    if (depth.has(id)) return depth.get(id)!;
+    if (path.has(id)) return 0;
+    path.add(id);
+    const deps = (byId.get(id)?.dependencies ?? []).filter((d) => byId.has(d));
+    const d = deps.length
+      ? 1 + Math.max(...deps.map((dep) => visit(dep, path)))
+      : 0;
+    path.delete(id);
+    depth.set(id, d);
+    return d;
+  };
+  for (const t of tasks) visit(t.id, new Set());
+  const columns: Task[][] = [];
+  for (const t of tasks) (columns[depth.get(t.id)!] ??= []).push(t);
+  return columns.map((c) => c ?? []);
+}
+
+/**
+ * The project's tasks as a dependency graph: what runs first, what waits for
+ * what, and where the current team batch is. Read-only; actions stay on the
+ * task cards.
+ */
+export function TaskGraph({
+  tasks,
+  batch,
+  language,
+}: {
+  tasks: Task[];
+  batch: OrchestrationState | null;
+  language: "pl" | "en";
+}) {
+  const pl = language === "pl";
+  const shown = tasks.filter((t) => t.status !== "cancelled");
+  if (!shown.some((t) => t.dependencies.length)) return null;
+  const columns = layers(shown);
+  const at = new Map<string, { x: number; y: number }>();
+  columns.forEach((col, c) =>
+    col.forEach((t, r) => at.set(t.id, { x: c * COL, y: r * ROW })),
+  );
+  const width = (columns.length - 1) * COL + NODE_W,
+    height = Math.max(...columns.map((c) => c.length)) * ROW - (ROW - NODE_H);
+  const inBatch = new Set(
+    batch && batch.status !== "idle" ? batch.taskIds : [],
+  );
+  const done = new Set(batch?.completedTaskIds ?? []);
+  return (
+    <section
+      className="task-graph"
+      aria-label={pl ? "Graf zależności zadań" : "Task dependency graph"}
+    >
+      <header>
+        <strong>{pl ? "Graf zadań" : "Task graph"}</strong>
+        <span>
+          {pl
+            ? "Kolumny od lewej: co może ruszyć od razu, a co czeka na wcześniejsze zadania."
+            : "Columns from the left: what can start now and what waits for earlier tasks."}
+        </span>
+      </header>
+      <div className="task-graph-scroll">
+        <div className="task-graph-canvas" style={{ width, height }}>
+          <svg width={width} height={height} aria-hidden="true">
+            {shown.flatMap((t) =>
+              t.dependencies
+                .filter((d) => at.has(d))
+                .map((d) => {
+                  const from = at.get(d)!,
+                    to = at.get(t.id)!;
+                  const x1 = from.x + NODE_W,
+                    y1 = from.y + NODE_H / 2,
+                    x2 = to.x,
+                    y2 = to.y + NODE_H / 2;
+                  const mid = (x1 + x2) / 2;
+                  return (
+                    <path
+                      key={`${d}-${t.id}`}
+                      className={`task-graph-edge ${
+                        shown.find((x) => x.id === d)?.status === "completed"
+                          ? "satisfied"
+                          : ""
+                      }`}
+                      d={`M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`}
+                    />
+                  );
+                }),
+            )}
+          </svg>
+          <ol>
+            {columns.flat().map((t) => {
+              const p = at.get(t.id)!;
+              return (
+                <li
+                  key={t.id}
+                  className={`task-node status-${t.status} ${
+                    inBatch.has(t.id) ? "in-batch" : ""
+                  }`}
+                  style={{ left: p.x, top: p.y, width: NODE_W, height: NODE_H }}
+                  data-task-node={t.id}
+                >
+                  <strong title={t.title}>{t.title}</strong>
+                  <span>
+                    {agentName(t.implementer)} → {agentName(t.reviewer)}
+                  </span>
+                  <small>
+                    {STATUS[t.status][pl ? 0 : 1]}
+                    {inBatch.has(t.id) &&
+                      (done.has(t.id)
+                        ? pl
+                          ? " · ukończone w kolejce"
+                          : " · finished in queue"
+                        : pl
+                          ? " · w kolejce zespołu"
+                          : " · in the team queue")}
+                    {!!t.blockedBy.length &&
+                      (pl ? " · zablokowane" : " · blocked")}
+                  </small>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
+      <p className="sr-only">
+        {shown
+          .filter((t) => t.dependencies.length)
+          .map(
+            (t) =>
+              `${t.title} ${pl ? "czeka na" : "waits for"} ${t.dependencies
+                .map((d) => shown.find((x) => x.id === d)?.title ?? d)
+                .join(", ")}`,
+          )
+          .join(". ")}
+      </p>
+    </section>
+  );
+}

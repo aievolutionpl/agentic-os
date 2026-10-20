@@ -127,9 +127,10 @@ try {
     await page.locator(".connection-note").innerText(),
     /claude auth login/,
   );
+  // The API key and the optional management key (balance only) are masked.
   assert.equal(
     await page.locator('.router-setup input[type="password"]').count(),
-    1,
+    2,
   );
   result.checks.push("six-provider-setup-and-masked-api-key");
   const local = page.locator(".local-model-setup");

@@ -8,12 +8,22 @@ import type {
   Memory,
   Preferences,
   ProjectData,
+  ProviderSetting,
   Snapshot,
   Task,
   TaskAction,
 } from "../shared";
 import { words } from "./i18n";
-import { agentName, Icon, Modal, SelectField, useNarrow } from "./ui";
+import {
+  agentName,
+  connectionLabel,
+  connectionState,
+  Icon,
+  Modal,
+  SelectField,
+  useNarrow,
+} from "./ui";
+import { ProviderIcon } from "./ProviderIcon";
 import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
 import { ExtensionsPanel } from "./ExtensionsPanel";
@@ -24,7 +34,7 @@ import { CommandPalette, type Command } from "./CommandPalette";
 import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { OrchestrationPanel } from "./OrchestrationPanel";
 import { MasterPanel } from "./MasterPanel";
-import { ChatWorkspace } from "./ChatWorkspace";
+import { ChatWorkspace, startNewChat } from "./ChatWorkspace";
 import { MemoryHub, SkillsHub } from "./KnowledgeHub";
 import { READ_ONLY_AGENTS } from "../shared";
 import { ccWords } from "./cc-i18n";
@@ -65,6 +75,20 @@ function App() {
   const [attention, setAttention] = useState<Attention | null>(null),
     [attentionFailed, setAttentionFailed] = useState(false),
     [palette, setPalette] = useState(false);
+  // Connection evidence for the sidebar agent dock; refreshed on every view
+  // change so a check run on any screen shows up everywhere.
+  const [agents, setAgents] = useState<ProviderSetting[]>([]);
+  useEffect(() => {
+    const load = () =>
+      void api
+        ?.providerSettings?.()
+        .then(setAgents)
+        .catch(() => {});
+    load();
+    // Checks that finish while Connections stays open refresh the dock too.
+    window.addEventListener("agenting:evidence", load);
+    return () => window.removeEventListener("agenting:evidence", load);
+  }, [view]);
   const [scan, setScan] = useState<ConnectorScan | null>(null),
     [scanning, setScanning] = useState(false),
     [scanFailed, setScanFailed] = useState(false);
@@ -247,9 +271,34 @@ function App() {
       setScanning(false);
     }
   }
+  // Connection evidence changes (a check on another screen) rescan Control
+  // Center, so its counts and map never lag behind the Connections cards.
+  const evidence = agents
+    // Everything the scan depends on: setup fields and the last check.
+    .map((a) =>
+      JSON.stringify([
+        a.id,
+        a.configured,
+        a.command,
+        a.args,
+        a.protocol,
+        a.profile,
+        a.model,
+        a.lastCheck?.observedAt ?? "",
+      ]),
+    )
+    .join("|");
+  const scannedEvidence = useRef("");
   useEffect(() => {
-    if (view === "center" && !scan && !scanning && !scanFailed) void runScan();
-  }, [view]);
+    if (view !== "center" || scanning) return;
+    const changed =
+      !!scan &&
+      !!scannedEvidence.current &&
+      evidence !== scannedEvidence.current;
+    // The first evidence load only records a baseline; it is not a change.
+    if (evidence) scannedEvidence.current = evidence;
+    if ((!scan && !scanFailed) || changed) void runScan();
+  }, [view, evidence]);
   async function refresh() {
     if (!api) return;
     try {
@@ -721,6 +770,48 @@ function App() {
             </button>
           ))}
         </nav>
+        <div
+          className="agent-dock"
+          role="group"
+          aria-label={prefs.language === "pl" ? "Twoi agenci" : "Your agents"}
+        >
+          {agents.some((a) => a.configured) ? (
+            agents
+              .filter((a) => a.configured)
+              .map((a) => {
+                const state = connectionState(a),
+                  label = `${agentName(a.id)} · ${connectionLabel(state, prefs.language === "pl")}`;
+                return (
+                  <button
+                    key={a.id}
+                    className={`state-${state}`}
+                    title={label}
+                    aria-label={label}
+                    onClick={() => {
+                      setProjectsExpanded(false);
+                      setView("connections");
+                    }}
+                  >
+                    <span className="picker-glyph">
+                      <ProviderIcon provider={a.id} />
+                      <i className="connection-dot" aria-hidden="true" />
+                    </span>
+                  </button>
+                );
+              })
+          ) : (
+            <button
+              className="agent-dock-empty"
+              onClick={() => {
+                setProjectsExpanded(false);
+                setView("connections");
+              }}
+            >
+              <Icon name="connections" />
+              {prefs.language === "pl" ? "Podłącz agenta" : "Connect an agent"}
+            </button>
+          )}
+        </div>
         <div className="sidebar-bottom">
           <span className="local-indicator" aria-hidden="true" />
           {w.local}
@@ -899,6 +990,11 @@ function App() {
                 failed={attentionFailed}
                 onRefresh={() => void readAttention()}
                 onOpen={openAttention}
+                onStart={(target) => {
+                  if (target === "project") return openProject();
+                  if (target === "chat") startNewChat();
+                  setView(target);
+                }}
               />
             ) : view === "connections" ? (
               <ProviderSetup language={prefs.language} />
@@ -921,6 +1017,7 @@ function App() {
                 work={attention}
                 onOpenInbox={() => setView("inbox")}
                 onOpenAttention={openAttention}
+                agents={agents}
               />
             ) : !snapshot && !error ? (
               <div className="loading-workspace" aria-label={w.loading}>

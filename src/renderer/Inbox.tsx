@@ -128,14 +128,23 @@ export function Inbox({
   failed,
   onRefresh,
   onOpen,
+  onStart,
 }: {
   language: "pl" | "en";
   attention: Attention | null;
   failed: boolean;
   onRefresh: () => void;
   onOpen: (item: AttentionItem) => void;
+  /** Where to go when nothing waits: a new chat, a project or a connection. */
+  onStart?: (target: "chat" | "project" | "connections") => void;
 }) {
   const t = COPY[language];
+  // A failed refresh may hide new decisions; never claim "all caught up" then.
+  const idle =
+    !failed &&
+    !!attention &&
+    !attention.decisions.length &&
+    !attention.active.length;
   return (
     <section className="inbox" aria-labelledby="inbox-title">
       <div className="cc-head">
@@ -202,6 +211,32 @@ export function Inbox({
           <Icon name="clock" />
           {attention ? t.noActive : "…"}
         </p>
+      )}
+      {idle && onStart && (
+        <div className="inbox-start">
+          <p>
+            {language === "pl"
+              ? "Wszystko załatwione. Co dalej?"
+              : "All caught up. What's next?"}
+          </p>
+          <div className="panel-actions">
+            <button className="primary" onClick={() => onStart("chat")}>
+              <Icon name="message" />
+              {language === "pl" ? "Nowy czat" : "New chat"}
+            </button>
+            <button className="secondary" onClick={() => onStart("project")}>
+              <Icon name="plus" />
+              {language === "pl" ? "Nowy projekt" : "New project"}
+            </button>
+            <button
+              className="secondary"
+              onClick={() => onStart("connections")}
+            >
+              <Icon name="connections" />
+              {language === "pl" ? "Podłącz agenta" : "Connect an agent"}
+            </button>
+          </div>
+        </div>
       )}
     </section>
   );

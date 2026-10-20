@@ -30,6 +30,8 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     });
   const parent = make("Parent"),
     child = make("Child");
+  // Unrelated to any dependency: stays on the board, out of the graph.
+  make("Loose");
   function boot() {
     dom = new JSDOM('<div id="root"></div>', {
       url: "file:///app/index.html",

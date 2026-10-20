@@ -1924,7 +1924,8 @@ summary:focus-visible {
 }
 .task-graph-scroll {
   max-width: 100%;
-  overflow-x: auto;
+  max-height: 420px;
+  overflow: auto;
   padding-bottom: 4px;
 }
 .task-graph-canvas {

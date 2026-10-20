@@ -53,8 +53,16 @@ export function TaskGraph({
   language: "pl" | "en";
 }) {
   const pl = language === "pl";
-  const shown = tasks.filter((t) => t.status !== "cancelled");
-  if (!shown.some((t) => t.dependencies.length)) return null;
+  // Only tasks that take part in a dependency: unrelated ones stay on the
+  // task board. A cancelled prerequisite still blocks, so it stays visible.
+  const live = tasks.filter((t) => t.status !== "cancelled");
+  const linked = new Set(
+    live.flatMap((t) =>
+      t.dependencies.length ? [t.id, ...t.dependencies] : [],
+    ),
+  );
+  const shown = tasks.filter((t) => linked.has(t.id));
+  if (!shown.length) return null;
   const columns = layers(shown);
   const at = new Map<string, { x: number; y: number }>();
   columns.forEach((col, c) =>
@@ -62,10 +70,13 @@ export function TaskGraph({
   );
   const width = (columns.length - 1) * COL + NODE_W,
     height = Math.max(...columns.map((c) => c.length)) * ROW - (ROW - NODE_H);
-  const inBatch = new Set(
-    batch && batch.status !== "idle" ? batch.taskIds : [],
-  );
-  const done = new Set(batch?.completedTaskIds ?? []);
+  // Only a batch that is working or waiting on the operator is current.
+  const current =
+    !!batch && ["running", "blocked", "interrupted"].includes(batch.status);
+  const inBatch = new Set(current ? batch!.taskIds : []);
+  // The batch reports progress before the task list is reloaded.
+  const done = new Set(current ? batch!.completedTaskIds : []);
+  const finished = (t: Task) => t.status === "completed" || done.has(t.id);
   return (
     <section
       className="task-graph"
@@ -97,7 +108,7 @@ export function TaskGraph({
                     <path
                       key={`${d}-${t.id}`}
                       className={`task-graph-edge ${
-                        shown.find((x) => x.id === d)?.status === "completed"
+                        finished(shown.find((x) => x.id === d)!)
                           ? "satisfied"
                           : ""
                       }`}
@@ -113,9 +124,9 @@ export function TaskGraph({
               return (
                 <li
                   key={t.id}
-                  className={`task-node status-${t.status} ${
-                    inBatch.has(t.id) ? "in-batch" : ""
-                  }`}
+                  className={`task-node status-${
+                    finished(t) ? "completed" : t.status
+                  } ${inBatch.has(t.id) ? "in-batch" : ""}`}
                   style={{ left: p.x, top: p.y, width: NODE_W, height: NODE_H }}
                   data-task-node={t.id}
                 >
@@ -124,7 +135,7 @@ export function TaskGraph({
                     {agentName(t.implementer)} → {agentName(t.reviewer)}
                   </span>
                   <small>
-                    {STATUS[t.status][pl ? 0 : 1]}
+                    {STATUS[finished(t) ? "completed" : t.status][pl ? 0 : 1]}
                     {inBatch.has(t.id) &&
                       (done.has(t.id)
                         ? pl

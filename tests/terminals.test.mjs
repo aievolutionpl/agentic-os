@@ -16,7 +16,13 @@ function setup(t) {
   });
   t.after(async () => {
     await terminals.dispose();
-    rmSync(dir, { recursive: true, force: true, maxRetries: 5 });
+    // Windows releases a shell's working folder a moment after it exits.
+    rmSync(dir, {
+      recursive: true,
+      force: true,
+      maxRetries: 50,
+      retryDelay: 200,
+    });
   });
   return { terminals, project };
 }
@@ -37,7 +43,9 @@ async function until(terminals, id, predicate, initial = 0) {
   let cursor = initial,
     output = "",
     reset = false;
-  for (let n = 0; n < 200; n++) {
+  // A cold Windows runner can take well over 5 s before PowerShell reads
+  // its first input under ConPTY; give the real shell up to a minute.
+  for (let n = 0; n < 2400; n++) {
     const result = terminals.read({ id, cursor });
     cursor = result.cursor;
     output += result.data;
@@ -89,12 +97,14 @@ test("real PTY runs in the chosen directory, accepts resize and Ctrl+C, and pres
   terminals.resize({ id: first.id, cols: 90, rows: 30 });
   terminals.write({
     id: first.id,
-    data: "node -e \"console.log('PTY_'+'READY',process.cwd())\"\r",
+    // The folder name, not the full path: Windows may print a long path for
+    // an 8.3 temp name, and the PTY wraps long lines.
+    data: "node -e \"console.log('PTY_'+'READY:'+require('path').basename(process.cwd()))\"\r",
   });
   const ready = await until(terminals, first.id, (s) =>
-    s.includes("PTY_READY"),
+    s.includes("PTY_READY:project with spaces"),
   );
-  assert.ok(ready.output.includes(project));
+  assert.ok(ready.output.includes("PTY_READY:project with spaces"));
   terminals.write({
     id: first.id,
     data: "node -e \"console.log('LONG_'+'RUN');setInterval(()=>{},1000)\"\r",

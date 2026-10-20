@@ -28,6 +28,7 @@ import { ProviderIcon } from "./ProviderIcon";
 import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
 import { PolicyPanel } from "./PolicyPanel";
+import { RoutePreview } from "./RoutePreview";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
@@ -1242,6 +1243,16 @@ function App() {
                             </button>
                           </div>
                         </div>
+                        <RoutePreview
+                          language={prefs.language}
+                          disabled={busy}
+                          current={implementer}
+                          currentReviewer={reviewer}
+                          onApply={(chosen, check) => {
+                            setImplementer(chosen);
+                            setReviewer(check);
+                          }}
+                        />
                         <p className="role-hint" title={w.roleNote}>
                           <Icon name="info" />
                           {w.roleHint}

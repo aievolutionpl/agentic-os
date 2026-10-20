@@ -17,6 +17,10 @@ const MESSAGES: Record<string, [string, string]> = {
     "Miesięczny budżet płatnego API został wykorzystany. Podnieś go albo poczekaj do nowego miesiąca.",
     "The monthly paid API budget is used up. Raise it or wait for the next month.",
   ],
+  POLICY_QUOTA_EXHAUSTED: [
+    "Limit tego dostawcy jest wyczerpany. Poczekaj na reset albo wybierz innego agenta.",
+    "This provider's limit is used up. Wait for the reset or choose another agent.",
+  ],
   POLICY_APPROVAL_REQUIRED: [
     "Ten run korzysta z płatnego API. Zatwierdź go, aby kontynuować.",
     "This run uses a paid API. Approve it to continue.",

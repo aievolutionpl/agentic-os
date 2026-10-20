@@ -6,6 +6,7 @@ import { Worktrees, git, gitText, type Workspace } from "./git.js";
 import { CodexAdapter, type AgentAdapter } from "./providers.js";
 import { AcpAdapter } from "./acp.js";
 import { CliAdapter } from "./cli-provider.js";
+import { recordObservation } from "./observations.js";
 import { AGENTS, READ_ONLY_AGENTS } from "../shared.js";
 import { resolveOnPath, defaultRunner } from "./connectors.js";
 import { exact, text, redact } from "./validate.js";
@@ -82,6 +83,13 @@ export class Supervisor {
               cwd,
             },
             config.protocol,
+            (observation) => {
+              try {
+                recordObservation(dataDir, agent, observation);
+              } catch {
+                // Observations are informational; a write failure never fails a run.
+              }
+            },
           );
         if (config.protocol === "acp") {
           const spec =

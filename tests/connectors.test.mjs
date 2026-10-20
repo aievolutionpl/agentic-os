@@ -1,11 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   scanConnectors,
   resolveOnPath,
+  installDirs,
   defaultHttpJson,
 } from "../dist/main/connectors.js";
 import { Store } from "../dist/main/store.js";
@@ -147,4 +148,66 @@ test("local run counters are exact and separate from provider quota", () => {
   } finally {
     store.close();
   }
+});
+
+test("agents installed outside PATH are found in documented install folders, native binaries first", () => {
+  const home = mkdtempSync(join(tmpdir(), "agenting-home-"));
+  const empty = mkdtempSync(join(tmpdir(), "agenting-path-"));
+  try {
+    // POSIX: GUI apps often lack the shell PATH; the native installers use ~/.local/bin.
+    mkdirSync(join(home, ".local", "bin"), { recursive: true });
+    writeFileSync(join(home, ".local", "bin", "agy"), "");
+    writeFileSync(join(home, ".local", "bin", "claude"), "");
+    const posix = { PATH: empty, HOME: home };
+    assert.equal(resolveOnPath("agy", posix, "linux"), join(home, ".local", "bin", "agy"));
+    assert.equal(resolveOnPath("claude", posix, "darwin"), join(home, ".local", "bin", "claude"));
+    assert.ok(installDirs(posix, "darwin").includes("/opt/homebrew/bin"));
+    // Windows: an npm .cmd shim on PATH, the native installer in %USERPROFILE%\.local\bin.
+    const npm = join(home, "AppData", "Roaming", "npm");
+    mkdirSync(npm, { recursive: true });
+    writeFileSync(join(npm, "claude.cmd"), "@echo off");
+    const win = {
+      PATH: npm,
+      USERPROFILE: home,
+      APPDATA: join(home, "AppData", "Roaming"),
+      LOCALAPPDATA: join(home, "AppData", "Local"),
+    };
+    assert.equal(resolveOnPath("claude", win, "win32"), join(npm, "claude.cmd"));
+    assert.equal(resolveOnPath("claude", win, "win32", { native: true }), null);
+    writeFileSync(join(home, ".local", "bin", "claude.exe"), "");
+    assert.equal(
+      resolveOnPath("claude", win, "win32", { native: true }),
+      join(home, ".local", "bin", "claude.exe"),
+    );
+    mkdirSync(join(home, "AppData", "Local", "agy", "bin"), { recursive: true });
+    writeFileSync(join(home, "AppData", "Local", "agy", "bin", "agy.exe"), "");
+    assert.equal(
+      resolveOnPath("agy", { ...win, PATH: "" }, "win32", { native: true }),
+      join(home, "AppData", "Local", "agy", "bin", "agy.exe"),
+    );
+    // Folders come only from the given environment: none without a home.
+    assert.equal(resolveOnPath("agy", { PATH: empty }, "win32"), null);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+    rmSync(empty, { recursive: true, force: true });
+  }
+});
+
+test("other agent CLIs appear only when installed, as detected with a planned adapter", async () => {
+  const installed = new Set(["cursor-agent", "aider"]);
+  const result = await scanConnectors({
+    resolve: (name) => (installed.has(name) ? `/bin/${name}` : null),
+    run: async () => ({ code: 0, stdout: "1.2.3\n", stderr: "" }),
+    http: async () => null,
+  });
+  const ids = result.map((c) => c.id);
+  assert.ok(ids.includes("cursor-agent") && ids.includes("aider"));
+  for (const hidden of ["copilot", "qwen", "goose", "amp"])
+    assert.ok(!ids.includes(hidden), `${hidden} hidden when missing`);
+  const cursor = result.find((c) => c.id === "cursor-agent");
+  assert.deepEqual(
+    [cursor.state, cursor.reason, cursor.adapter, cursor.version],
+    ["experimental", "adapter_planned", "planned", "1.2.3"],
+  );
+  assert.ok(ids.includes("codex"), "core agents are always listed");
 });

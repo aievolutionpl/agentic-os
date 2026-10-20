@@ -18,7 +18,13 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
     ["antigravity", "agy"],
   ] as const) {
     const path = resolveOnPath(command);
-    if (path && !/\.(cmd|bat|ps1)$/i.test(path)) result[id] = path;
+    // A native binary anywhere (PATH or a documented install folder) beats a .cmd shim:
+    // e.g. Claude Code's native installer next to an older npm global install.
+    const native = resolveOnPath(command, process.env, process.platform, {
+      native: true,
+    });
+    if (native) result[id] = native;
+    else if (path && !/\.(cmd|bat|ps1)$/i.test(path)) result[id] = path;
     if (id === "gemini" && path && /\.cmd$/i.test(path)) {
       const script = geminiScript(path);
       if (script) result.gemini = script;
@@ -60,18 +66,6 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
       const native = candidates.find((p) => existsSync(p));
       if (native) result.codex = native;
     }
-  }
-  if (!result.antigravity) {
-    const candidate =
-      process.platform === "win32"
-        ? join(
-            process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"),
-            "agy",
-            "bin",
-            "agy.exe",
-          )
-        : join(homedir(), ".local", "bin", "agy");
-    if (existsSync(candidate)) result.antigravity = candidate;
   }
   if (!result.hermes) {
     const candidates =

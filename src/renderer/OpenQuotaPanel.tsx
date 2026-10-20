@@ -36,6 +36,18 @@ const details: Record<string, [string, string]> = {
     "Sprawdź /usage w Antigravity. Brak zweryfikowanego odczytu limitów w tym adapterze.",
     "Check /usage in Antigravity. This adapter has no verified quota reader.",
   ],
+  CLAUDE_LIMITS_FROM_RUNS: [
+    "Okna limitów i tokeny zgłoszone przez Claude Code podczas Twoich zadań w Agenting OS (zdarzenie rate_limit_event). Odświeżają się przy kolejnym użyciu Claude. Procent pojawia się tylko, gdy CLI go podaje.",
+    "Limit windows and tokens reported by Claude Code during your Agenting OS runs (rate_limit_event). They refresh the next time Claude is used. A percentage appears only when the CLI includes it.",
+  ],
+  CLAUDE_TOKENS_FROM_RUNS: [
+    "Tokeny zgłoszone przez Claude Code w Twoich zadaniach w Agenting OS. Okno limitu pojawi się, gdy CLI je zgłosi. Pełne limity: /usage w Claude Code.",
+    "Tokens reported by Claude Code in your Agenting OS runs. A limit window appears once the CLI reports one. Full limits: /usage in Claude Code.",
+  ],
+  ANTIGRAVITY_TOKENS_FROM_RUNS: [
+    "Tokeny zgłoszone przez Antigravity CLI w Twoich zadaniach w Agenting OS. Limity modeli: /usage w Antigravity.",
+    "Tokens reported by Antigravity CLI in your Agenting OS runs. Model quotas: /usage in Antigravity.",
+  ],
   CONFIGURE_OPENROUTER: [
     "Dodaj klucz API w Połączeniach, aby odczytać jego rzeczywisty budżet.",
     "Add an API key in Connections to read its actual budget.",
@@ -156,9 +168,13 @@ export function OpenQuotaPanel({
         ? pl
           ? "Brak odczytu"
           : "No reading"
-        : pl
-          ? "Odczyt dostawcy"
-          : "Provider reading";
+        : card.source === "cli-stream"
+          ? pl
+            ? "Zgłoszone przez CLI"
+            : "Reported by the CLI"
+          : pl
+            ? "Odczyt dostawcy"
+            : "Provider reading";
   return (
     <section className="quota-workspace" aria-labelledby="quota-title">
       <header className="quota-page-head">

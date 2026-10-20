@@ -341,6 +341,15 @@ test("recorded connection checks give every screen the same agent state", () => 
     check("connected", "ACP_READY_AUTH_UNVERIFIED"),
   );
   assert.deepEqual([c.state, c.auth], ["ready", "unknown"]);
+  // A handshake does not make a runtime ready while it cannot run yet.
+  assert.deepEqual(
+    withCheckEvidence(
+      [base],
+      check("connected", "ACP_READY_AUTH_UNVERIFIED"),
+      (id) => id === "codex",
+    )[0],
+    base,
+  );
   [c] = withCheckEvidence([base], check("needs-auth", "SIGN_IN_REQUIRED"));
   assert.deepEqual([c.state, c.reason], ["needs-auth", "auth_missing"]);
   [c] = withCheckEvidence([base], check("unavailable", "PROVIDER_UNAVAILABLE"));

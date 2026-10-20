@@ -79,10 +79,15 @@ function App() {
   // change so a check run on any screen shows up everywhere.
   const [agents, setAgents] = useState<ProviderSetting[]>([]);
   useEffect(() => {
-    void api
-      ?.providerSettings?.()
-      .then(setAgents)
-      .catch(() => {});
+    const load = () =>
+      void api
+        ?.providerSettings?.()
+        .then(setAgents)
+        .catch(() => {});
+    load();
+    // Checks that finish while Connections stays open refresh the dock too.
+    window.addEventListener("agenting:evidence", load);
+    return () => window.removeEventListener("agenting:evidence", load);
   }, [view]);
   const [scan, setScan] = useState<ConnectorScan | null>(null),
     [scanning, setScanning] = useState(false),

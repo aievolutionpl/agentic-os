@@ -673,6 +673,8 @@ export function withExecutionSettings(
 export function withCheckEvidence(
   connectors: ConnectorStatus[],
   checks: { agent: string; state: string; detail: string }[],
+  /** A runtime that cannot run yet, e.g. Hermes before a model is chosen. */
+  blocked: (id: string) => boolean = () => false,
 ): ConnectorStatus[] {
   return connectors.map((c) => {
     const check = checks.find((k) => k.agent === c.id);
@@ -686,6 +688,7 @@ export function withCheckEvidence(
       c.auth === "unauthenticated"
     )
       return c;
+    if (check.state === "connected" && blocked(c.id)) return c;
     if (check.state === "connected")
       return {
         ...c,

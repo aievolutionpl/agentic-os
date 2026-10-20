@@ -54,6 +54,8 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
   async function refreshChecks() {
     const rows = await api.providerSettings();
     setChecks(Object.fromEntries(rows.map((r) => [r.id, r.lastCheck ?? null])));
+    // Other views (the sidebar dock) mirror the same evidence.
+    window.dispatchEvent(new Event("agenting:evidence"));
     return rows;
   }
   useEffect(() => {

@@ -221,6 +221,10 @@ app
           router.settings().configured,
         ),
         store.capabilities.list(),
+        // Hermes refuses every run until a model is saved.
+        (id) =>
+          id === "hermes" &&
+          !supervisor.settings().find((s) => s.id === "hermes")?.model,
       );
     const capabilities = (connectors: Awaited<ReturnType<typeof scanAll>>) =>
       capabilityMatrix(connectors, supervisor.settings(), {

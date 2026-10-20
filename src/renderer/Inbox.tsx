@@ -139,8 +139,12 @@ export function Inbox({
   onStart?: (target: "chat" | "project" | "connections") => void;
 }) {
   const t = COPY[language];
+  // A failed refresh may hide new decisions; never claim "all caught up" then.
   const idle =
-    !!attention && !attention.decisions.length && !attention.active.length;
+    !failed &&
+    !!attention &&
+    !attention.decisions.length &&
+    !attention.active.length;
   return (
     <section className="inbox" aria-labelledby="inbox-title">
       <div className="cc-head">

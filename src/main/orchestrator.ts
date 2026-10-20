@@ -298,12 +298,20 @@ export class Orchestrator {
         taskId,
         // A failure is an outcome, never a rejection left unobserved while
         // another run is still being raced.
-        this.settle(batch, taskId, runId).then(
-          (o): [string, string, Outcome] => [taskId, runId, o],
-          (): [string, string, Outcome] => [taskId, runId, { kind: "error" }],
-        ),
+        this.settle(batch, taskId, runId)
+          .then(
+            (o): [string, string, Outcome] => [taskId, runId, o],
+            (): [string, string, Outcome] => [taskId, runId, { kind: "error" }],
+          )
+          .then((result) => {
+            settled.push(result);
+            return result;
+          }),
       );
     };
+    // Outcomes in arrival order; every one that is in is handled before a
+    // freed slot is refilled, so a sibling's failure is never overlooked.
+    const settled: [string, string, Outcome][] = [];
     try {
       for (const id of heldRunIds) {
         const held = this.store.runs.get(batch.projectId, id)!;
@@ -394,59 +402,68 @@ export class Orchestrator {
           }
           break;
         }
-        const [taskId, runId, outcome] = await Promise.race(active.values());
-        active.delete(taskId);
-        if (batch.parallel)
-          batch.runIds = (batch.runIds ?? []).filter((id) => id !== runId);
-        switch (outcome.kind) {
-          case "halted":
-            break;
-          case "completed":
-            batch.completedTaskIds.push(taskId);
-            batch.finished++;
-            if (batch.runId === runId) batch.runId = null;
-            this.save(batch, "task_completed", taskId, runId);
-            break;
-          case "approval": {
-            batch.finished++;
-            // Two changes waiting for approval must not touch the same file:
-            // the second would overwrite or conflict with the first.
-            const files = this.changedFiles(batch.projectId, taskId, runId);
-            const clash = [...awaitingApproval.values()].some((other) =>
-              [...files].some((f) => other.has(f)),
-            );
-            awaitingApproval.set(taskId, files);
-            halt({
-              status: "blocked",
-              reason: clash ? "FILE_CONFLICT" : "HUMAN_APPROVAL_REQUIRED",
-              taskId,
-              runId,
-            });
-            break;
+        if (!settled.length) await Promise.race(active.values());
+        // Let outcomes that settled in the same turn arrive too.
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        for (const [taskId, runId, outcome] of settled.splice(0)) {
+          active.delete(taskId);
+          if (batch.parallel)
+            batch.runIds = (batch.runIds ?? []).filter((id) => id !== runId);
+          switch (outcome.kind) {
+            case "halted":
+              break;
+            case "completed":
+              batch.completedTaskIds.push(taskId);
+              batch.finished++;
+              if (batch.runId === runId) batch.runId = null;
+              this.save(batch, "task_completed", taskId, runId);
+              break;
+            case "approval": {
+              batch.finished++;
+              // Two changes waiting for approval must not touch the same file:
+              // the second would overwrite or conflict with the first.
+              const files = this.changedFiles(batch.projectId, taskId, runId);
+              const clash = [...awaitingApproval.values()].some((other) =>
+                [...files].some((f) => other.has(f)),
+              );
+              awaitingApproval.set(taskId, files);
+              halt({
+                status: "blocked",
+                reason: clash ? "FILE_CONFLICT" : "HUMAN_APPROVAL_REQUIRED",
+                taskId,
+                runId,
+              });
+              break;
+            }
+            case "review_failed":
+              halt({
+                status: "blocked",
+                reason: "REVIEW_FAILED",
+                taskId,
+                runId,
+              });
+              break;
+            case "policy":
+              // A refused review keeps its run so resume can settle it.
+              halt({
+                status: "blocked",
+                reason: outcome.code,
+                taskId,
+                runId: outcome.step.runId ?? null,
+                agent: outcome.step.agent,
+              });
+              break;
+            case "failed":
+              halt({ status: "failed", reason: "RUN_FAILED", taskId, runId });
+              break;
+            case "error":
+              halt({
+                status: "failed",
+                reason: "DISPATCH_FAILED",
+                taskId,
+                runId: null,
+              });
           }
-          case "review_failed":
-            halt({ status: "blocked", reason: "REVIEW_FAILED", taskId, runId });
-            break;
-          case "policy":
-            // A refused review keeps its run so resume can settle it.
-            halt({
-              status: "blocked",
-              reason: outcome.code,
-              taskId,
-              runId: outcome.step.runId ?? null,
-              agent: outcome.step.agent,
-            });
-            break;
-          case "failed":
-            halt({ status: "failed", reason: "RUN_FAILED", taskId, runId });
-            break;
-          case "error":
-            halt({
-              status: "failed",
-              reason: "DISPATCH_FAILED",
-              taskId,
-              runId: null,
-            });
         }
       }
       const final = hold as Hold | null;

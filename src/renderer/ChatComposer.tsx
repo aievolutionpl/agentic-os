@@ -8,13 +8,14 @@ import { ProviderIcon } from "./ProviderIcon";
 const LIMITS = { files: 5, bytes: 100_000, total: 200_000 };
 export type Attachment = { name: string; content: string };
 
-export function useAttachments() {
-  const [files, setFiles] = useState<Attachment[]>([]),
+export function useAttachments(initial: Attachment[] = []) {
+  const [files, setFiles] = useState<Attachment[]>(initial),
     [problem, setProblem] = useState("");
   // Overlapping picks, drops and pastes run one after another against the
   // latest list, so a slow read never overwrites files another one added.
   const latest = useRef(files),
-    queue = useRef(Promise.resolve());
+    queue = useRef(Promise.resolve()),
+    epoch = useRef(0);
   latest.current = files;
   const commit = (next: Attachment[]) => {
     latest.current = next;
@@ -29,17 +30,23 @@ export function useAttachments() {
   }
   async function append(list: File[]) {
     setProblem("");
-    const next = [...latest.current];
+    // Clearing or switching chats starts a new generation; reads begun before
+    // it are dropped instead of restoring files the user removed.
+    const generation = epoch.current;
     for (const file of list) {
-      if (next.length >= LIMITS.files) return setProblem("ATTACHMENT_LIMIT");
-      const total = next.reduce((n, f) => n + new Blob([f.content]).size, 0);
-      if (file.size > LIMITS.bytes || total + file.size > LIMITS.total)
-        return setProblem("ATTACHMENT_TOO_LARGE");
+      if (file.size > LIMITS.bytes) return setProblem("ATTACHMENT_TOO_LARGE");
       const content = await file.text();
+      if (generation !== epoch.current) return;
       if (content.includes("\u0000")) return setProblem("ATTACHMENT_NOT_TEXT");
-      if (!next.some((f) => f.name === file.name && f.content === content))
-        next.push({ name: file.name, content });
-      commit([...next]);
+      // Limits are checked against the list as it is now, after the read.
+      const current = latest.current;
+      if (current.some((f) => f.name === file.name && f.content === content))
+        continue;
+      if (current.length >= LIMITS.files) return setProblem("ATTACHMENT_LIMIT");
+      const total = current.reduce((n, f) => n + new Blob([f.content]).size, 0);
+      if (total + new Blob([content]).size > LIMITS.total)
+        return setProblem("ATTACHMENT_TOO_LARGE");
+      commit([...current, { name: file.name, content }]);
     }
   }
   return {
@@ -47,9 +54,12 @@ export function useAttachments() {
     problem,
     add,
     fail: setProblem,
-    remove: (index: number) =>
-      commit(latest.current.filter((_, i) => i !== index)),
+    remove: (index: number) => {
+      epoch.current++;
+      commit(latest.current.filter((_, i) => i !== index));
+    },
     clear: () => {
+      epoch.current++;
       commit([]);
       setProblem("");
     },

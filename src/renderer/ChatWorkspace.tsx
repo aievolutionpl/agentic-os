@@ -97,6 +97,15 @@ const errors: Record<string, [string, string]> = {
     "Too much memory or too many skills. Reduce selected context.",
   ],
 };
+/**
+ * Unsent work survives leaving the chat view (e.g. to fix a connection) for the
+ * rest of this app session. Kept in memory only, never written to disk.
+ */
+const draft = {
+  selected: "",
+  message: "",
+  files: [] as { name: string; content: string }[],
+};
 export function ChatWorkspace({
   language,
   projects,
@@ -113,7 +122,7 @@ export function ChatWorkspace({
   const api = window.agenting!,
     pl = language === "pl";
   const [sessions, setSessions] = useState<ChatSession[]>([]),
-    [selected, setSelected] = useState("");
+    [selected, setSelected] = useState(draft.selected);
   const [agent, setAgent] = useState<Agent>("codex"),
     [mode, setMode] = useState<"chat" | "plan">("chat"),
     [source, setSource] = useState<"default" | "local" | "github">("default");
@@ -121,7 +130,7 @@ export function ChatWorkspace({
     [repository, setRepository] = useState(""),
     [existing, setExisting] = useState("");
   const [providers, setProviders] = useState<ProviderSetting[]>([]),
-    [message, setMessage] = useState(""),
+    [message, setMessage] = useState(draft.message),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [memory, setMemory] = useState<Memory[]>([]),
@@ -134,7 +143,7 @@ export function ChatWorkspace({
     [notice, setNotice] = useState("");
   const [handoff, setHandoff] = useState<ChatMessage | null>(null),
     [reviewer, setReviewer] = useState<Agent>("claude");
-  const attached = useAttachments(),
+  const attached = useAttachments(draft.files),
     drop = useDrop((files) => void attached.add(files));
   const [repositories, setRepositories] = useState<
     { name: string; private: boolean }[] | null | undefined
@@ -208,7 +217,16 @@ export function ChatWorkspace({
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "nearest" });
   }, [chat?.messages.length]);
+  useEffect(() => {
+    draft.selected = selected;
+    draft.message = message;
+    draft.files = attached.files;
+  }, [selected, message, attached.files]);
   async function create() {
+    // Check the connection before creating a chat, so the draft stays on the
+    // start screen while the user fixes it.
+    if (!providers.find((p) => p.id === agent)?.configured)
+      return setError("PROVIDER_NOT_CONFIGURED");
     // Files travel with a message; without one they would be dropped silently.
     if (attached.files.length && !message.trim())
       return attached.fail("ATTACHMENT_MESSAGE_REQUIRED");

@@ -45,9 +45,20 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
   async function load() {
     setSettings(await api.providerSettings());
   }
-  const [fresh, setFresh] = useState<Partial<Record<Agent, ProviderHealth>>>(
-    {},
-  );
+  // Card state always comes from the recorded evidence in the database, so the
+  // newest check wins and a cleared check is never resurrected by a local cache.
+  // Kept apart from `settings` so refreshing it never resets the form.
+  const [checks, setChecks] = useState<
+    Partial<Record<Agent, ProviderSetting["lastCheck"]>>
+  >({});
+  async function refreshChecks() {
+    const rows = await api.providerSettings();
+    setChecks(Object.fromEntries(rows.map((r) => [r.id, r.lastCheck ?? null])));
+    return rows;
+  }
+  useEffect(() => {
+    void refreshChecks().catch(() => {});
+  }, [health]);
   useEffect(() => {
     let active = true;
     void load()
@@ -63,8 +74,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
           const result = await api
             .providerCheck?.({ agent: row.id })
             .catch(() => null);
-          if (active && result)
-            setFresh((current) => ({ ...current, [row.id]: result }));
+          if (active && result) await refreshChecks().catch(() => {});
         }
       })
       .catch(() => setStatus("error"));
@@ -98,22 +108,14 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
     setConsent(false);
     setStatus("");
   }, [agent, settings, detected]);
-  useEffect(() => {
-    setHealth(null);
-    // Pick up checks recorded while another card was selected.
-    void load().catch(() => setStatus("error"));
-  }, [agent]);
+  useEffect(() => setHealth(null), [agent]);
   async function act(fn: () => Promise<unknown>, message = "saved") {
     setBusy(true);
     setStatus("");
     try {
       await fn();
-      if (message === "saved") {
-        // A saved change has not been checked; drop checks cached on this screen.
-        setHealth(null);
-        setFresh(({ [agent]: _old, ...rest }) => rest);
-        await load();
-      }
+      if (message === "saved") await load();
+      await refreshChecks();
       setStatus(message);
     } catch {
       setStatus("error");
@@ -142,18 +144,10 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
       >
         {(Object.keys(defaults) as Agent[]).map((id) => {
           const saved = settings.find((p) => p.id === id);
-          // A check run on this screen is newer than the loaded settings.
-          const latest = health?.agent === id ? health : fresh[id];
-          const setting =
-            saved && latest
-              ? {
-                  ...saved,
-                  lastCheck: {
-                    state: latest.state,
-                    observedAt: latest.observedAt,
-                  },
-                }
-              : saved;
+          const setting = saved && {
+            ...saved,
+            lastCheck: id in checks ? checks[id] : saved.lastCheck,
+          };
           const state = connectionState(setting, !!detected[id]);
           return (
             <button

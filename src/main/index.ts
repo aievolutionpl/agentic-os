@@ -43,7 +43,7 @@ import { LocalModelConnection } from "./local-model.js";
 import { Chats, githubRepositories } from "./chats.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
-import { AGENTS, type Agent } from "../shared.js";
+import { AGENTS, type Agent, type ProviderHealth } from "../shared.js";
 import {
   scanAllQuotas,
   saveCustomSubscription,
@@ -223,6 +223,18 @@ app
         checks: store.capabilities.list(),
         runs: store.runs.evidence(),
       });
+    // A check describes the setup it ran against. If that setup was saved again
+    // while the check ran, its result is returned but never recorded as evidence.
+    const setupOf = (input: unknown) => {
+      const agent = (input as { agent?: unknown } | null)?.agent;
+      return JSON.stringify(
+        typeof agent === "string" ? (store.runs.provider(agent) ?? null) : null,
+      );
+    };
+    const recordIfUnchanged = (before: string, health: ProviderHealth) =>
+      setupOf({ agent: health.agent }) === before
+        ? store.capabilities.record(health)
+        : health;
     const handlers: Record<string, (input: unknown) => unknown> = {
       chatList: () => chats!.list(),
       chatCreate: (input) => chats!.create(input),
@@ -250,14 +262,17 @@ app
         });
       },
       providerCheck: async (input) => {
+        const before = setupOf(input);
         const health = await supervisor.health(input);
         // An unconfigured profile was not probed; it is not handshake evidence.
         return health.detail === "PROVIDER_NOT_CONFIGURED"
           ? health
-          : store.capabilities.record(health);
+          : recordIfUnchanged(before, health);
       },
-      providerSignIn: async (input) =>
-        store.capabilities.record(await supervisor.signIn(input)),
+      providerSignIn: async (input) => {
+        const before = setupOf(input);
+        return recordIfUnchanged(before, await supervisor.signIn(input));
+      },
       providerConnectDetected: (input) => {
         const p = exact(input, ["agent", "consent"]);
         if (p.consent !== true || !AGENTS.includes(p.agent as Agent))

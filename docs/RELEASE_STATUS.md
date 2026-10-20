@@ -15,6 +15,7 @@ This is the only document that states the **current** release status. Everything
 | OS-level isolation of trusted ACP/MCP processes | **Not provided** | `SECURITY.md` |
 | Manual queue survives restart without replay | Implemented (schema v13) | `tests/orchestration-journal.test.mjs` |
 | Per-provider capability evidence (detected / profile / sign-in / handshake / real run / roles) | Implemented (schema v14), shown in Control Center | `tests/capabilities.test.mjs` |
+| Operator inbox (cross-project decisions), Ctrl/Cmd+K palette, Control Center "Right now" | Implemented, read-only aggregation | `tests/attention.test.mjs` |
 | Real provider inference | **Per machine, per provider.** Never inferred from configuration. Automated tests make no model calls | Control Center → *Verified capabilities*; `docs/SUBSCRIPTION_CONNECTIONS.md` for dated manual sessions |
 | Provider quotas | Codex official data and OpenRouter key budget only; other subscriptions show **Unknown** | OpenQuota |
 

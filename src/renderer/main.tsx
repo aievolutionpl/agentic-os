@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
   Agent,
+  Attention,
+  AttentionItem,
   ConnectorScan,
   Memory,
   Preferences,
@@ -17,6 +19,8 @@ import { ProviderSetup } from "./ProviderSetup";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
+import { Inbox, attentionWords } from "./Inbox";
+import { CommandPalette, type Command } from "./CommandPalette";
 import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { OrchestrationPanel } from "./OrchestrationPanel";
 import { MasterPanel } from "./MasterPanel";
@@ -56,7 +60,11 @@ function App() {
     | "chat"
     | "skills"
     | "shared-memory"
+    | "inbox"
   >(api?.chatList ? "chat" : api?.connectorScan ? "center" : "project");
+  const [attention, setAttention] = useState<Attention | null>(null),
+    [attentionFailed, setAttentionFailed] = useState(false),
+    [palette, setPalette] = useState(false);
   const [scan, setScan] = useState<ConnectorScan | null>(null),
     [scanning, setScanning] = useState(false),
     [scanFailed, setScanFailed] = useState(false);
@@ -187,6 +195,46 @@ function App() {
     document.addEventListener("keydown", shortcuts);
     return () => document.removeEventListener("keydown", shortcuts);
   }, []);
+  async function readAttention() {
+    if (!api?.attention) return;
+    try {
+      setAttention(await api.attention());
+      setAttentionFailed(false);
+    } catch {
+      setAttentionFailed(true);
+    }
+  }
+  useEffect(() => {
+    if (!api?.attention) return;
+    void readAttention();
+    const timer = setInterval(() => void readAttention(), 10000);
+    return () => clearInterval(timer);
+  }, []);
+  useEffect(() => {
+    if (view === "inbox" || view === "center") void readAttention();
+  }, [view]);
+  useEffect(() => {
+    const open = (event: KeyboardEvent) => {
+      if (
+        event.key.toLowerCase() !== "k" ||
+        !(event.ctrlKey || event.metaKey) ||
+        event.altKey ||
+        event.shiftKey
+      )
+        return;
+      if (document.querySelector("dialog[open]:not(.command-palette)")) return;
+      event.preventDefault();
+      setPalette((value) => !value);
+    };
+    document.addEventListener("keydown", open);
+    return () => document.removeEventListener("keydown", open);
+  }, []);
+  function openAttention(item: AttentionItem) {
+    setProjectsExpanded(false);
+    setView("project");
+    setTab(item.target);
+    void selectProject(item.projectId);
+  }
   async function runScan() {
     if (!api?.connectorScan || scanning) return;
     setScanning(true);
@@ -329,6 +377,135 @@ function App() {
       setToast({ message: w.copyError, error: true });
     }
   }
+  function commands(): Command[] {
+    const pl = prefs.language === "pl",
+      go = pl ? "Przejdź" : "Go to",
+      act = pl ? "Akcja" : "Action",
+      projects = pl ? "Projekt" : "Project";
+    const views: [typeof view, string, string, string, boolean][] = [
+      ["chat", "message", "Czaty", "Chats", !!api?.chatList],
+      [
+        "inbox",
+        "inbox",
+        attentionWords.pl.title,
+        attentionWords.en.title,
+        !!api?.attention,
+      ],
+      ["center", "grid", ccWords.pl.nav, ccWords.en.nav, !!api?.connectorScan],
+      [
+        "connections",
+        "connections",
+        "Połączenia i modele",
+        "Connections & models",
+        !!api?.connectorScan,
+      ],
+      ["quota", "layers", "Limity i tokeny", "OpenQuota", !!api?.connectorScan],
+      [
+        "shared-memory",
+        "memory",
+        "Wspólna pamięć",
+        "Shared memory",
+        !!api?.chatList,
+      ],
+      [
+        "skills",
+        "skill",
+        "Biblioteka skilli",
+        "Skill library",
+        !!api?.chatList,
+      ],
+    ];
+    const list: Command[] = views
+      .filter((v) => v[4])
+      .map(([id, icon, plLabel, enLabel]) => ({
+        id: `view-${id}`,
+        label: pl ? plLabel : enLabel,
+        group: go,
+        icon,
+        run: () => setView(id),
+      }));
+    for (const item of attention?.decisions.slice(0, 8) ?? [])
+      list.push({
+        id: `attention-${item.kind}-${item.id}`,
+        label: `${attentionWords[prefs.language].kinds[item.kind]}: ${item.title}`,
+        group: attentionWords[prefs.language].title,
+        hint: item.projectName,
+        icon: "inbox",
+        run: () => openAttention(item),
+      });
+    for (const item of snapshot?.projects ?? [])
+      list.push({
+        id: `project-${item.id}`,
+        label: item.name,
+        group: projects,
+        hint: `${projects} · ${item.root || (pl ? "bez folderu" : "no folder")}`,
+        icon: "folder",
+        run: () => {
+          setView("project");
+          void selectProject(item.id);
+        },
+      });
+    if (snapshot && project)
+      for (const t of [
+        ["master", "plan", "Master Agent", "Master Agent"],
+        ["tasks", "task", "Zadania", "Tasks"],
+        ["memory", "memory", "Pamięć projektu", "Project memory"],
+      ] as const)
+        list.push({
+          id: `tab-${t[0]}`,
+          label: `${project.name}: ${pl ? t[2] : t[3]}`,
+          group: projects,
+          icon: t[1],
+          run: () => {
+            setView("project");
+            setTab(t[0]);
+          },
+        });
+    list.push(
+      {
+        id: "action-new-project",
+        label: pl ? "Nowy projekt" : "New project",
+        group: act,
+        icon: "plus",
+        run: openProject,
+      },
+      {
+        id: "action-rescan",
+        label: pl ? "Skanuj połączenia agentów" : "Rescan agent connections",
+        group: act,
+        icon: "refresh",
+        run: () => {
+          setView("center");
+          void runScan();
+        },
+      },
+      {
+        id: "action-theme",
+        label:
+          prefs.theme === "dark"
+            ? pl
+              ? "Jasny motyw"
+              : "Light theme"
+            : pl
+              ? "Ciemny motyw"
+              : "Dark theme",
+        group: act,
+        icon: prefs.theme === "dark" ? "sun" : "moon",
+        run: () =>
+          void preferences({
+            theme: prefs.theme === "dark" ? "light" : "dark",
+          }),
+      },
+      {
+        id: "action-language",
+        label: pl ? "Switch to English" : "Przełącz na polski",
+        group: act,
+        icon: "globe",
+        run: () => void preferences({ language: pl ? "en" : "pl" }),
+      },
+    );
+    return list;
+  }
   function openProject() {
     setProjectsExpanded(false);
     setProjectOpen(true);
@@ -388,6 +565,33 @@ function App() {
                   <span>{prefs.language === "pl" ? item.pl : item.en}</span>
                 </button>
               ))}
+            {api.attention && (
+              <button
+                className={`nav-item ${view === "inbox" ? "selected" : ""}`}
+                aria-current={view === "inbox" ? "page" : undefined}
+                onClick={() => {
+                  setProjectsExpanded(false);
+                  setView("inbox");
+                }}
+              >
+                <Icon name="inbox" />
+                <span>{attentionWords[prefs.language].title}</span>
+                {!!attention?.decisions.length && (
+                  <span
+                    className="nav-count"
+                    aria-label={
+                      prefs.language === "pl"
+                        ? `${attention.decisions.length} oczekuje`
+                        : `${attention.decisions.length} waiting`
+                    }
+                  >
+                    {attention.decisions.length > 99
+                      ? "99+"
+                      : attention.decisions.length}
+                  </span>
+                )}
+              </button>
+            )}
             <button
               className={`nav-item ${view === "connections" ? "selected" : ""}`}
               aria-current={view === "connections" ? "page" : undefined}
@@ -535,20 +739,31 @@ function App() {
                     ? prefs.language === "pl"
                       ? "Wspólna pamięć"
                       : "Shared memory"
-                    : view === "center"
-                      ? ccWords[prefs.language].nav
-                      : view === "quota"
-                        ? prefs.language === "pl"
-                          ? "Limity i tokeny"
-                          : "OpenQuota"
-                        : view === "connections"
+                    : view === "inbox"
+                      ? attentionWords[prefs.language].title
+                      : view === "center"
+                        ? ccWords[prefs.language].nav
+                        : view === "quota"
                           ? prefs.language === "pl"
-                            ? "Połączenia i modele"
-                            : "Connections & models"
-                          : (project?.name ?? "Agenting OS")}
+                            ? "Limity i tokeny"
+                            : "OpenQuota"
+                          : view === "connections"
+                            ? prefs.language === "pl"
+                              ? "Połączenia i modele"
+                              : "Connections & models"
+                            : (project?.name ?? "Agenting OS")}
             </strong>
           </div>
           <div className="settings">
+            <button
+              className="palette-trigger"
+              aria-keyshortcuts="Control+K Meta+K"
+              onClick={() => setPalette(true)}
+            >
+              <Icon name="search" />
+              <span>{prefs.language === "pl" ? "Szukaj" : "Search"}</span>
+              <kbd>Ctrl K</kbd>
+            </button>
             <span
               className={`save-status ${error ? "is-error" : ""}`}
               title={error ? w.error : w.saveHint}
@@ -631,6 +846,14 @@ function App() {
                 projects={snapshot?.projects ?? []}
                 onNewProject={openProject}
               />
+            ) : view === "inbox" ? (
+              <Inbox
+                language={prefs.language}
+                attention={attention}
+                failed={attentionFailed}
+                onRefresh={() => void readAttention()}
+                onOpen={openAttention}
+              />
             ) : view === "connections" ? (
               <ProviderSetup language={prefs.language} />
             ) : view === "quota" ? (
@@ -649,6 +872,9 @@ function App() {
                 onConfigure={() => setView("connections")}
                 onNewProject={openProject}
                 projectCount={snapshot?.projects.length ?? 0}
+                work={attention}
+                onOpenInbox={() => setView("inbox")}
+                onOpenAttention={openAttention}
               />
             ) : !snapshot && !error ? (
               <div className="loading-workspace" aria-label={w.loading}>
@@ -1228,6 +1454,14 @@ function App() {
           </button>
         </div>
       </Modal>
+      {palette && (
+        <CommandPalette
+          open={palette}
+          onClose={() => setPalette(false)}
+          commands={commands()}
+          language={prefs.language}
+        />
+      )}
       {toast && (
         <div
           className={`toast ${toast.error ? "toast-error" : ""}`}

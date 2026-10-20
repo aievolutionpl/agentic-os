@@ -155,6 +155,25 @@ export class Runs {
         lastRunAt: row.lastRunAt == null ? null : Number(row.lastRunAt),
       }));
   }
+  /** Latest run of every task, newest first; older attempts are superseded history. */
+  latestPerTask(limit = 200) {
+    return this.db
+      .prepare(
+        "SELECT r.id,r.projectId,r.taskId,r.state,r.provider,r.reviewer,r.error,r.updatedAt,t.title FROM runs r JOIN tasks t ON t.projectId=r.projectId AND t.id=r.taskId WHERE r.rowid=(SELECT r2.rowid FROM runs r2 WHERE r2.taskId=r.taskId ORDER BY r2.createdAt DESC,r2.rowid DESC LIMIT 1) ORDER BY r.updatedAt DESC LIMIT ?",
+      )
+      .all(limit)
+      .map((row) => ({
+        id: String(row.id),
+        projectId: String(row.projectId),
+        taskId: String(row.taskId),
+        title: String(row.title),
+        state: String(row.state) as RunState,
+        provider: String(row.provider),
+        reviewer: String(row.reviewer),
+        error: row.error == null ? null : String(row.error),
+        updatedAt: Number(row.updatedAt),
+      }));
+  }
   /** Real inference evidence: runs whose provider turn actually finished, not configuration. */
   evidence() {
     return this.db

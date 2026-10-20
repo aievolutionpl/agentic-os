@@ -40,7 +40,10 @@ const REQUIRED_COLUMNS: [number, string, string[]][] = [
 ];
 
 /** A fresh, unguessable sibling path; VACUUM INTO and "wx" both refuse an existing file. */
-const partial = (path: string) => `${path}.${randomUUID()}.partial`;
+// Same directory (so the final rename stays atomic) but not derived from the target's
+// basename, which may already be near the filesystem's per-component length limit.
+const partial = (path: string) =>
+  join(dirname(path), `.agenting-${randomUUID()}.partial`);
 
 /** True when both paths name the same file (or the live database's WAL/SHM companions). */
 export function isLiveDatabase(target: string, live: string) {
@@ -216,19 +219,32 @@ export function applyPendingRestore(
   if (existsSync(current)) {
     // One self-contained file (main + committed WAL pages), written before anything
     // is removed, so a crash part-way can never split the old database from its WAL.
+    let snapshot = false;
     try {
       const old = new DatabaseSync(current, { readOnly: true });
       try {
         old.prepare("VACUUM INTO ?").run(kept);
+        snapshot = true;
       } finally {
         old.close();
       }
     } catch {
       // Unreadable old database: keep its raw files together under one name instead.
+      // Renames keep the originals' permissions.
       for (const suffix of ["", "-wal", "-shm"])
         if (existsSync(current + suffix))
           renameSync(current + suffix, kept + suffix);
     }
+    if (snapshot)
+      try {
+        // VACUUM INTO follows the umask; the kept copy holds every chat and memory entry.
+        chmodSync(kept, 0o600);
+      } catch {
+        // Cannot protect it: drop the copy, keep the current data and do not restore.
+        rmSync(kept, { force: true });
+        renameSync(pending, `${pending}-rejected-${now()}`);
+        return "rejected";
+      }
   }
   // Companions first: a stray WAL must never be replayed onto the restored file.
   for (const suffix of ["-shm", "-wal", ""])

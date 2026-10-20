@@ -326,6 +326,10 @@ export interface OrchestrationState {
   completedTaskIds: string[];
   finished: number;
   runId: string | null;
+  /** Up to two independent tasks at once, each in its own worktree. */
+  parallel?: boolean;
+  /** Runs in flight for a parallel batch. */
+  runIds?: string[];
   reason: string | null;
   createdAt: number | null;
   updatedAt: number | null;
@@ -557,6 +561,7 @@ export interface API {
     taskIds: string[];
     contextIds: string[];
     consent: true;
+    parallel?: boolean;
   }): Promise<OrchestrationState>;
   orchestrationState?(input: {
     projectId: string;

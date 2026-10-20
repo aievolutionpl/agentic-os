@@ -29,7 +29,8 @@ export function OrchestrationPanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false);
   const [contextIds, setContextIds] = useState<string[]>([]),
-    [taskIds, setTaskIds] = useState<string[]>([]);
+    [taskIds, setTaskIds] = useState<string[]>([]),
+    [parallel, setParallel] = useState(false);
   useEffect(() => {
     if (!api.orchestrationState) return;
     let alive = true;
@@ -91,7 +92,18 @@ export function OrchestrationPanel({
         {state && state.status !== "idle" && (
           <span role="status">
             {labels[state.status]} · {state.finished}/{state.taskIds.length}
+            {state.status === "running" &&
+              (state.runIds?.length ?? 0) > 1 &&
+              (pl
+                ? ` · ${state.runIds!.length} zadania równolegle`
+                : ` · ${state.runIds!.length} tasks in parallel`)}
             {state.status === "blocked" &&
+              state.reason === "FILE_CONFLICT" &&
+              (pl
+                ? " · Dwa zadania zmieniły te same pliki. Zatwierdź jedno, a drugie uruchom ponownie na nowym stanie."
+                : " · Two tasks changed the same files. Approve one, then re-run the other on the new state.")}
+            {state.status === "blocked" &&
+              state.reason !== "FILE_CONFLICT" &&
               (pl
                 ? " · Otwórz wynik zadania, aby przejrzeć i zatwierdzić zmiany."
                 : " · Open the task result to review and approve changes.")}
@@ -244,6 +256,24 @@ export function OrchestrationPanel({
             <p>{pl ? "Brak wpisów pamięci." : "No memory entries."}</p>
           )}
         </fieldset>
+        <label className="dependency-choice parallel-choice">
+          <input
+            type="checkbox"
+            disabled={busy}
+            checked={parallel}
+            onChange={(e) => setParallel(e.target.checked)}
+          />
+          <span>
+            {pl
+              ? "Uruchamiaj do 2 niezależnych zadań naraz"
+              : "Run up to 2 independent tasks at once"}
+            <small>
+              {pl
+                ? "Każde we własnym worktree. Zadania zależne czekają na swoje poprzedniki, a dwie zmiany tych samych plików zatrzymują kolejkę przed zatwierdzeniem."
+                : "Each in its own worktree. Dependent tasks wait for their prerequisites, and two changes to the same files stop the queue before approval."}
+            </small>
+          </span>
+        </label>
         {error && (
           <p role="alert">
             {pl
@@ -270,6 +300,7 @@ export function OrchestrationPanel({
                 taskIds,
                 contextIds,
                 consent: true,
+                ...(parallel && { parallel: true }),
               })
                 .then((s) => {
                   setState(s);

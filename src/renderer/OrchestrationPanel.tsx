@@ -388,11 +388,12 @@ export function OrchestrationPanel({
             disabled={
               busy ||
               !state?.id ||
-              !state.taskIds.some(
-                (id) =>
-                  !state.completedTaskIds.includes(id) &&
-                  tasks.find((t) => t.id === id)?.status === "queued",
-              )
+              (!(policyHold && state.policyRunId) &&
+                !state.taskIds.some(
+                  (id) =>
+                    !state.completedTaskIds.includes(id) &&
+                    tasks.find((t) => t.id === id)?.status === "queued",
+                ))
             }
             onClick={() => {
               if (!state?.id || !api.orchestrationResume) return;
@@ -413,7 +414,13 @@ export function OrchestrationPanel({
                 .finally(() => setBusy(false));
             }}
           >
-            {pl ? "Kontynuuj pozostałe zadania" : "Continue remaining tasks"}
+            {policyHold && state?.policyRunId
+              ? pl
+                ? "Ponów review"
+                : "Retry review"
+              : pl
+                ? "Kontynuuj pozostałe zadania"
+                : "Continue remaining tasks"}
           </button>
         </div>
       </Modal>

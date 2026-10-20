@@ -332,3 +332,52 @@ test("a policy refusal holds the batch as blocked and resumes after approval", a
   assert.equal(done.status, "completed");
   assert.deepEqual(done.completedTaskIds, [a, b]);
 });
+
+test("resume retries a review the policy refused, then waits for a human decision", async (t) => {
+  const f = fixture(t);
+  const store = f.open();
+  const { project } = seed(store, 1);
+  const [a] = store.tasks(project.id).map((x) => x.id);
+  const fake = runtime(store, project.id, () => "ok");
+  fake.waitForRun = (runId) => {
+    if (store.runs.get(project.id, runId).state !== "awaiting_review")
+      store.runs.update(project.id, runId, { state: "awaiting_review" });
+    return Promise.resolve();
+  };
+  let approved = false;
+  const reviews = [];
+  fake.review = async (p) => {
+    reviews.push(p.runId);
+    if (!approved) throw Error("POLICY_APPROVAL_REQUIRED");
+  };
+  const queue = new Orchestrator(store, fake);
+  const started = queue.start({
+    projectId: project.id,
+    taskIds: [a],
+    contextIds: [],
+    consent: true,
+  });
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  const held = queue.state({ projectId: project.id });
+  assert.equal(held.status, "blocked");
+  assert.equal(held.reason, "POLICY_APPROVAL_REQUIRED");
+  assert.equal(held.policyAgent, "claude", "the reviewer needs the approval");
+  const runId = store.runs.list(project.id, a)[0].id;
+  assert.equal(held.policyRunId, runId);
+  assert.equal(held.finished, 0);
+
+  approved = true;
+  queue.resume({ projectId: project.id, batchId: started.id, consent: true });
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  const done = queue.state({ projectId: project.id });
+  assert.deepEqual(reviews, [runId, runId], "the same review is retried");
+  assert.deepEqual(fake.calls, [a], "the task is not dispatched again");
+  assert.equal(done.status, "blocked");
+  assert.equal(done.reason, "HUMAN_APPROVAL_REQUIRED");
+  assert.equal(done.finished, 1);
+  assert.equal(done.policyRunId, undefined);
+});

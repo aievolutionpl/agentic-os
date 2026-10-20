@@ -9,6 +9,8 @@ import type {
 } from "../shared.js";
 import { exact, text } from "./validate.js";
 
+type PolicyStep = { taskId: string; agent: Agent; reviewRunId?: string };
+
 /** A finite, explicitly launched queue. No replay, automatic approvals, or hidden retries. */
 export class Orchestrator {
   /** Live references for batches this process is executing; SQLite is the source of truth. */
@@ -120,22 +122,27 @@ export class Orchestrator {
       batch.status === "blocked" && !!batch.reason?.startsWith("POLICY_");
     if (batch.status !== "interrupted" && !policyHold)
       throw Error("BATCH_NOT_INTERRUPTED");
+    const heldReview = policyHold ? batch.policyRunId : undefined;
     const tasks = this.store.tasks(projectId),
       remaining = batch.taskIds.filter(
         (id) =>
           !batch.completedTaskIds.includes(id) &&
           tasks.find((t) => t.id === id)?.status === "queued",
       );
-    if (!remaining.length) throw Error("NOTHING_TO_RESUME");
-    this.providers(remaining, projectId);
+    if (!remaining.length && !heldReview) throw Error("NOTHING_TO_RESUME");
+    if (!heldReview) this.providers(remaining, projectId);
     const context = this.store.batches.context(projectId, batchId);
     batch.status = "running";
     batch.reason = null;
     batch.runId = null;
     delete batch.policyAgent;
+    delete batch.policyRunId;
     this.store.batches.save(batch, "resumed");
     this.live.set(projectId, batch);
-    void this.execute(batch, context, remaining);
+    // A refused review is retried first; its result then needs a human
+    // decision, exactly as in an uninterrupted batch.
+    if (heldReview) void this.retryReview(batch, heldReview);
+    else void this.execute(batch, context, remaining);
     return { ...batch };
   }
   private save(
@@ -153,7 +160,7 @@ export class Orchestrator {
   ) {
     const pending = new Set(taskIds);
     // Which agent's start the policy gate may refuse right now.
-    let step: { taskId: string; agent: Agent } | null = null;
+    let step: PolicyStep | null = null;
     try {
       while (pending.size && batch.status === "running" && !this.closed) {
         const tasks = this.store.tasks(batch.projectId);
@@ -200,7 +207,11 @@ export class Orchestrator {
               ?.configured
           ) {
             this.save(batch, "reviewing", next.id);
-            step = { taskId: next.id, agent: result.reviewer };
+            step = {
+              taskId: next.id,
+              agent: result.reviewer,
+              reviewRunId: run.id,
+            };
             await this.supervisor.review({
               projectId: batch.projectId,
               runId: run.id,
@@ -232,24 +243,58 @@ export class Orchestrator {
         this.save(batch, "completed");
       }
     } catch (e) {
-      const code = e instanceof Error ? e.message : "";
-      if (
-        code.startsWith("POLICY_") &&
-        batch.status === "running" &&
-        !this.closed
-      ) {
-        // A policy refusal is a decision for the operator, not a failure:
-        // approve or change the policy, then resume the remaining tasks.
-        batch.status = "blocked";
-        batch.reason = code;
-        batch.runId = null;
-        if (step) batch.policyAgent = step.agent;
-        this.save(batch, "blocked", step?.taskId ?? null);
-      } else if (batch.status === "running" && !this.closed) {
-        batch.status = "failed";
-        batch.reason = "DISPATCH_FAILED";
-        this.save(batch, "failed");
-      }
+      this.refused(batch, e, step);
+    } finally {
+      if (this.live.get(batch.projectId) === batch && !this.closed)
+        this.live.delete(batch.projectId);
+    }
+  }
+  /** A policy refusal is a decision for the operator, not a failure: approve
+   * or change the policy, then resume. Anything else fails the batch. */
+  private refused(
+    batch: OrchestrationState,
+    e: unknown,
+    step: PolicyStep | null,
+  ) {
+    if (batch.status !== "running" || this.closed) return;
+    const code = e instanceof Error ? e.message : "";
+    if (code.startsWith("POLICY_")) {
+      batch.status = "blocked";
+      batch.reason = code;
+      batch.runId = null;
+      if (step) batch.policyAgent = step.agent;
+      if (step?.reviewRunId) batch.policyRunId = step.reviewRunId;
+      this.save(batch, "blocked", step?.taskId ?? null);
+    } else {
+      batch.status = "failed";
+      batch.reason = "DISPATCH_FAILED";
+      this.save(batch, "failed");
+    }
+  }
+  /** Retries a review the policy refused; the result then waits for a human
+   * decision like any reviewed result. */
+  private async retryReview(batch: OrchestrationState, runId: string) {
+    const run = this.store.runs.get(batch.projectId, runId)!;
+    const step = {
+      taskId: run.taskId,
+      agent: run.reviewer as Agent,
+      reviewRunId: runId,
+    };
+    try {
+      this.save(batch, "reviewing", run.taskId);
+      await this.supervisor.review({
+        projectId: batch.projectId,
+        runId,
+        consent: true,
+      });
+      await this.supervisor.waitForRun(runId);
+      if (batch.status !== "running" || this.closed) return;
+      batch.finished++;
+      batch.status = "blocked";
+      batch.reason = "HUMAN_APPROVAL_REQUIRED";
+      this.save(batch, "blocked", run.taskId);
+    } catch (e) {
+      this.refused(batch, e, step);
     } finally {
       if (this.live.get(batch.projectId) === batch && !this.closed)
         this.live.delete(batch.projectId);

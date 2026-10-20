@@ -90,6 +90,15 @@ export function ControlCenter({
   ).length;
   const runsToday = (scan?.usage ?? []).reduce((n, u) => n + u.runsToday, 0);
   const steps = nextSteps(connectors);
+  // Same vocabulary as the Connections cards; the scan already carries checks.
+  const mapState = (id: string) => {
+    const c = connectors.find((x) => x.id === id);
+    if (!c) return "none";
+    if (c.state === "ready") return "connected";
+    if (c.state === "needs-auth") return "needs-auth";
+    if (c.state === "degraded") return "unavailable";
+    return c.installed ? "detected" : "none";
+  };
   const usageOf = (id: string) => scan?.usage.find((u) => u.provider === id);
   const signIn = (c: ConnectorStatus) => {
     if (c.auth === "authenticated")
@@ -175,8 +184,16 @@ export function ControlCenter({
             <span>ORCHESTRATOR</span>
           </div>
           {["codex", "claude", "opencode", "antigravity"].map((id, i) => (
-            <div className={`map-node node-${i}`} key={id}>
-              <ProviderIcon provider={id} />
+            <div
+              className={`map-node node-${i} state-${mapState(id)}`}
+              key={id}
+            >
+              <span className="picker-glyph">
+                <ProviderIcon provider={id} />
+                {mapState(id) !== "none" && (
+                  <i className="connection-dot" aria-hidden="true" />
+                )}
+              </span>
               <span>
                 {
                   (

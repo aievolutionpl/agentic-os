@@ -10,7 +10,13 @@ import {
   type ProviderSetting,
   type Task,
 } from "../shared";
-import { Icon, SelectField, agentName } from "./ui";
+import {
+  Icon,
+  SelectField,
+  agentName,
+  connectionLabel,
+  connectionState,
+} from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 
 export function MasterPanel({
@@ -235,22 +241,26 @@ export function MasterPanel({
         </div>
         <div className="master-workers">
           {AGENTS.map((id) => {
-            const connected = providers.some(
-                (p) => p.id === id && p.configured,
-              ),
+            const state = connectionState(providers.find((p) => p.id === id)),
               assigned = (composing ? workers : mission.workers).includes(id);
             return (
-              <span className={assigned ? "assigned" : ""} key={id}>
-                <ProviderIcon provider={id} />
+              <span
+                className={`state-${state}${assigned ? " assigned" : ""}`}
+                key={id}
+              >
+                <span className="picker-glyph">
+                  <ProviderIcon provider={id} />
+                  {state !== "none" && (
+                    <i className="connection-dot" aria-hidden="true" />
+                  )}
+                </span>
                 <strong>{agentName(id)}</strong>
                 <small>
-                  {connected
+                  {state === "none"
                     ? pl
-                      ? "Połączenie zapisane"
-                      : "Connection saved"
-                    : pl
                       ? "Do podłączenia"
-                      : "Connect to use"}
+                      : "Connect to use"
+                    : connectionLabel(state, pl)}
                 </small>
               </span>
             );

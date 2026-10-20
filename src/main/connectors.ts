@@ -664,6 +664,45 @@ export function withExecutionSettings(
   });
 }
 
+/**
+ * Fold the latest recorded connection check into the scan, so every screen
+ * reports the same state as Connections. Only configured runtimes carry checks
+ * (saving a setup clears its check); a check proves the handshake, and sign-in
+ * only when its detail says it was verified.
+ */
+export function withCheckEvidence(
+  connectors: ConnectorStatus[],
+  checks: { agent: string; state: string; detail: string }[],
+): ConnectorStatus[] {
+  return connectors.map((c) => {
+    const check = checks.find((k) => k.agent === c.id);
+    if (
+      !check ||
+      c.adapter !== "available" ||
+      !c.installed ||
+      c.reason === "connection_required"
+    )
+      return c;
+    if (check.state === "connected")
+      return {
+        ...c,
+        state: "ready",
+        reason: "ok",
+        auth: /_VERIFIED$|_MODELS_READY$/.test(check.detail)
+          ? "authenticated"
+          : c.auth,
+      };
+    if (check.state === "needs-auth")
+      return {
+        ...c,
+        state: "needs-auth",
+        reason: "auth_missing",
+        auth: "unauthenticated",
+      };
+    return { ...c, state: "degraded", reason: "probe_failed" };
+  });
+}
+
 export async function scanConnectors(
   deps: Partial<Deps> = {},
   now: () => string = () => new Date().toISOString(),

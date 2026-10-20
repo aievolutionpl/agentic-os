@@ -8,12 +8,22 @@ import type {
   Memory,
   Preferences,
   ProjectData,
+  ProviderSetting,
   Snapshot,
   Task,
   TaskAction,
 } from "../shared";
 import { words } from "./i18n";
-import { agentName, Icon, Modal, SelectField, useNarrow } from "./ui";
+import {
+  agentName,
+  connectionLabel,
+  connectionState,
+  Icon,
+  Modal,
+  SelectField,
+  useNarrow,
+} from "./ui";
+import { ProviderIcon } from "./ProviderIcon";
 import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
 import { ExtensionsPanel } from "./ExtensionsPanel";
@@ -65,6 +75,15 @@ function App() {
   const [attention, setAttention] = useState<Attention | null>(null),
     [attentionFailed, setAttentionFailed] = useState(false),
     [palette, setPalette] = useState(false);
+  // Connection evidence for the sidebar agent dock; refreshed on every view
+  // change so a check run on any screen shows up everywhere.
+  const [agents, setAgents] = useState<ProviderSetting[]>([]);
+  useEffect(() => {
+    void api
+      ?.providerSettings?.()
+      .then(setAgents)
+      .catch(() => {});
+  }, [view]);
   const [scan, setScan] = useState<ConnectorScan | null>(null),
     [scanning, setScanning] = useState(false),
     [scanFailed, setScanFailed] = useState(false);
@@ -721,6 +740,48 @@ function App() {
             </button>
           ))}
         </nav>
+        <div
+          className="agent-dock"
+          role="group"
+          aria-label={prefs.language === "pl" ? "Twoi agenci" : "Your agents"}
+        >
+          {agents.some((a) => a.configured) ? (
+            agents
+              .filter((a) => a.configured)
+              .map((a) => {
+                const state = connectionState(a),
+                  label = `${agentName(a.id)} · ${connectionLabel(state, prefs.language === "pl")}`;
+                return (
+                  <button
+                    key={a.id}
+                    className={`state-${state}`}
+                    title={label}
+                    aria-label={label}
+                    onClick={() => {
+                      setProjectsExpanded(false);
+                      setView("connections");
+                    }}
+                  >
+                    <span className="picker-glyph">
+                      <ProviderIcon provider={a.id} />
+                      <i className="connection-dot" aria-hidden="true" />
+                    </span>
+                  </button>
+                );
+              })
+          ) : (
+            <button
+              className="agent-dock-empty"
+              onClick={() => {
+                setProjectsExpanded(false);
+                setView("connections");
+              }}
+            >
+              <Icon name="connections" />
+              {prefs.language === "pl" ? "Podłącz agenta" : "Connect an agent"}
+            </button>
+          )}
+        </div>
         <div className="sidebar-bottom">
           <span className="local-indicator" aria-hidden="true" />
           {w.local}
@@ -899,6 +960,9 @@ function App() {
                 failed={attentionFailed}
                 onRefresh={() => void readAttention()}
                 onOpen={openAttention}
+                onStart={(target) =>
+                  target === "project" ? openProject() : setView(target)
+                }
               />
             ) : view === "connections" ? (
               <ProviderSetup language={prefs.language} />

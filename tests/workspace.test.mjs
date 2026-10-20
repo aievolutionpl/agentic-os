@@ -14,7 +14,10 @@ import {
   loadCustomSubscriptions,
   scanAllQuotas,
 } from "../dist/main/quota.js";
-import { withExecutionSettings } from "../dist/main/connectors.js";
+import {
+  withExecutionSettings,
+  withCheckEvidence,
+} from "../dist/main/connectors.js";
 import { Orchestrator } from "../dist/main/orchestrator.js";
 
 const temporary = (t, before = () => {}) => {
@@ -312,6 +315,46 @@ test("detected CLI is not a configured connection and isolated Codex does not in
   )[0];
   assert.equal(result.auth, "unknown");
   assert.equal(result.plan, null);
+});
+test("recorded connection checks give every screen the same agent state", () => {
+  const base = {
+    id: "codex",
+    name: "Codex",
+    installed: true,
+    adapter: "available",
+    state: "experimental",
+    reason: "auth_unknown",
+    auth: "unknown",
+  };
+  const check = (state, detail) => [{ agent: "codex", state, detail }];
+  let [c] = withCheckEvidence(
+    [base],
+    check("connected", "CLI_SIGN_IN_VERIFIED"),
+  );
+  assert.deepEqual(
+    [c.state, c.reason, c.auth],
+    ["ready", "ok", "authenticated"],
+  );
+  // A handshake without verified sign-in is ready, but sign-in stays unknown.
+  [c] = withCheckEvidence(
+    [base],
+    check("connected", "ACP_READY_AUTH_UNVERIFIED"),
+  );
+  assert.deepEqual([c.state, c.auth], ["ready", "unknown"]);
+  [c] = withCheckEvidence([base], check("needs-auth", "SIGN_IN_REQUIRED"));
+  assert.deepEqual([c.state, c.reason], ["needs-auth", "auth_missing"]);
+  [c] = withCheckEvidence([base], check("unavailable", "PROVIDER_UNAVAILABLE"));
+  assert.equal(c.state, "degraded");
+  // Unconfigured, missing or non-runnable connectors ignore stray checks.
+  for (const other of [
+    { ...base, reason: "connection_required" },
+    { ...base, installed: false },
+    { ...base, adapter: "planned" },
+  ])
+    assert.deepEqual(
+      withCheckEvidence([other], check("connected", "CLI_SIGN_IN_VERIFIED"))[0],
+      other,
+    );
 });
 test("orchestrator is finite, shares context, reviews changes and pauses without applying or starting the next task", async (t) => {
   let store;

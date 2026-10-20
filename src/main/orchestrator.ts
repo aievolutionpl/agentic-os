@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import type { Store } from "./store.js";
 import type { Supervisor } from "./supervisor.js";
 import type { BatchContext } from "./batches.js";
-import type { OrchestrationEvent, OrchestrationState } from "../shared.js";
+import type {
+  Agent,
+  OrchestrationEvent,
+  OrchestrationState,
+} from "../shared.js";
 import { exact, text } from "./validate.js";
 
 /** A finite, explicitly launched queue. No replay, automatic approvals, or hidden retries. */
@@ -112,7 +116,10 @@ export class Orchestrator {
     this.guard(projectId);
     const batch = this.store.batches.latest(projectId);
     if (!batch || batch.id !== batchId) throw Error("BATCH_NOT_FOUND");
-    if (batch.status !== "interrupted") throw Error("BATCH_NOT_INTERRUPTED");
+    const policyHold =
+      batch.status === "blocked" && !!batch.reason?.startsWith("POLICY_");
+    if (batch.status !== "interrupted" && !policyHold)
+      throw Error("BATCH_NOT_INTERRUPTED");
     const tasks = this.store.tasks(projectId),
       remaining = batch.taskIds.filter(
         (id) =>
@@ -125,6 +132,7 @@ export class Orchestrator {
     batch.status = "running";
     batch.reason = null;
     batch.runId = null;
+    delete batch.policyAgent;
     this.store.batches.save(batch, "resumed");
     this.live.set(projectId, batch);
     void this.execute(batch, context, remaining);
@@ -144,6 +152,8 @@ export class Orchestrator {
     taskIds = batch.taskIds,
   ) {
     const pending = new Set(taskIds);
+    // Which agent's start the policy gate may refuse right now.
+    let step: { taskId: string; agent: Agent } | null = null;
     try {
       while (pending.size && batch.status === "running" && !this.closed) {
         const tasks = this.store.tasks(batch.projectId);
@@ -163,6 +173,7 @@ export class Orchestrator {
           this.save(batch, "blocked");
           break;
         }
+        step = { taskId: next.id, agent: next.implementer };
         const run = await this.supervisor.start(
           {
             projectId: batch.projectId,
@@ -189,6 +200,7 @@ export class Orchestrator {
               ?.configured
           ) {
             this.save(batch, "reviewing", next.id);
+            step = { taskId: next.id, agent: result.reviewer };
             await this.supervisor.review({
               projectId: batch.projectId,
               runId: run.id,
@@ -219,8 +231,21 @@ export class Orchestrator {
         batch.status = "completed";
         this.save(batch, "completed");
       }
-    } catch {
-      if (batch.status === "running" && !this.closed) {
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      if (
+        code.startsWith("POLICY_") &&
+        batch.status === "running" &&
+        !this.closed
+      ) {
+        // A policy refusal is a decision for the operator, not a failure:
+        // approve or change the policy, then resume the remaining tasks.
+        batch.status = "blocked";
+        batch.reason = code;
+        batch.runId = null;
+        if (step) batch.policyAgent = step.agent;
+        this.save(batch, "blocked", step?.taskId ?? null);
+      } else if (batch.status === "running" && !this.closed) {
         batch.status = "failed";
         batch.reason = "DISPATCH_FAILED";
         this.save(batch, "failed");

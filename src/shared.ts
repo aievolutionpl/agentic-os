@@ -350,6 +350,8 @@ export interface OrchestrationState {
   finished: number;
   runId: string | null;
   reason: string | null;
+  /** Agent a POLICY_* hold is waiting on (approval or a policy change). */
+  policyAgent?: Agent;
   createdAt: number | null;
   updatedAt: number | null;
 }

@@ -1,5 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { Task, Memory, RuntimeView, Run, Extension } from "../shared";
+import type {
+  Agent,
+  Task,
+  Memory,
+  RuntimeView,
+  Run,
+  Extension,
+} from "../shared";
 import { Icon, Modal, SelectField } from "./ui";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
 const copy = {
@@ -126,6 +133,8 @@ export function RunPanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false),
     [policyCode, setPolicyCode] = useState(""),
+    // The agent whose start the policy refused: the reviewer for review runs.
+    [policyAgent, setPolicyAgent] = useState<Agent>(task.implementer),
     [consent, setConsent] = useState(false),
     [ids, setIds] = useState<string[]>([]),
     [instruction, setInstruction] = useState(""),
@@ -201,7 +210,10 @@ export function RunPanel({
   useEffect(() => {
     setArtifact(null);
   }, [run?.id, run?.artifactId]);
-  async function action(fn: () => Promise<unknown>) {
+  async function action(
+    fn: () => Promise<unknown>,
+    agent: Agent = task.implementer,
+  ) {
     setBusy(true);
     setError(false);
     setPolicyCode("");
@@ -211,8 +223,10 @@ export function RunPanel({
       onChanged();
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
-      if (policyMessage(code, true)) setPolicyCode(code);
-      else setError(true);
+      if (policyMessage(code, true)) {
+        setPolicyAgent(agent);
+        setPolicyCode(code);
+      } else setError(true);
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -265,7 +279,7 @@ export function RunPanel({
         <div className="inline-error policy-refusal" role="alert">
           <p>{policyMessage(policyCode, language === "pl")}</p>
           {policyCode.includes("POLICY_APPROVAL_REQUIRED") && (
-            <PaidApproval agent={task.implementer} pl={language === "pl"} />
+            <PaidApproval agent={policyAgent} pl={language === "pl"} />
           )}
         </div>
       )}
@@ -501,12 +515,14 @@ export function RunPanel({
                   busy || !reviewerReady || run.reviewState === "running"
                 }
                 onClick={() =>
-                  void action(() =>
-                    api.runtimeReview({
-                      projectId: task.projectId,
-                      runId: run.id,
-                      consent: true,
-                    }),
+                  void action(
+                    () =>
+                      api.runtimeReview({
+                        projectId: task.projectId,
+                        runId: run.id,
+                        consent: true,
+                      }),
+                    run.reviewer,
                   )
                 }
               >

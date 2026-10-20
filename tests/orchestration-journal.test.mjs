@@ -285,3 +285,50 @@ test("schema v12 migrates to the current schema without losing data and rejects 
   db.close();
   assert.throws(() => f.open(), /UNSUPPORTED_SCHEMA/);
 });
+
+test("a policy refusal holds the batch as blocked and resumes after approval", async (t) => {
+  const f = fixture(t);
+  const store = f.open();
+  const { project } = seed(store, 2);
+  const [a, b] = store.tasks(project.id).map((x) => x.id);
+  const fake = runtime(store, project.id, () => "ok");
+  let approved = false;
+  const start = fake.start;
+  fake.start = async (p, c) => {
+    if (p.taskId === b && !approved) throw Error("POLICY_APPROVAL_REQUIRED");
+    return start(p, c);
+  };
+  const queue = new Orchestrator(store, fake);
+  const started = queue.start({
+    projectId: project.id,
+    taskIds: [a, b],
+    contextIds: [],
+    consent: true,
+  });
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  const held = queue.state({ projectId: project.id });
+  assert.equal(held.status, "blocked");
+  assert.equal(held.reason, "POLICY_APPROVAL_REQUIRED");
+  assert.equal(held.policyAgent, "codex");
+  assert.deepEqual(held.completedTaskIds, [a]);
+  const last = queue.events({ projectId: project.id })[0];
+  assert.equal(last.kind, "blocked");
+  assert.equal(last.taskId, b);
+
+  approved = true;
+  const resumed = queue.resume({
+    projectId: project.id,
+    batchId: started.id,
+    consent: true,
+  });
+  assert.equal(resumed.status, "running");
+  assert.equal(resumed.policyAgent, undefined);
+  await until(
+    () => queue.state({ projectId: project.id }).status !== "running",
+  );
+  const done = queue.state({ projectId: project.id });
+  assert.equal(done.status, "completed");
+  assert.deepEqual(done.completedTaskIds, [a, b]);
+});

@@ -7,6 +7,7 @@ import type {
 } from "../shared";
 import { Icon, Modal, agentName } from "./ui";
 import { TeamPreflight } from "./TeamPreflight";
+import { PaidApproval, policyMessage } from "./PolicyPanel";
 
 export function OrchestrationPanel({
   projectId,
@@ -57,6 +58,10 @@ export function OrchestrationPanel({
   if (!api.orchestrationStart) return null;
   const queued = tasks.filter((t) => t.status === "queued");
   const running = state?.status === "running";
+  // A policy refusal holds the queue until the operator approves or changes
+  // the policy; it is resumed like an interrupted batch.
+  const policyHold =
+    state?.status === "blocked" && !!state.reason?.startsWith("POLICY_");
   const labels = pl
     ? {
         idle: "Gotowy",
@@ -92,7 +97,10 @@ export function OrchestrationPanel({
         {state && state.status !== "idle" && (
           <span role="status">
             {labels[state.status]} · {state.finished}/{state.taskIds.length}
+            {policyHold &&
+              ` · ${policyMessage(state.reason!, pl) ?? state.reason}`}
             {state.status === "blocked" &&
+              !policyHold &&
               (pl
                 ? " · Otwórz wynik zadania, aby przejrzeć i zatwierdzić zmiany."
                 : " · Open the task result to review and approve changes.")}
@@ -119,7 +127,7 @@ export function OrchestrationPanel({
         </button>
       ) : (
         <>
-          {state?.status === "interrupted" && state.id && (
+          {(state?.status === "interrupted" || policyHold) && state?.id && (
             <button
               className="secondary"
               disabled={busy}
@@ -300,9 +308,24 @@ export function OrchestrationPanel({
         className="batch-dialog"
       >
         <h2 id="orchestration-inspect-title">
-          {pl ? "Przerwana kolejka" : "Interrupted queue"}
+          {policyHold
+            ? pl
+              ? "Kolejka czeka na decyzję"
+              : "Queue waiting for a decision"
+            : pl
+              ? "Przerwana kolejka"
+              : "Interrupted queue"}
         </h2>
-        <p className="helper">
+        {policyHold && state?.reason && (
+          <div className="inline-error policy-refusal" role="alert">
+            <p>{policyMessage(state.reason, pl)}</p>
+            {state.reason.includes("POLICY_APPROVAL_REQUIRED") &&
+              state.policyAgent && (
+                <PaidApproval agent={state.policyAgent} pl={pl} />
+              )}
+          </div>
+        )}
+        <p className="helper" hidden={policyHold}>
           {pl
             ? "Aktywny krok został oznaczony jako przerwany i nie został powtórzony. Jego zapisany workspace sprawdzisz i wznowisz w wyniku zadania. Kontynuacja uruchomi tylko pozostałe zadania, które nadal czekają w kolejce."
             : "The active step was marked interrupted and was not replayed. Inspect and resume its saved workspace from the task result. Continuing only starts remaining tasks that are still queued."}

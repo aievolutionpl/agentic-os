@@ -204,12 +204,18 @@ app
       }
     };
     supervisor.gate = async (agent) => {
-      const policy = store.policies.get(),
-        paid = quotaProvider(agent) === "openrouter";
+      const paid = quotaProvider(agent) === "openrouter";
+      // Spend is fetched first; policy and approval are read after the await so
+      // a change made meanwhile (stricter budget, revoked approval) applies.
+      const spent =
+        paid && store.policies.get().monthlyBudgetUsd !== null
+          ? await monthlySpend()
+          : null;
+      const policy = store.policies.get();
       const decision = evaluatePolicy(
         { agent, paid, approved: paidApprovals.has(agent) },
         policy,
-        paid && policy.monthlyBudgetUsd !== null ? await monthlySpend() : null,
+        spent,
       );
       if (decision.verdict !== "allow") throw Error(decision.reasons[0]);
     };

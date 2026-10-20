@@ -258,6 +258,7 @@ app
         return null;
       }
     };
+    supervisor.paid = (agent) => quotaProvider(agent) === "openrouter";
     supervisor.gate = async (agent) => {
       const paid = quotaProvider(agent) === "openrouter";
       // Spend is fetched first; policy and approval are read after the await so
@@ -554,6 +555,10 @@ app
         paidApprovals.revokeAll();
         return policy;
       },
+      usageReport: () => ({
+        summary: store.usage.summary(Date.now() - 30 * 86_400_000),
+        recent: store.usage.recent(30),
+      }),
       routePreview: async (input) => {
         const p = exact(input, [
           "mode",

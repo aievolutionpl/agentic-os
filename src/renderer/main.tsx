@@ -29,6 +29,7 @@ import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
 import { PolicyPanel } from "./PolicyPanel";
 import { RoutePreview } from "./RoutePreview";
+import { UsageLedgerPanel } from "./UsageLedgerPanel";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
@@ -1027,10 +1028,13 @@ function App() {
                 <PolicyPanel language={prefs.language} />
               </>
             ) : view === "quota" ? (
-              <OpenQuotaPanel
-                language={prefs.language}
-                onConfigure={() => setView("connections")}
-              />
+              <>
+                <OpenQuotaPanel
+                  language={prefs.language}
+                  onConfigure={() => setView("connections")}
+                />
+                <UsageLedgerPanel language={prefs.language} />
+              </>
             ) : view === "center" ? (
               <ControlCenter
                 language={prefs.language}

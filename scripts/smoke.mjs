@@ -119,6 +119,7 @@ try {
       "policySet",
       "policyApprove",
       "routePreview",
+      "usageReport",
       "memoryList",
       "memoryUpdate",
       "skillCatalog",

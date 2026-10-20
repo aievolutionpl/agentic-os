@@ -10,6 +10,7 @@ import { ChatStore } from "./chat-store.js";
 import { Batches } from "./batches.js";
 import { CapabilityChecks } from "./capabilities.js";
 import { Policies } from "./policy.js";
+import { UsageLedger } from "./usage-ledger.js";
 import { AGENTS } from "../shared.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
@@ -41,7 +42,7 @@ function agent(input: unknown): Agent {
   return input as Agent;
 }
 /** Highest schema this build reads; newer databases are refused. */
-export const SCHEMA_VERSION = 15;
+export const SCHEMA_VERSION = 16;
 export class Store {
   private db: DatabaseSync;
   readonly lifecycle: Lifecycle;
@@ -55,6 +56,7 @@ export class Store {
   readonly batches: Batches;
   readonly capabilities: CapabilityChecks;
   readonly policies: Policies;
+  readonly usage: UsageLedger;
   constructor(
     readonly file: string,
     clock: () => number = Date.now,
@@ -127,6 +129,7 @@ export class Store {
       this.batches = new Batches(this.db, clock);
       this.capabilities = new CapabilityChecks(this.db);
       this.policies = new Policies(this.db);
+      this.usage = new UsageLedger(this.db, clock);
     } catch (error) {
       this.db.close();
       throw error;

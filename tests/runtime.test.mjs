@@ -675,6 +675,13 @@ test("a policy refusal stops a task run before any run, worktree or process exis
     await wait(
       () => f.store.runs.get(f.project.id, run.id)?.state === "awaiting_review",
     );
+    // The refused attempt spent nothing; the real run left one ledger row.
+    const rows = f.store.usage.recent();
+    assert.equal(rows.length, 1);
+    assert.deepEqual(
+      [rows[0].role, rows[0].agent, rows[0].runId, rows[0].outcome],
+      ["implementer", "codex", run.id, "completed"],
+    );
   } finally {
     await f.close();
   }

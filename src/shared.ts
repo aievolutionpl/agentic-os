@@ -377,6 +377,16 @@ export interface Capability {
     | "needs-connection"
     | "needs-install";
 }
+export interface BackupSummary {
+  file: string;
+  schema: number;
+  bytes: number;
+  projects: number;
+  tasks: number;
+  memory: number;
+  runs: number;
+  chats: number;
+}
 /** Something the operator should know about or decide, aggregated across projects. */
 export interface AttentionItem {
   kind:
@@ -519,6 +529,11 @@ export interface API {
   }): Promise<OrchestrationState>;
   orchestrationStop?(input: { projectId: string }): Promise<void>;
   attention?(): Promise<Attention>;
+  backupCreate?(): Promise<BackupSummary | null>;
+  backupRestore?(input: { consent: true }): Promise<BackupSummary | null>;
+  diagnosticsExport?(): Promise<string | null>;
+  restartApp?(): Promise<void>;
+  restoreStatus?(): Promise<"none" | "restored" | "rejected">;
   orchestrationEvents?(input: {
     projectId: string;
   }): Promise<OrchestrationEvent[]>;

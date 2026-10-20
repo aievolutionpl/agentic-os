@@ -97,7 +97,7 @@ try {
       "snapshot",
       "chatList", "chatCreate", "chatSend", "chatAction", "chatRemember", "chatTask", "memoryList", "memoryUpdate", "skillCatalog", "skillImportFile", "providerCheck", "providerSignIn", "providerConnectDetected",
       "connectorScan",
-      "orchestrationStart", "orchestrationState", "orchestrationStop", "orchestrationEvents", "orchestrationResume", "attention",
+      "orchestrationStart", "orchestrationState", "orchestrationStop", "orchestrationEvents", "orchestrationResume", "attention", "backupCreate", "backupRestore", "diagnosticsExport", "restoreStatus", "restartApp",
       "missionPlan", "missionList", "missionAction", "missionRemember", "localModelSettings", "localModelSave", "localModelRemove",
       "providerDetect", "openRouterSettings", "openRouterSave", "openRouterRemove", "openRouterModels",
       "quotaScan", "quotaSaveCustom", "quotaDeleteCustom", "quotaRefresh",

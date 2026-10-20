@@ -39,6 +39,8 @@ function agent(input: unknown): Agent {
   if (!AGENTS.includes(input as Agent)) throw Error("INVALID_INPUT");
   return input as Agent;
 }
+/** Highest schema this build reads; newer databases are refused. */
+export const SCHEMA_VERSION = 14;
 export class Store {
   private db: DatabaseSync;
   readonly lifecycle: Lifecycle;
@@ -51,7 +53,10 @@ export class Store {
   readonly chats: ChatStore;
   readonly batches: Batches;
   readonly capabilities: CapabilityChecks;
-  constructor(file: string, clock: () => number = Date.now) {
+  constructor(
+    readonly file: string,
+    clock: () => number = Date.now,
+  ) {
     this.db = new DatabaseSync(file);
     this.db.exec(
       "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",
@@ -61,7 +66,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 14) {
+      if (version.user_version > SCHEMA_VERSION) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -126,6 +131,77 @@ export class Store {
   }
   close() {
     this.db.close();
+  }
+  /** Consistent copy of the live database to a new file. */
+  snapshot(target: string) {
+    this.db.prepare("VACUUM INTO ?").run(target);
+  }
+  /** Counts and states only; never row content. */
+  diagnostics() {
+    const tables = new Set(
+      this.db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+        .all()
+        .map((row) => String(row.name)),
+    );
+    const counts: Record<string, number> = {};
+    for (const table of [
+      "projects",
+      "tasks",
+      "runs",
+      "memory",
+      "chats",
+      "missions",
+      "batches",
+      "extensions",
+    ])
+      if (tables.has(table))
+        counts[table] = Number(
+          this.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()!.n,
+        );
+    const grouped = (sql: string) =>
+      Object.fromEntries(
+        this.db
+          .prepare(sql)
+          .all()
+          .map((row) => [String(row.k), Number(row.n)]),
+      );
+    return {
+      schema: Number(
+        this.db.prepare("PRAGMA user_version").get()!.user_version,
+      ),
+      counts,
+      runStates: grouped(
+        "SELECT state AS k, COUNT(*) AS n FROM runs GROUP BY state",
+      ),
+      batchStates: grouped(
+        "SELECT json_extract(state,'$.status') AS k, COUNT(*) AS n FROM batches GROUP BY k",
+      ),
+      providers: this.db
+        .prepare(
+          "SELECT id,command,protocol,profile,consent,model FROM provider_settings ORDER BY id",
+        )
+        .all()
+        .map((row) => ({
+          id: String(row.id),
+          command: String(row.command),
+          protocol: String(row.protocol),
+          profile: String(row.profile),
+          configured: Number(row.consent) === 1,
+          model: row.model == null ? null : String(row.model),
+        })),
+      recentErrors: this.db
+        .prepare(
+          "SELECT provider,state,error,updatedAt FROM runs WHERE error IS NOT NULL ORDER BY updatedAt DESC LIMIT 20",
+        )
+        .all()
+        .map((row) => ({
+          provider: String(row.provider),
+          state: String(row.state),
+          error: String(row.error),
+          at: Number(row.updatedAt),
+        })),
+    };
   }
   private project(id: unknown): string {
     const value = text(id);

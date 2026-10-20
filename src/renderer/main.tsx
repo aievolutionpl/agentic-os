@@ -469,6 +469,52 @@ function App() {
         icon: "plus",
         run: openProject,
       },
+      ...(api?.backupCreate
+        ? [
+            {
+              id: "action-backup",
+              label: pl ? "Utwórz kopię zapasową danych" : "Back up data",
+              group: act,
+              icon: "download",
+              run: () =>
+                void api.backupCreate!()
+                  .then((s) => {
+                    if (s)
+                      setToast({
+                        message: pl
+                          ? `Zapisano kopię: ${s.file}`
+                          : `Backup saved: ${s.file}`,
+                      });
+                  })
+                  .catch(() =>
+                    setToast({
+                      message: pl
+                        ? "Nie udało się zapisać kopii."
+                        : "Could not save the backup.",
+                      error: true,
+                    }),
+                  ),
+            },
+            {
+              id: "action-data",
+              label: pl
+                ? "Przywróć z kopii lub eksportuj diagnostykę"
+                : "Restore a backup or export diagnostics",
+              group: act,
+              icon: "history",
+              run: () => {
+                setView("center");
+                setTimeout(
+                  () =>
+                    document
+                      .getElementById("data-title")
+                      ?.scrollIntoView({ block: "start" }),
+                  50,
+                );
+              },
+            },
+          ]
+        : []),
       {
         id: "action-rescan",
         label: pl ? "Skanuj połączenia agentów" : "Rescan agent connections",

@@ -2,6 +2,8 @@ appId: pl.aievolution.agentingos
 productName: Agenting OS
 copyright: Copyright © 2026 AI Evolution Polska
 asar: true
+asarUnpack:
+  - node_modules/node-pty/**/*
 directories:
   output: release
 electronDist: node_modules/electron/dist

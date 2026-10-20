@@ -360,6 +360,7 @@ export function observedQuota(
           l.resetsAt === null ? null : new Date(l.resetsAt).toISOString(),
         periodSeconds,
         format: "percent",
+        state: l.status,
       };
     })
     // Windows with a reported percentage lead the card's gauge.

@@ -6,6 +6,8 @@ import type {
   OrchestrationState,
 } from "../shared";
 import { Icon, Modal, agentName } from "./ui";
+import { TeamPreflight } from "./TeamPreflight";
+import { PaidApproval, policyMessage } from "./PolicyPanel";
 
 export function OrchestrationPanel({
   projectId,
@@ -57,6 +59,17 @@ export function OrchestrationPanel({
   if (!api.orchestrationStart) return null;
   const queued = tasks.filter((t) => t.status === "queued");
   const running = state?.status === "running";
+  // A policy refusal holds the queue until the operator approves or changes
+  // the policy; it is resumed like an interrupted batch.
+  const policyHold =
+    state?.status === "blocked" && !!state.reason?.startsWith("POLICY_");
+  // A review that did not finish holds the queue the same way.
+  const reviewHold =
+    state?.status === "blocked" && state.reason === "REVIEW_FAILED";
+  const onHold = policyHold || reviewHold;
+  const reviewHoldText = pl
+    ? "Review nie zakończyło się. Kontynuuj, aby uruchomić je ponownie."
+    : "The review did not finish. Continue to run it again.";
   const labels = pl
     ? {
         idle: "Gotowy",
@@ -97,12 +110,16 @@ export function OrchestrationPanel({
               (pl
                 ? ` · ${state.runIds!.length} zadania równolegle`
                 : ` · ${state.runIds!.length} tasks in parallel`)}
+            {policyHold &&
+              ` · ${policyMessage(state.reason!, pl) ?? state.reason}`}
+            {reviewHold && ` · ${reviewHoldText}`}
             {state.status === "blocked" &&
               state.reason === "FILE_CONFLICT" &&
               (pl
                 ? " · Dwa zadania zmieniły te same pliki. Zatwierdź jedno, a drugie uruchom ponownie na nowym stanie."
                 : " · Two tasks changed the same files. Approve one, then re-run the other on the new state.")}
             {state.status === "blocked" &&
+              !onHold &&
               state.reason !== "FILE_CONFLICT" &&
               (pl
                 ? " · Otwórz wynik zadania, aby przejrzeć i zatwierdzić zmiany."
@@ -130,7 +147,7 @@ export function OrchestrationPanel({
         </button>
       ) : (
         <>
-          {state?.status === "interrupted" && state.id && (
+          {(state?.status === "interrupted" || onHold) && state?.id && (
             <button
               className="secondary"
               disabled={busy}
@@ -148,7 +165,8 @@ export function OrchestrationPanel({
           )}
           <button
             className="secondary"
-            disabled={!queued.length || busy}
+            // A policy hold is resumed or abandoned before a new queue starts.
+            disabled={!queued.length || busy || onHold}
             onClick={() => {
               setTaskIds(queued.slice(0, 10).map((t) => t.id));
               setContextIds([]);
@@ -185,6 +203,12 @@ export function OrchestrationPanel({
             ? "Maksymalnie 10 zadań, kolejno według zależności. Po zmianach plików uruchomimy skonfigurowanego recenzenta i zatrzymamy kolejkę do Twojej decyzji. Uruchomienie korzysta z limitów i rozliczeń wybranych dostawców."
             : "Up to 10 tasks, sequentially by dependencies. File changes trigger the configured reviewer and pause the queue for your decision. Runs use the selected providers' limits and billing."}
         </p>
+        {open && (
+          <TeamPreflight
+            tasks={queued.filter((t) => taskIds.includes(t.id))}
+            pl={pl}
+          />
+        )}
         <fieldset>
           <legend>{pl ? "Zadania" : "Tasks"}</legend>
           {queued.slice(0, 10).map((task) => (
@@ -324,9 +348,25 @@ export function OrchestrationPanel({
         className="batch-dialog"
       >
         <h2 id="orchestration-inspect-title">
-          {pl ? "Przerwana kolejka" : "Interrupted queue"}
+          {onHold
+            ? pl
+              ? "Kolejka czeka na decyzję"
+              : "Queue waiting for a decision"
+            : pl
+              ? "Przerwana kolejka"
+              : "Interrupted queue"}
         </h2>
-        <p className="helper">
+        {policyHold && state?.reason && (
+          <div className="inline-error policy-refusal" role="alert">
+            <p>{policyMessage(state.reason, pl)}</p>
+            {state.reason.includes("POLICY_APPROVAL_REQUIRED") &&
+              state.policyAgent && (
+                <PaidApproval agent={state.policyAgent} pl={pl} />
+              )}
+          </div>
+        )}
+        {reviewHold && <p className="helper">{reviewHoldText}</p>}
+        <p className="helper" hidden={onHold}>
           {pl
             ? "Aktywny krok został oznaczony jako przerwany i nie został powtórzony. Jego zapisany workspace sprawdzisz i wznowisz w wyniku zadania. Kontynuacja uruchomi tylko pozostałe zadania, które nadal czekają w kolejce."
             : "The active step was marked interrupted and was not replayed. Inspect and resume its saved workspace from the task result. Continuing only starts remaining tasks that are still queued."}
@@ -384,16 +424,36 @@ export function OrchestrationPanel({
           >
             {pl ? "Zamknij" : "Close"}
           </button>
+          {onHold && (
+            <button
+              className="cancel-action"
+              disabled={busy}
+              onClick={() => {
+                setBusy(true);
+                setError(false);
+                void api.orchestrationStop!({ projectId })
+                  .then(() => {
+                    setInspect(false);
+                    onChanged();
+                  })
+                  .catch(() => setError(true))
+                  .finally(() => setBusy(false));
+              }}
+            >
+              {pl ? "Porzuć kolejkę" : "Abandon queue"}
+            </button>
+          )}
           <button
             className="primary"
             disabled={
               busy ||
               !state?.id ||
-              !state.taskIds.some(
-                (id) =>
-                  !state.completedTaskIds.includes(id) &&
-                  tasks.find((t) => t.id === id)?.status === "queued",
-              )
+              (!onHold &&
+                !state.taskIds.some(
+                  (id) =>
+                    !state.completedTaskIds.includes(id) &&
+                    tasks.find((t) => t.id === id)?.status === "queued",
+                ))
             }
             onClick={() => {
               if (!state?.id || !api.orchestrationResume) return;
@@ -414,7 +474,13 @@ export function OrchestrationPanel({
                 .finally(() => setBusy(false));
             }}
           >
-            {pl ? "Kontynuuj pozostałe zadania" : "Continue remaining tasks"}
+            {reviewHold
+              ? pl
+                ? "Ponów review"
+                : "Retry review"
+              : pl
+                ? "Kontynuuj pozostałe zadania"
+                : "Continue remaining tasks"}
           </button>
         </div>
       </Modal>

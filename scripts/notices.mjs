@@ -27,7 +27,11 @@ function visit(dir) {
     for (const n of notices) {
       try {
         const target = `dependencies/${key}-${n}`;
-        writeFileSync(join("licenses", target), readFileSync(join(path, n)));
+        // Normalize line endings only; preserve upstream license text.
+        writeFileSync(
+          join("licenses", target),
+          readFileSync(join(path, n), "utf8").replace(/\r\n/g, "\n"),
+        );
         copied.push(target);
       } catch {}
     }

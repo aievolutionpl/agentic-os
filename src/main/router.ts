@@ -18,6 +18,8 @@ export interface RouteFacts {
   paid: boolean;
   /** Workspace policy verdict for this agent ("approve" = asks first). */
   policy: "allow" | "approve" | "deny";
+  /** The policy rules behind a deny/approve verdict (POLICY_* codes). */
+  policyReasons?: string[];
   /** Finished real runs and whether the latest attempt failed. */
   successes: number;
   lastFailed: boolean;
@@ -58,7 +60,8 @@ export function route(
       if (request.author === agent && request.role === "reviewer")
         why.push("SAME_AS_AUTHOR");
       if (f.quota === "exhausted") why.push("QUOTA_EXHAUSTED");
-      if (f.policy === "deny") why.push("POLICY_DENIED");
+      if (f.policy === "deny")
+        why.push("POLICY_DENIED", ...(f.policyReasons ?? []));
     }
     if (why.length) {
       rejected.push({ agent, reasons: why });
@@ -91,7 +94,12 @@ export function route(
             : -2,
         "PAID_PER_TOKEN",
       );
-    if (f!.policy === "approve") add(-1, "NEEDS_APPROVAL");
+    if (f!.policy === "approve") {
+      add(-1, "NEEDS_APPROVAL");
+      // Which rule asks first, e.g. unknown spend under a budget.
+      for (const why of f!.policyReasons ?? [])
+        if (why !== "POLICY_APPROVAL_REQUIRED") reasons.push(`0 ${why}`);
+    }
     ranked.push({ agent, score, reasons });
   }
   // Stable order: score, then the fixed agent order, so ties never flip.

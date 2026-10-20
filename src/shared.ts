@@ -161,6 +161,29 @@ export interface ProviderHealth {
   models: { id: string; name: string }[];
   observedAt: string;
 }
+
+/** A portable transcript, deliberately excluding local paths and hidden context. */
+export function chatMarkdown(chat: ChatSession): string {
+  const line = (value: string) => value.replace(/[\r\n]+/g, " ");
+  const messages = chat.messages.map((message) =>
+    [
+      `## ${message.role} · ${new Date(message.at).toISOString()} · ${message.status}`,
+      message.content,
+      ...(message.attachments?.length
+        ? [
+            `Attachments: ${message.attachments.map((file) => `${line(file.name)} (${file.bytes} bytes)`).join(", ")}`,
+          ]
+        : []),
+    ].join("\n\n"),
+  );
+  return (
+    [
+      `# ${line(chat.title)}`,
+      `Agenting OS · ${chat.agent} · ${chat.mode}`,
+      ...messages,
+    ].join("\n\n") + "\n"
+  );
+}
 export interface Preferences {
   language: "pl" | "en";
   theme: "dark" | "light";
@@ -270,6 +293,8 @@ export interface QuotaMetric {
   usedValue: number | null;
   limitValue: number | null;
   unit?: string | null;
+  /** The provider's own verdict for this window, when its CLI reported one. */
+  state?: string;
 }
 export interface ProviderQuotaCard {
   id: string;
@@ -331,6 +356,8 @@ export interface OrchestrationState {
   /** Runs in flight for a parallel batch. */
   runIds?: string[];
   reason: string | null;
+  /** Agent a POLICY_* hold is waiting on (approval or a policy change). */
+  policyAgent?: Agent;
   createdAt: number | null;
   updatedAt: number | null;
 }
@@ -457,6 +484,23 @@ export interface ProjectData {
   events: TaskEvent[];
 }
 export interface API {
+  terminalList?(): Promise<TerminalSession[]>;
+  terminalOpen?(input: {
+    projectId?: string;
+    consent: true;
+    cols: number;
+    rows: number;
+  }): Promise<TerminalSession>;
+  terminalRead?(input: { id: string; cursor: number }): Promise<TerminalRead>;
+  terminalWrite?(input: { id: string; data: string }): Promise<void>;
+  terminalResize?(input: {
+    id: string;
+    cols: number;
+    rows: number;
+  }): Promise<void>;
+  terminalClose?(input: { id: string }): Promise<void>;
+  chatRename?(input: { id: string; title: string }): Promise<ChatSession>;
+  openExternalLink?(input: { url: string }): Promise<void>;
   chatList?(): Promise<ChatSession[]>;
   chatCreate?(input: {
     agent: Agent;
@@ -705,6 +749,23 @@ export interface API {
   quotaSaveCustom?(input: CustomSubscriptionInput): Promise<ProviderQuotaCard>;
   quotaDeleteCustom?(id: string): Promise<void>;
   quotaRefresh?(): Promise<ProviderQuotaCard[]>;
+}
+
+export interface TerminalSession {
+  id: string;
+  projectId: string | null;
+  cwd: string;
+  shell: string;
+  state: "running" | "exited";
+  exitCode: number | null;
+  createdAt: number;
+}
+export interface TerminalRead {
+  data: string;
+  cursor: number;
+  reset: boolean;
+  state: TerminalSession["state"];
+  exitCode: number | null;
 }
 export interface Extension {
   id: string;

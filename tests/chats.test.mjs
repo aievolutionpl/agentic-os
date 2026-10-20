@@ -25,6 +25,40 @@ import { CodexAdapter } from "../dist/main/providers.js";
 import { AcpAdapter } from "../dist/main/acp.js";
 import { geminiScript, hermesLaunch } from "../dist/main/provider-launch.js";
 import { ProviderRpcError } from "../dist/main/rpc.js";
+import { chatMarkdown } from "../dist/shared.js";
+
+test("portable transcript preserves incomplete turns and code without exporting hidden context or paths", () => {
+  const result = chatMarkdown({
+    title: "Plan\nrelease",
+    agent: "codex",
+    mode: "plan",
+    root: "/private/project",
+    workspace: "/private/worktree",
+    activity: ["PRIVATE_ACTIVITY"],
+    contextIds: ["PRIVATE_CONTEXT"],
+    skillIds: ["PRIVATE_SKILL"],
+    messages: [
+      {
+        role: "user",
+        content: "Check this",
+        at: 0,
+        status: "complete",
+        attachments: [{ name: "notes.txt", bytes: 42 }],
+      },
+      {
+        role: "assistant",
+        content: "```bash\nnpm test\n```",
+        at: 1,
+        status: "cancelled",
+      },
+    ],
+  });
+  assert.match(result, /^# Plan release\n/);
+  assert.match(result, /Attachments: notes.txt \(42 bytes\)/);
+  assert.match(result, /assistant · 1970-01-01T00:00:00.001Z · cancelled/);
+  assert.ok(result.includes("```bash\nnpm test\n```"));
+  assert.doesNotMatch(result, /PRIVATE_|\/private/);
+});
 
 function setup(t) {
   const dir = mkdtempSync(join(tmpdir(), "agenting-chat-test-"));

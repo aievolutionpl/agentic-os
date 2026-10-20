@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { Agent, RoutingDecision, RoutingMode } from "../shared";
 import { Icon, agentName } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
+import { policyMessage } from "./PolicyPanel";
 
 const REASONS: Record<string, [string, string]> = {
   NOT_CONFIGURED: ["niepodłączony", "not connected"],
@@ -36,7 +37,9 @@ export function reasonText(reason: string, pl: boolean) {
     ? pl
       ? `ukończone runy: ${runs[1]}`
       : `finished runs: ${runs[1]}`
-    : (REASONS[code]?.[pl ? 0 : 1] ?? code);
+    : (REASONS[code]?.[pl ? 0 : 1] ??
+      (code.startsWith("POLICY_") ? policyMessage(code, pl) : null) ??
+      code);
   return points ? `${points} ${label}` : label;
 }
 
@@ -44,15 +47,20 @@ export function reasonText(reason: string, pl: boolean) {
 export function RoutePreview({
   language,
   disabled,
+  current,
+  currentReviewer,
   onApply,
 }: {
   language: "pl" | "en";
   disabled?: boolean;
+  /** The implementer already chosen in the form; Manual mode checks it. */
+  current?: Agent;
+  currentReviewer?: Agent;
   onApply: (implementer: Agent, reviewer: Agent) => void;
 }) {
   const api = window.agenting!,
     pl = language === "pl";
-  const [mode, setMode] = useState<Exclude<RoutingMode, "manual">>("balanced");
+  const [mode, setMode] = useState<RoutingMode>("balanced");
   const [result, setResult] = useState<{
     implementer: RoutingDecision;
     reviewer: RoutingDecision | null;
@@ -68,6 +76,7 @@ export function RoutePreview({
         mode: next,
         role: "implementer",
         readOnly: false,
+        ...(next === "manual" && current ? { preferred: current } : {}),
       });
       const reviewer = implementer.choice
         ? await api.routePreview!({
@@ -75,10 +84,15 @@ export function RoutePreview({
             role: "reviewer",
             readOnly: true,
             author: implementer.choice,
+            ...(next === "manual" && currentReviewer
+              ? { preferred: currentReviewer }
+              : {}),
           })
         : null;
       setResult({ implementer, reviewer });
     } catch {
+      // A stale proposal from another mode must not stay applicable.
+      setResult(null);
       setFailed(true);
     } finally {
       setBusy(false);
@@ -129,6 +143,9 @@ export function RoutePreview({
           <option value="quality-first">
             {pl ? "Najpierw jakość" : "Quality first"}
           </option>
+          <option value="manual">
+            {pl ? "Ręcznie: sprawdź wybór" : "Manual: check my choice"}
+          </option>
         </select>
         <button
           type="button"
@@ -151,27 +168,38 @@ export function RoutePreview({
         <div className="route-result">
           {row(pl ? "Wykonawca" : "Implementer", result.implementer)}
           {row(pl ? "Recenzent" : "Reviewer", result.reviewer)}
-          {!!result.implementer.rejected.length && (
-            <details>
-              <summary>
-                {pl ? "Odrzuceni" : "Not eligible"} ·{" "}
-                {result.implementer.rejected.length}
-              </summary>
-              <ul>
-                {result.implementer.rejected.map((r) => (
-                  <li key={r.agent}>
-                    <strong>{agentName(r.agent)}</strong>{" "}
-                    {r.reasons.map((x) => reasonText(x, pl)).join(", ")}
-                  </li>
-                ))}
-              </ul>
-            </details>
+          {(
+            [
+              [pl ? "Wykonawca" : "Implementer", result.implementer],
+              [pl ? "Recenzent" : "Reviewer", result.reviewer],
+            ] as const
+          ).map(
+            ([label, decision]) =>
+              !!decision?.rejected.length && (
+                <details key={label}>
+                  <summary>
+                    {label} · {pl ? "odrzuceni" : "not eligible"} ·{" "}
+                    {decision.rejected.length}
+                  </summary>
+                  <ul>
+                    {decision.rejected.map((r) => (
+                      <li key={r.agent}>
+                        <strong>{agentName(r.agent)}</strong>{" "}
+                        {r.reasons.map((x) => reasonText(x, pl)).join(", ")}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              ),
           )}
           <button
             type="button"
             className="primary"
             disabled={
-              disabled || !result.implementer.choice || !result.reviewer?.choice
+              disabled ||
+              busy ||
+              !result.implementer.choice ||
+              !result.reviewer?.choice
             }
             onClick={() =>
               onApply(result.implementer.choice!, result.reviewer!.choice!)

@@ -4,7 +4,11 @@ Agenting OS is an early open-source desktop workbench. Small, focused contributi
 
 ## Local development
 
-Use Node 26 and Git. Run `npm ci`, `npm run typecheck`, `npm test`, then `npm start`. Tests use temporary Git repositories, SQLite databases and local stdio fixtures; they do not need accounts or model requests. For Electron checks use `npm run smoke` and `npm run qa:tools` (on Linux run under Xvfb). Production packaging is currently Windows x64: `npm run package:win`, then `npm run smoke:package`.
+Use Node 26 and Git. The native terminal may require Python 3 and C++ build tools (`make`/`g++`, Visual Studio C++ Build Tools, or Xcode Command Line Tools). Run `npm ci`, `npm run typecheck`, `npm test`, then `npm start`. Tests use temporary Git repositories, SQLite databases, real PTYs and local stdio fixtures; they do not need accounts or model requests.
+
+For Electron checks run `npm run smoke`, `npm run qa:tools`, `npm run qa:workspace`, `npm run qa:harness`, and `npm run qa:workbench`. On headless Linux use Xvfb. Only isolated CI runners that require it should use `AGENTING_TEST_NO_SANDBOX=1`. Set `AGENTING_QA_OUTPUT` to keep new evidence separate from historical captures. `qa:workbench` covers real keyboard terminal input, chat drafts/attachments, Markdown, clipboard, team preview and responsive themes. `qa:contrast` performs additional DOM text contrast measurements; neither suite is a complete accessibility audit.
+
+Windows x64 packaging: `npm run package:win`, then `npm run smoke:package`. The latter checks a real native terminal in the unpacked build. Installer lifecycle and signing remain separate gates. Before proposing a release, run `npm run notices`, `npm run release:audit` and `npm audit --audit-level=moderate`, and update [release status](docs/RELEASE_STATUS.md) with actual evidence. Keep the Polish main README and [English version](README.en.md) consistent.
 
 ## Pull requests
 

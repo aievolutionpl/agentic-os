@@ -90,7 +90,9 @@ function runtime(store, projectId) {
         ? entry.done
         : Promise.resolve();
     },
-    review: async () => {},
+    // A reviewer that finishes at once with a completed review.
+    review: async (p) =>
+      store.runs.update(projectId, p.runId, { reviewState: "completed" }),
     action: async (p) => {
       fake.cancelled.push(p.runId);
       const entry = [...runs.values()].find((r) => r.runId === p.runId);
@@ -255,4 +257,41 @@ test("parallel must be a boolean", (t) => {
       }),
     /INVALID_INPUT/,
   );
+});
+
+test("a policy refusal in a parallel batch lets the running task finish, then holds", async (t) => {
+  const { store, projectId, ids } = setup(t, 3);
+  const fake = runtime(store, projectId);
+  const start = fake.start;
+  fake.start = async (p) => {
+    if (p.taskId === ids[1]) throw Error("POLICY_BUDGET_EXCEEDED");
+    return start(p);
+  };
+  const queue = new Orchestrator(store, fake);
+  queue.start({
+    projectId,
+    taskIds: ids,
+    contextIds: [],
+    consent: true,
+    parallel: true,
+  });
+  await until(() => fake.calls.length === 1);
+  await settle();
+  assert.equal(queue.state({ projectId }).status, "running");
+  assert.deepEqual(fake.calls, [ids[0]], "nothing else is dispatched");
+  fake.end(ids[0]);
+  await until(() => queue.state({ projectId }).status !== "running");
+  const held = queue.state({ projectId });
+  assert.equal(held.status, "blocked");
+  assert.equal(held.reason, "POLICY_BUDGET_EXCEEDED");
+  assert.equal(held.policyAgent, "codex");
+  assert.deepEqual(held.completedTaskIds, [ids[0]]);
+  // The operator may continue the held batch after deciding.
+  fake.start = start;
+  queue.resume({ projectId, batchId: held.id, consent: true });
+  await until(() => fake.calls.length === 3);
+  fake.end(ids[1]);
+  fake.end(ids[2]);
+  await until(() => queue.state({ projectId }).status !== "running");
+  assert.equal(queue.state({ projectId }).status, "completed");
 });

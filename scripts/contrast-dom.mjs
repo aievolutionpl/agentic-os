@@ -16,6 +16,10 @@ export function collectContrast() {
       !rect.width ||
       !rect.height ||
       cs.clip !== "auto" ||
+      // xterm's transparent DOM mirror is for assistive technology; visible
+      // glyphs are rendered on canvas with minimumContrastRatio: 4.5.
+      (el.closest(".xterm-accessibility:not(.debug), .xterm-message") &&
+        parse(cs.color)[3] === 0) ||
       el.closest('[aria-hidden="true"]') ||
       el.matches("option,script,style")
     )

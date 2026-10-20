@@ -1616,3 +1616,127 @@ summary:focus-visible {
   border-radius: 9px;
   font-size: 12px;
 }
+/* Sidebar agent dock: one lit glyph per connected agent. */
+.agent-dock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 12px 4px;
+  margin-top: auto;
+}
+.agent-dock > button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 12px;
+}
+.agent-dock .provider-glyph {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+.agent-dock .provider-glyph svg {
+  width: 19px;
+  height: 19px;
+}
+.agent-dock > button:not(.state-connected) .provider-glyph {
+  opacity: 0.72;
+}
+.agent-dock > .agent-dock-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.agent-dock-empty .icon {
+  width: 15px;
+  height: 15px;
+}
+.map-node .picker-glyph .connection-dot {
+  width: 9px;
+  height: 9px;
+}
+.master-workers .picker-glyph {
+  display: inline-flex;
+}
+.agent-dock + .sidebar-bottom {
+  margin-top: 0;
+}
+.inbox-start {
+  margin-top: 28px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.inbox-start p {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.inbox-start .panel-actions {
+  flex-wrap: wrap;
+}
+/* Narrow screens: project tabs scroll on one row instead of wrapping. */
+@media (max-width: 760px) {
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 0.3rem;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tabs button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+.quota-idle {
+  margin-top: 28px;
+}
+.quota-idle ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.quota-idle li {
+  display: grid;
+  grid-template-columns: auto 140px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 16px;
+  font-size: 12px;
+}
+.quota-idle li + li {
+  border-top: 1px solid var(--border);
+}
+.quota-idle li > span {
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.quota-idle .provider-glyph {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+.quota-idle .provider-glyph svg {
+  width: 18px;
+  height: 18px;
+}
+@media (max-width: 760px) {
+  .quota-idle li {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .quota-idle li > span,
+  .quota-idle li > button {
+    grid-column: 1 / -1;
+  }
+}

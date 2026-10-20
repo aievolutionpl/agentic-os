@@ -10,7 +10,8 @@ export type Attachment = { name: string; content: string };
 
 export function useAttachments(initial: Attachment[] = []) {
   const [files, setFiles] = useState<Attachment[]>(initial),
-    [problem, setProblem] = useState("");
+    [problem, setProblem] = useState(""),
+    [reading, setReading] = useState(0);
   // Overlapping picks, drops and pastes run one after another against the
   // latest list, so a slow read never overwrites files another one added.
   const latest = useRef(files),
@@ -24,9 +25,11 @@ export function useAttachments(initial: Attachment[] = []) {
   function add(list: FileList | File[]) {
     const picked = Array.from(list);
     // An unreadable file must not stall the queue for later picks.
+    setReading((n) => n + 1);
     return (queue.current = queue.current
       .then(() => append(picked))
-      .catch(() => setProblem("ATTACHMENT_NOT_TEXT")));
+      .catch(() => setProblem("ATTACHMENT_NOT_TEXT"))
+      .finally(() => setReading((n) => n - 1)));
   }
   async function append(list: File[]) {
     setProblem("");
@@ -52,6 +55,8 @@ export function useAttachments(initial: Attachment[] = []) {
   return {
     files,
     problem,
+    /** Files are still being read; sending now would leave them out. */
+    reading: reading > 0,
     add,
     fail: setProblem,
     remove: (index: number) => {

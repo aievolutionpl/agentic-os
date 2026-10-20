@@ -190,6 +190,15 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
   assert.equal(codex.successes, 2);
   assert.ok(codex.lastSuccessAt);
   assert.ok(codex.lastFailureAt);
+  // A late, older probe never replaces newer evidence.
+  store.capabilities.record({
+    agent: "codex",
+    state: "needs-auth",
+    detail: "SIGN_IN_REQUIRED",
+    models: [],
+    observedAt: "2026-10-20T00:00:00.000Z",
+  });
+  assert.equal(store.capabilities.list()[0].state, "connected");
   // Reconfiguring an agent drops its check so old evidence never lights a new setup.
   store.capabilities.clear("codex");
   assert.deepEqual(store.capabilities.list(), []);

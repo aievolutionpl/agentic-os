@@ -223,6 +223,7 @@ export function ChatWorkspace({
     draft.files = attached.files;
   }, [selected, message, attached.files]);
   async function create() {
+    if (attached.reading) return;
     // Check the connection before creating a chat, so the draft stays on the
     // start screen while the user fixes it.
     if (!providers.find((p) => p.id === agent)?.configured)
@@ -274,7 +275,7 @@ export function ChatWorkspace({
     attached.clear();
   }
   async function send() {
-    if (!chat || !message.trim() || running || busy) return;
+    if (!chat || !message.trim() || running || busy || attached.reading) return;
     setBusy(true);
     setError("");
     try {
@@ -642,6 +643,7 @@ export function ChatWorkspace({
                       className="primary composer-send"
                       disabled={
                         busy ||
+                        attached.reading ||
                         (source === "local" && !path && !existing) ||
                         (source === "github" && !repository)
                       }
@@ -1019,7 +1021,7 @@ export function ChatWorkspace({
                   ) : (
                     <button
                       className="primary"
-                      disabled={busy || !message.trim()}
+                      disabled={busy || attached.reading || !message.trim()}
                     >
                       <Icon name="send" />
                       {pl ? "Wyślij" : "Send"}

@@ -816,6 +816,11 @@ app
           if (name.startsWith("terminal") && code.startsWith("TERMINAL_"))
             throw Error(code);
           if (
+            name.startsWith("runtime") &&
+            code.endsWith("READ_ONLY_UNSUPPORTED")
+          )
+            throw Error(code);
+          if (
             (name.startsWith("mission") || name.startsWith("chat")) &&
             [
               "PROVIDER_NOT_CONFIGURED",

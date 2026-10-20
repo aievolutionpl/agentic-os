@@ -574,6 +574,10 @@ export class Supervisor {
         this.contextFor(projectId, p.contextIds, p.workflow, p.skillIds);
       if (task.implementer === "antigravity" && context.readOnly)
         throw Error("ANTIGRAVITY_READ_ONLY_UNSUPPORTED");
+      // A read-only workflow (research, audit) needs an agent that has a
+      // read-only mode; the app refuses rather than trusting the prompt.
+      if (context.readOnly && !READ_ONLY_AGENTS.includes(task.implementer))
+        throw Error("READ_ONLY_MODE_UNSUPPORTED");
       const workspace: Workspace = previous
         ? {
             repository: previous.repository,

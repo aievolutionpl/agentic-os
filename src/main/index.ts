@@ -12,7 +12,8 @@ import { join, dirname } from "node:path";
 import { mkdirSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
-import { trustedSender } from "./security.js";
+import { trustedSender, externalWebUrl } from "./security.js";
+import { Terminals } from "./terminals.js";
 import { probeProviders, withProviderProbes } from "./adapters.js";
 import {
   defaultRunner,
@@ -78,6 +79,7 @@ let quotaMonitor: QuotaMonitor | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
 let browser: ProjectBrowser | undefined;
+let terminals: Terminals | undefined;
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 let window: BrowserWindow | null = null;
@@ -116,6 +118,11 @@ app
     mkdirSync(app.getPath("userData"), { recursive: true });
     restoreResult = applyPendingRestore(app.getPath("userData"));
     store = new Store(join(app.getPath("userData"), DATABASE));
+    terminals = new Terminals(app.getPath("userData"), (id) => {
+      const project = store.projects().find((p) => p.id === id);
+      if (!project) throw Error("PROJECT_NOT_FOUND");
+      return project.root;
+    });
     const router = new OpenRouterConnection(app.getPath("userData"), {
       available: () =>
         safeStorage.isEncryptionAvailable() &&
@@ -659,6 +666,24 @@ app
         app.quit();
       },
       projectData: (id) => store.projectData(id),
+      terminalList: () => terminals!.list(),
+      terminalOpen: (input) => terminals!.open(input),
+      terminalRead: (input) => terminals!.read(input),
+      terminalWrite: (input) => terminals!.write(input),
+      terminalResize: (input) => terminals!.resize(input),
+      terminalClose: (input) => terminals!.close(input),
+      chatRename: (input) => {
+        const p = exact(input, ["id", "title"]);
+        const chat = store.chats.get(text(p.id, 100));
+        if (chat.status === "running") throw Error("CHAT_BUSY");
+        chat.title = text(p.title, 120);
+        store.chats.save(chat);
+        return chat;
+      },
+      openExternalLink: (input) => {
+        const p = exact(input, ["url"]);
+        return shell.openExternal(externalWebUrl(p.url));
+      },
       taskAction: (input) => store.taskAction(input),
       createProject: (input) => store.createProject(input),
       createTask: (input) => store.createTask(input),
@@ -701,6 +726,8 @@ app
             throw Error(code);
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
+          if (name.startsWith("terminal") && code.startsWith("TERMINAL_"))
+            throw Error(code);
           if (
             (name.startsWith("mission") || name.startsWith("chat")) &&
             [
@@ -766,6 +793,7 @@ app.on("before-quit", (event) => {
     quotaMonitor?.close(),
     supervisor?.close(),
     mcp?.close(),
+    terminals?.dispose(),
   ]).finally(() => {
     try {
       browser?.close();

@@ -1,0 +1,144 @@
+{
+  "status": "passed",
+  "at": "2026-10-20T15:22:18.670Z",
+  "checks": [
+    "Markdown: GFM tables/code render; raw HTML, script URLs and remote image requests are blocked",
+    "Separate drafts and attachments survive chat switching; rename and history search work",
+    "Full Markdown transcript copies to the real system clipboard without hidden context or workspace paths",
+    "Real PTY accepts keyboard input in the project directory; Ctrl+K stays in the shell; session survives navigation",
+    "Closing an active terminal requires confirmation; cancel preserves it; confirm terminates and removes it",
+    "320/390/768/1440 reflow, both themes, measured text contrast and reduced motion",
+    "Queue preview exposes the missing reviewer before launch without starting a run",
+    "A message completes through the real app-server protocol fixture after switching screens"
+  ],
+  "screens": [
+    {
+      "name": "01-start-dark",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "02-chat-dark",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "chat-dark-768",
+      "width": 768,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "chat-dark-390",
+      "width": 390,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "chat-dark-320",
+      "width": 320,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "03-terminal-empty",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "04-terminal-dark",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "terminal-dark-768",
+      "width": 768,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "terminal-dark-390",
+      "width": 390,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "terminal-dark-320",
+      "width": 320,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "05-terminal-light",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "terminal-light-768",
+      "width": 768,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "terminal-light-390",
+      "width": 390,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "terminal-light-320",
+      "width": 320,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "06-chat-light",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "chat-light-768",
+      "width": 768,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "chat-light-390",
+      "width": 390,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "chat-light-320",
+      "width": 320,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "07-project",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "09-team-preflight",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "08-connections",
+      "width": 1440,
+      "overflow": false,
+      "failures": []
+    }
+  ],
+  "errors": [],
+  "scope": "Native Electron, real PTY, deterministic protocol fixture and labeled example data; no live provider inference."
+}

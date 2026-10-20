@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { trustedSender } from "../dist/main/security.js";
+import { trustedSender, externalWebUrl } from "../dist/main/security.js";
 test("only exact local main frame gets app IPC", () => {
   const local = "file:///app/dist/renderer/index.html";
   assert.equal(trustedSender(local, true, local), true);
@@ -12,4 +12,9 @@ test("only exact local main frame gets app IPC", () => {
     [undefined, true],
   ])
     assert.equal(trustedSender(url, main, local), false);
+});
+test("message links open only ordinary HTTP(S) URLs, never executable or credential-bearing schemes", () => {
+  assert.equal(externalWebUrl("https://example.com/docs?q=agents"), "https://example.com/docs?q=agents");
+  for (const value of ["file:///etc/passwd", "javascript:alert(1)", "data:text/html,x", "vscode://file/a", "https://user:pass@example.com", null, "x".repeat(4097)])
+    assert.throws(() => externalWebUrl(value));
 });

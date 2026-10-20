@@ -71,6 +71,11 @@ export function useAttachments(initial: Attachment[] = []) {
       commit([]);
       setProblem("");
     },
+    restore: (next: Attachment[]) => {
+      epoch.current++;
+      commit(next);
+      setProblem("");
+    },
   };
 }
 

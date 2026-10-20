@@ -1,3 +1,4 @@
+import { copyText } from "./clipboard";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type {
@@ -42,7 +43,13 @@ import { READ_ONLY_AGENTS } from "../shared";
 import { ccWords } from "./cc-i18n";
 import "./style.css";
 import "./harness.css";
+import "./workbench.css";
 
+const TerminalPanel = React.lazy(() =>
+  import("./TerminalPanel").then((module) => ({
+    default: module.TerminalPanel,
+  })),
+);
 const api = window.agenting;
 const agentChoices = [
   { value: "codex", label: "Codex" },
@@ -73,6 +80,7 @@ function App() {
     | "skills"
     | "shared-memory"
     | "inbox"
+    | "terminal"
   >(api?.chatList ? "chat" : api?.connectorScan ? "center" : "project");
   const [attention, setAttention] = useState<Attention | null>(null),
     [attentionFailed, setAttentionFailed] = useState(false),
@@ -249,6 +257,8 @@ function App() {
       )
         return;
       if (document.querySelector("dialog[open]:not(.command-palette)")) return;
+      if (event.target instanceof HTMLElement && event.target.closest(".xterm"))
+        return;
       event.preventDefault();
       setPalette((value) => !value);
     };
@@ -399,35 +409,11 @@ function App() {
   }
   function copyPath() {
     if (!project?.root) return;
-    try {
-      // The hardened session denies asynchronous clipboard permissions.
-      // Keep this copy within the user's click gesture without changing IPC.
-      const focused = document.activeElement as HTMLElement | null;
-      const buffer = document.createElement("textarea");
-      buffer.value = project.root;
-      buffer.className = "clipboard-buffer";
-      buffer.readOnly = true;
-      document.body.append(buffer);
-      buffer.focus({ preventScroll: true });
-      buffer.select();
-      buffer.setSelectionRange(0, buffer.value.length);
-      const setCopyText = (event: ClipboardEvent) => {
-        event.clipboardData?.setData("text/plain", buffer.value);
-        event.preventDefault();
-      };
-      document.addEventListener("copy", setCopyText);
-      try {
-        if (!document.execCommand("copy")) throw Error("COPY_FAILED");
-      } finally {
-        document.removeEventListener("copy", setCopyText);
-        buffer.remove();
-        focused?.focus();
-      }
-      setToast({ message: w.pathCopied });
-    } catch {
-      setToast({ message: w.copyError, error: true });
-    }
+    void copyText(project.root)
+      .then(() => setToast({ message: w.pathCopied }))
+      .catch(() => setToast({ message: w.copyError, error: true }));
   }
+
   function commands(): Command[] {
     const pl = prefs.language === "pl",
       go = pl ? "Przejdź" : "Go to",
@@ -435,6 +421,7 @@ function App() {
       projects = pl ? "Projekt" : "Project";
     const views: [typeof view, string, string, string, boolean][] = [
       ["chat", "message", "Czaty", "Chats", !!api?.chatList],
+      ["terminal", "terminal", "Terminal", "Terminal", !!api?.terminalList],
       [
         "inbox",
         "inbox",
@@ -635,6 +622,16 @@ function App() {
               (
                 [
                   { id: "chat", icon: "message", pl: "Czaty", en: "Chats" },
+                  ...(api.terminalList
+                    ? [
+                        {
+                          id: "terminal" as const,
+                          icon: "terminal",
+                          pl: "Terminal",
+                          en: "Terminal",
+                        },
+                      ]
+                    : []),
                   {
                     id: "shared-memory",
                     icon: "memory",
@@ -866,31 +863,33 @@ function App() {
             <span>{w.workspace}</span>
             <Icon name="chevron" />
             <strong title={view === "center" ? undefined : project?.name}>
-              {view === "chat"
-                ? prefs.language === "pl"
-                  ? "Czaty"
-                  : "Chats"
-                : view === "skills"
+              {view === "terminal"
+                ? "Terminal"
+                : view === "chat"
                   ? prefs.language === "pl"
-                    ? "Biblioteka skilli"
-                    : "Skill library"
-                  : view === "shared-memory"
+                    ? "Czaty"
+                    : "Chats"
+                  : view === "skills"
                     ? prefs.language === "pl"
-                      ? "Wspólna pamięć"
-                      : "Shared memory"
-                    : view === "inbox"
-                      ? attentionWords[prefs.language].title
-                      : view === "center"
-                        ? ccWords[prefs.language].nav
-                        : view === "quota"
-                          ? prefs.language === "pl"
-                            ? "Limity i tokeny"
-                            : "OpenQuota"
-                          : view === "connections"
+                      ? "Biblioteka skilli"
+                      : "Skill library"
+                    : view === "shared-memory"
+                      ? prefs.language === "pl"
+                        ? "Wspólna pamięć"
+                        : "Shared memory"
+                      : view === "inbox"
+                        ? attentionWords[prefs.language].title
+                        : view === "center"
+                          ? ccWords[prefs.language].nav
+                          : view === "quota"
                             ? prefs.language === "pl"
-                              ? "Połączenia i modele"
-                              : "Connections & models"
-                            : (project?.name ?? "Agenting OS")}
+                              ? "Limity i tokeny"
+                              : "OpenQuota"
+                            : view === "connections"
+                              ? prefs.language === "pl"
+                                ? "Połączenia i modele"
+                                : "Connections & models"
+                              : (project?.name ?? "Agenting OS")}
             </strong>
           </div>
           <div className="settings">
@@ -973,6 +972,22 @@ function App() {
                   void selectProject(id);
                 }}
               />
+            ) : view === "terminal" ? (
+              <React.Suspense
+                fallback={
+                  <p role="status">
+                    {prefs.language === "pl"
+                      ? "Ładowanie terminala…"
+                      : "Loading terminal…"}
+                  </p>
+                }
+              >
+                <TerminalPanel
+                  language={prefs.language}
+                  theme={prefs.theme}
+                  projects={snapshot?.projects ?? []}
+                />
+              </React.Suspense>
             ) : view === "skills" ? (
               <SkillsHub
                 language={prefs.language}

@@ -6,6 +6,7 @@ import type {
   OrchestrationState,
 } from "../shared";
 import { Icon, Modal, agentName } from "./ui";
+import { TeamPreflight } from "./TeamPreflight";
 
 export function OrchestrationPanel({
   projectId,
@@ -173,6 +174,12 @@ export function OrchestrationPanel({
             ? "Maksymalnie 10 zadań, kolejno według zależności. Po zmianach plików uruchomimy skonfigurowanego recenzenta i zatrzymamy kolejkę do Twojej decyzji. Uruchomienie korzysta z limitów i rozliczeń wybranych dostawców."
             : "Up to 10 tasks, sequentially by dependencies. File changes trigger the configured reviewer and pause the queue for your decision. Runs use the selected providers' limits and billing."}
         </p>
+        {open && (
+          <TeamPreflight
+            tasks={queued.filter((t) => taskIds.includes(t.id))}
+            pl={pl}
+          />
+        )}
         <fieldset>
           <legend>{pl ? "Zadania" : "Tasks"}</legend>
           {queued.slice(0, 10).map((task) => (

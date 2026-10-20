@@ -213,18 +213,21 @@ app
           (["opencode", "hermes"] as Agent[]).filter(
             (agent) => quotaProvider(agent) === "openrouter",
           ),
+        // Hermes on an OpenRouter model runs with its own key: its card shows
+        // the connected account for reference only.
+        ownOpenRouterKey: () =>
+          /^openrouter[/:]/i.test(
+            supervisor.settings().find((s) => s.id === "hermes")?.model ?? "",
+          )
+            ? ["hermes"]
+            : [],
       });
     quotaMonitor = new QuotaMonitor(quotaSources);
     const quotas = () => quotaMonitor!.read();
-    // OpenCode runs on the connected OpenRouter key; Hermes does when its
-    // selected model is an OpenRouter one.
+    // Only OpenCode is handed the connected OpenRouter key, so only its
+    // spend and limits are that account's.
     const quotaProvider = (agent: Agent) =>
-      router.settings().configured &&
-      (agent === "opencode" ||
-        (agent === "hermes" &&
-          /^openrouter[/:]/i.test(
-            supervisor.settings().find((s) => s.id === "hermes")?.model ?? "",
-          )))
+      agent === "opencode" && router.settings().configured
         ? "openrouter"
         : agent;
     /** A provider's quota state for routing and the start gate: a reading
@@ -234,6 +237,9 @@ app
       cards: Awaited<ReturnType<typeof quotas>>,
       agent: Agent,
     ): "active" | "warning" | "exhausted" | "unknown" => {
+      // A free model needs no credit: an empty balance must not stop it.
+      if (quotaProvider(agent) === "openrouter" && router.freeModel())
+        return "unknown";
       const card = cards.find(
         (c) => c.id === quotaProvider(agent) && c.source !== "manual",
       );

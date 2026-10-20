@@ -235,6 +235,7 @@ export function viaOpenRouter(
   id: string,
   name: string,
   router: ProviderQuotaCard,
+  detail = "BILLED_VIA_OPENROUTER",
 ): ProviderQuotaCard {
   return {
     ...router,
@@ -242,7 +243,7 @@ export function viaOpenRouter(
     name,
     icon: id,
     plan: "OpenRouter",
-    detail: "BILLED_VIA_OPENROUTER",
+    detail,
     via: "openrouter",
   };
 }
@@ -551,6 +552,8 @@ export interface QuotaSources {
   statusLines?: () => BridgeReadings;
   /** Agents whose model calls are billed to the connected OpenRouter key. */
   viaOpenRouter?: () => string[];
+  /** Agents on an OpenRouter model with their own key: shown for reference. */
+  ownOpenRouterKey?: () => string[];
 }
 export async function scanAllQuotas(
   directory: string,
@@ -577,11 +580,21 @@ export async function scanAllQuotas(
   })();
   const routerCard =
     router ?? unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER");
-  const routed = new Set(sources.viaOpenRouter?.() ?? []);
+  const routed = new Set(sources.viaOpenRouter?.() ?? []),
+    reference = new Set(sources.ownOpenRouterKey?.() ?? []);
   const billed = (id: string, name: string) =>
-    routed.has(id) && routerCard.source === "openrouter-api"
-      ? viaOpenRouter(id, name, routerCard)
-      : unavailable(id, name, "PROVIDER_USAGE_UNAVAILABLE");
+    routerCard.source !== "openrouter-api"
+      ? unavailable(id, name, "PROVIDER_USAGE_UNAVAILABLE")
+      : routed.has(id)
+        ? viaOpenRouter(id, name, routerCard)
+        : reference.has(id)
+          ? // Not counted for this agent's gate or budget: it may bill
+            // another account. The card names whose balance it is.
+            {
+              ...viaOpenRouter(id, name, routerCard, "OWN_OPENROUTER_KEY"),
+              status: "active" as const,
+            }
+          : unavailable(id, name, "PROVIDER_USAGE_UNAVAILABLE");
   const claude = observedQuota(
     "claude",
     "Claude Code",

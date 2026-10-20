@@ -7,6 +7,7 @@ import {
   writeFileSync,
   existsSync,
   rmSync,
+  statSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -250,4 +251,81 @@ test("cards use status line limits and OpenRouter billing when available", async
   assert.equal(opencode.via, "openrouter");
   assert.equal(opencode.balanceUsd, 8);
   assert.equal(cards.find((c) => c.id === "hermes").source, "unavailable");
+});
+
+test("an OpenRouter management key reads the balance and never reaches OpenCode", async (t) => {
+  const { data } = setup(t);
+  const { OpenRouterConnection } = await import("../dist/main/openrouter.js");
+  const secrets = {
+    available: () => true,
+    encrypt: (s) => Buffer.from(`enc:${s}`),
+    decrypt: (b) => b.toString().slice(4),
+  };
+  const calls = [];
+  const router = new OpenRouterConnection(data, secrets, async (path, key) => {
+    calls.push([path, key]);
+    if (path === "/credits" && key !== "sk-or-mgmt-abcdefghijklmnopq")
+      throw Error("OPENROUTER_UNAVAILABLE");
+    return { data: { total_credits: 5, total_usage: 1 } };
+  });
+  const inference = "sk-or-run-abcdefghijklmnopqrs";
+  router.save({ apiKey: inference, model: "org/model", consent: true });
+  assert.equal(await router.credits(), null, "an inference key may be refused");
+  router.save({
+    managementKey: "sk-or-mgmt-abcdefghijklmnopq",
+    model: "org/model",
+    consent: true,
+  });
+  assert.equal(router.settings().balanceKey, true);
+  assert.equal((await router.credits()).data.total_credits, 5);
+  assert.equal(router.environment().OPENROUTER_API_KEY, inference);
+  assert.doesNotMatch(JSON.stringify(router.environment()), /mgmt/);
+  router.save({ managementKey: "", model: "org/model:free", consent: true });
+  assert.equal(router.settings().balanceKey, false);
+  assert.equal(router.freeModel(), true);
+});
+
+test("linking keeps the settings file's permissions and enables a suspended line", (t) => {
+  const { home, data, bridge } = setup(t);
+  const dir = join(home, ".gemini", "antigravity-cli");
+  mkdirSync(dir, { recursive: true });
+  const path = join(dir, "settings.json");
+  const mine = { type: "command", command: "echo mine", enabled: false };
+  writeFileSync(path, JSON.stringify({ statusLine: mine }), { mode: 0o600 });
+  bridge.install({ agent: "antigravity", consent: true });
+  const linked = JSON.parse(readFileSync(path, "utf8")).statusLine;
+  assert.equal(linked.enabled, undefined, "the link is not suspended");
+  if (process.platform !== "win32") {
+    assert.equal(statSync(path).mode & 0o777, 0o600);
+    const out = relay(data, "antigravity", {});
+    assert.equal(out.stdout, "", "a suspended line of the user is not run");
+  }
+  bridge.remove({ agent: "antigravity" });
+  assert.deepEqual(JSON.parse(readFileSync(path, "utf8")).statusLine, mine);
+  if (process.platform !== "win32")
+    assert.equal(statSync(path).mode & 0o777, 0o600);
+});
+
+test("Hermes with its own OpenRouter key shows the balance for reference only", async (t) => {
+  const { data } = setup(t);
+  const cards = await scanAllQuotas(data, {
+    openrouter: async () =>
+      openRouterQuota(
+        { data: { usage: 1 } },
+        { data: { total_credits: 0, total_usage: 0 } },
+      ),
+    viaOpenRouter: () => ["opencode"],
+    ownOpenRouterKey: () => ["hermes"],
+  });
+  const hermes = cards.find((c) => c.id === "hermes");
+  assert.equal(hermes.detail, "OWN_OPENROUTER_KEY");
+  assert.equal(
+    hermes.status,
+    "active",
+    "another account's balance never marks Hermes exhausted",
+  );
+  assert.equal(
+    cards.find((c) => c.id === "opencode").detail,
+    "BILLED_VIA_OPENROUTER",
+  );
 });

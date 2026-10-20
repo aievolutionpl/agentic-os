@@ -6,6 +6,7 @@ import {
   readFileSync,
   renameSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
@@ -101,7 +102,10 @@ function summary(r) {
   return Object.entries(r.buckets).map(([id, b]) => id + " " + Math.round(b.remainingFraction * 100) + "% left").join(" · ");
 }
 function previous() {
-  try { return JSON.parse(readFileSync(join(here, agent + ".json"), "utf8")).previous?.command ?? null; } catch { return null; }
+  try {
+    const p = JSON.parse(readFileSync(join(here, agent + ".json"), "utf8")).previous;
+    return p && p.enabled !== false ? p.command ?? null : null;
+  } catch { return null; }
 }
 const raw = await readStdin();
 let reading = null;
@@ -182,10 +186,15 @@ export class LimitBridge {
   private write(agent: BridgeAgent, settings: Settings) {
     const path = this.settingsPath(agent);
     mkdirSync(dirname(path), { recursive: true });
+    // The file keeps its own permissions (it may hold secrets); a new one is
+    // private to the user.
+    const mode = existsSync(path) ? statSync(path).mode & 0o777 : 0o600;
     writeFileSync(
       path + ".agenting.tmp",
       JSON.stringify(settings, null, 2) + "\n",
+      { mode },
     );
+    chmodSync(path + ".agenting.tmp", mode);
     renameSync(path + ".agenting.tmp", path);
   }
   private ours(settings: Settings, agent: BridgeAgent) {
@@ -273,7 +282,9 @@ export class LimitBridge {
         JSON.stringify({ previous, installedAt: Date.now() }),
         { mode: 0o600 },
       );
-      const { command: _command, ...kept } = previous ?? {};
+      // A suspended (enabled: false) entry would never call the relay; the
+      // original object, flag included, comes back on unlink.
+      const { command: _command, enabled: _enabled, ...kept } = previous ?? {};
       settings.statusLine = {
         ...kept,
         type: "command",

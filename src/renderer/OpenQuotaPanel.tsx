@@ -71,13 +71,17 @@ const details: Record<string, [string, string]> = {
     "Saldo konta OpenRouter (zakupione kredyty minus zużycie) oraz wydatki klucza dziś, w tym tygodniu i miesiącu. Kwoty w USD.",
     "OpenRouter account balance (credits bought minus usage) plus the key's spend today, this week and this month. Amounts in USD.",
   ],
+  OWN_OPENROUTER_KEY: [
+    "Hermes używa modelu OpenRouter z własnym kluczem. Widzisz saldo konta połączonego w Agenting OS — to jego saldo, jeśli to samo konto. Nie liczy się do limitów i budżetu Hermesa.",
+    "Hermes uses an OpenRouter model with its own key. You see the balance of the account connected in Agenting OS — it is Hermes's balance if that is the same account. It does not count toward Hermes's limits or budget.",
+  ],
   BILLED_VIA_OPENROUTER: [
     "Wywołania modeli tego agenta są rozliczane z połączonego konta OpenRouter, więc widzisz jego saldo.",
     "This agent's model calls are billed to the connected OpenRouter account, so you see its balance.",
   ],
   API_KEY_BUDGET_NOT_ACCOUNT_BALANCE: [
-    "Budżet klucza API; nie jest saldem całego konta. Koszty w USD, nie w tokenach.",
-    "API key budget, not the entire account balance. Costs are in USD, not tokens.",
+    "Budżet i wydatki klucza API, nie saldo konta. Aby zobaczyć saldo, dodaj w Połączeniach klucz zarządzający OpenRouter. Kwoty w USD.",
+    "API key budget and spend, not the account balance. To see the balance, add an OpenRouter management key in Connections. Amounts in USD.",
   ],
 };
 const fresh = (): CustomSubscriptionInput => ({

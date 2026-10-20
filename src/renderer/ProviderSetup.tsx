@@ -43,7 +43,9 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
     [busy, setBusy] = useState(false),
     [status, setStatus] = useState("");
   async function load() {
-    setSettings((await api.providerSettings()).filter(p => p.id !== "gemini"));
+    setSettings(
+      (await api.providerSettings()).filter((p) => p.id !== "gemini"),
+    );
   }
   // Card state always comes from the recorded evidence in the database, so the
   // newest check wins and a cleared check is never resurrected by a local cache.
@@ -67,7 +69,9 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
       .then(async () => {
         // Re-check saved connections whose last check is missing or old, one at a
         // time, so a lit card reflects a real handshake rather than a saved path.
-        const rows = (await api.providerSettings()).filter(p => p.id !== "gemini");
+        const rows = (await api.providerSettings()).filter(
+          (p) => p.id !== "gemini",
+        );
         for (const row of rows) {
           const age = row.lastCheck
             ? Date.now() - Date.parse(row.lastCheck.observedAt)
@@ -144,41 +148,43 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
         role="group"
         aria-label={pl ? "Wybierz agenta" : "Choose agent"}
       >
-        {(Object.keys(defaults) as Agent[]).filter(id => id !== "gemini").map((id) => {
-          const saved = settings.find((p) => p.id === id);
-          const setting = saved && {
-            ...saved,
-            lastCheck: id in checks ? checks[id] : saved.lastCheck,
-          };
-          const state = connectionState(setting, !!detected[id]);
-          return (
-            <button
-              key={id}
-              type="button"
-              className={`state-${state}${agent === id ? " chosen" : ""}`}
-              aria-pressed={agent === id}
-              onClick={() => setAgent(id)}
-              disabled={busy}
-            >
-              <span className="picker-glyph">
-                <ProviderIcon provider={id} />
-                {state !== "none" && (
-                  <i className="connection-dot" aria-hidden="true" />
-                )}
-              </span>
-              <strong>{agentName(id)}</strong>
-              <small>
-                {connectionLabel(state, pl)}
-                {setting?.lastCheck && (
-                  <>
-                    {" · "}
-                    {relativeTime(setting.lastCheck.observedAt, language)}
-                  </>
-                )}
-              </small>
-            </button>
-          );
-        })}
+        {(Object.keys(defaults) as Agent[])
+          .filter((id) => id !== "gemini")
+          .map((id) => {
+            const saved = settings.find((p) => p.id === id);
+            const setting = saved && {
+              ...saved,
+              lastCheck: id in checks ? checks[id] : saved.lastCheck,
+            };
+            const state = connectionState(setting, !!detected[id]);
+            return (
+              <button
+                key={id}
+                type="button"
+                className={`state-${state}${agent === id ? " chosen" : ""}`}
+                aria-pressed={agent === id}
+                onClick={() => setAgent(id)}
+                disabled={busy}
+              >
+                <span className="picker-glyph">
+                  <ProviderIcon provider={id} />
+                  {state !== "none" && (
+                    <i className="connection-dot" aria-hidden="true" />
+                  )}
+                </span>
+                <strong>{agentName(id)}</strong>
+                <small>
+                  {connectionLabel(state, pl)}
+                  {setting?.lastCheck && (
+                    <>
+                      {" · "}
+                      {relativeTime(setting.lastCheck.observedAt, language)}
+                    </>
+                  )}
+                </small>
+              </button>
+            );
+          })}
       </div>
       <form
         onSubmit={(event) => {
@@ -699,6 +705,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
   const [setting, setSetting] = useState<OpenRouterSetting | null>(null),
     [models, setModels] = useState<OpenRouterModel[]>([]);
   const [key, setKey] = useState(""),
+    [managementKey, setManagementKey] = useState(""),
     [model, setModel] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
@@ -757,10 +764,12 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
           void act(async () => {
             const s = await api.openRouterSave!({
               ...(key ? { apiKey: key } : {}),
+              ...(managementKey ? { managementKey } : {}),
               model,
               consent: true,
             });
             setKey("");
+            setManagementKey("");
             setSetting(s);
           });
         }}
@@ -784,6 +793,51 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
             disabled={busy}
           />
         </label>
+        <label>
+          {pl
+            ? "Klucz zarządzający (opcjonalnie) · saldo konta"
+            : "Management key (optional) · account balance"}
+          <input
+            type="password"
+            autoComplete="off"
+            value={managementKey}
+            maxLength={4096}
+            placeholder={
+              setting?.balanceKey
+                ? pl
+                  ? "Zapisany · wpisz, aby wymienić"
+                  : "Saved · enter to replace"
+                : "sk-or-…"
+            }
+            onChange={(e) => setManagementKey(e.target.value)}
+            disabled={busy}
+          />
+          <small className="helper">
+            {pl
+              ? "OpenRouter podaje saldo konta tylko kluczowi zarządzającemu. Służy wyłącznie do odczytu salda i nigdy nie trafia do OpenCode."
+              : "OpenRouter reports the account balance only to a management key. It only reads the balance and never reaches OpenCode."}
+          </small>
+        </label>
+        {setting?.balanceKey && (
+          <button
+            type="button"
+            className="text-action"
+            disabled={busy}
+            onClick={() =>
+              void act(async () => {
+                setSetting(
+                  await api.openRouterSave!({
+                    managementKey: "",
+                    model: setting.model,
+                    consent: true,
+                  }),
+                );
+              })
+            }
+          >
+            {pl ? "Usuń klucz zarządzający" : "Remove management key"}
+          </button>
+        )}
         <label>
           {pl ? "Model (identyfikator OpenRouter)" : "Model (OpenRouter ID)"}
           <input

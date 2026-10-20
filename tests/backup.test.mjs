@@ -156,7 +156,6 @@ test("an older-schema backup restores and migrates forward", (t) => {
 test("diagnostics carry counts and states but no content, paths or credentials", (t) => {
   const root = dirs(t);
   const store = new Store(join(root, DATABASE));
-  t.after(() => store.close());
   const project = seed(store, "Client Secret Project");
   store.createMemory({
     projectId: project.id,
@@ -185,6 +184,8 @@ test("diagnostics carry counts and states but no content, paths or credentials",
     dataDir: root,
     capabilities: [],
   });
+  // Close before the directory hook runs: Windows cannot delete an open database.
+  store.close();
   const text = JSON.stringify(bundle);
   for (const secret of [
     "TOP-SECRET",

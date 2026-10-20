@@ -1,1 +1,3 @@
+> **Historical record.** Current release status: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md). This file is kept unchanged as an audit trail.
+
 Slice: isolated-worktree diff artifact capture. Persist base/target identity, reproducible exact-byte SHA-256 hashing of the diff, tests; no execution/apply, no UI claims, no deps/config/auth changes, no push. Run npm run typecheck && npm test && xvfb-run -a npm run smoke; append evidence to docs/STATUS.md. Read BUILD_BRIEF.md and docs/STATUS.md first.

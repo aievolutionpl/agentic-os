@@ -1,3 +1,5 @@
+> **Historical record.** Current release status: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md). This file is kept unchanged as an audit trail.
+
 # Next slice — Hermes-inspired durable agent system
 User explicitly requests continue designing/building based on our own system. Learn architecture from installed Hermes, but do not modify Hermes, credentials, cron or config. Inspect only relevant source/docs; no copying secret/private memory. Check licenses before code reuse. Existing project is authoritative; no rewrite.
 

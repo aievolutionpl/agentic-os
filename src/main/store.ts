@@ -8,6 +8,7 @@ import { migrateWorkspace } from "./workspace-migration.js";
 import { Missions } from "./missions.js";
 import { ChatStore } from "./chat-store.js";
 import { Batches } from "./batches.js";
+import { CapabilityChecks } from "./capabilities.js";
 import { AGENTS } from "../shared.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
@@ -49,6 +50,7 @@ export class Store {
   readonly missions: Missions;
   readonly chats: ChatStore;
   readonly batches: Batches;
+  readonly capabilities: CapabilityChecks;
   constructor(file: string, clock: () => number = Date.now) {
     this.db = new DatabaseSync(file);
     this.db.exec(
@@ -59,7 +61,7 @@ export class Store {
       const version = this.db.prepare("PRAGMA user_version").get() as {
         user_version: number;
       };
-      if (version.user_version > 13) {
+      if (version.user_version > 14) {
         throw Error("UNSUPPORTED_SCHEMA");
       }
       if (version.user_version < 1)
@@ -116,6 +118,7 @@ export class Store {
         this.db.exec("PRAGMA user_version=12; COMMIT;");
       }
       this.batches = new Batches(this.db, clock);
+      this.capabilities = new CapabilityChecks(this.db);
     } catch (error) {
       this.db.close();
       throw error;

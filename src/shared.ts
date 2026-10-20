@@ -351,7 +351,48 @@ export interface ConnectorScan {
   observedAt: string;
   connectors: ConnectorStatus[];
   usage: LocalUsage[];
+  capabilities?: Capability[];
 }
+/** Evidence-backed capability row. "verified" needs a passed check and a real finished run. */
+export interface Capability {
+  agent: Agent;
+  name: string;
+  detected: boolean;
+  version: string | null;
+  configured: boolean;
+  auth: "verified" | "reported" | "missing" | "unknown";
+  handshake: "passed" | "failed" | "not_tested";
+  handshakeAt: string | null;
+  handshakeDetail: string | null;
+  live: "passed" | "failed" | "not_tested";
+  liveAt: number | null;
+  successfulRuns: number;
+  roles: ("implementer" | "reviewer" | "master")[];
+  readOnly: boolean;
+  models: number;
+  verdict:
+    | "verified"
+    | "unverified"
+    | "needs-auth"
+    | "needs-connection"
+    | "needs-install";
+}
+export interface CapabilityEvidence {
+  checks: {
+    agent: Agent;
+    state: ProviderHealth["state"];
+    detail: string;
+    models: number;
+    observedAt: string;
+  }[];
+  runs: {
+    provider: string;
+    successes: number;
+    lastSuccessAt: number | null;
+    lastFailureAt: number | null;
+  }[];
+}
+
 export interface Snapshot {
   projects: Project[];
   preferences: Preferences;

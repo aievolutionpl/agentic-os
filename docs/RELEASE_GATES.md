@@ -1,3 +1,5 @@
+> **Historical record.** Current release status: [docs/RELEASE_STATUS.md](RELEASE_STATUS.md). This file is kept unchanged as an audit trail.
+
 # Release gates (controller verification, 2026-10-19)
 
 Verdict: NOT RELEASABLE. Nothing was published or pushed.

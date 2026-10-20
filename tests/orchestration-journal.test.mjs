@@ -243,7 +243,7 @@ test("a failed v13 migration rolls back and leaves v12 data untouched", (t) => {
   store.close();
   let db = new DatabaseSync(join(f.dir, "db.sqlite"));
   db.exec(
-    "DROP TABLE batch_events; DROP TABLE batches; CREATE TABLE batch_events(x); PRAGMA user_version=12",
+    "DROP TABLE capability_checks; DROP TABLE batch_events; DROP TABLE batches; CREATE TABLE batch_events(x); PRAGMA user_version=12",
   );
   db.close();
   assert.throws(() => f.open(), /ERR_SQLITE_ERROR|no such column/);
@@ -261,14 +261,14 @@ test("a failed v13 migration rolls back and leaves v12 data untouched", (t) => {
   assert.equal(store.projects()[0].id, project.id);
 });
 
-test("schema v12 migrates to v13 without losing data and rejects newer schemas", (t) => {
+test("schema v12 migrates to the current schema without losing data and rejects newer schemas", (t) => {
   const f = fixture(t);
   let store = f.open();
   const { project } = seed(store, 1);
   store.close();
   let db = new DatabaseSync(join(f.dir, "db.sqlite"));
   db.exec(
-    "DROP TABLE batch_events; DROP TABLE batches; PRAGMA user_version=12",
+    "DROP TABLE capability_checks; DROP TABLE batch_events; DROP TABLE batches; PRAGMA user_version=12",
   );
   db.close();
   store = f.open();
@@ -277,8 +277,8 @@ test("schema v12 migrates to v13 without losing data and rejects newer schemas",
   assert.equal(store.batches.latest(project.id), null);
   store.close();
   db = new DatabaseSync(join(f.dir, "db.sqlite"));
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 13);
-  db.exec("PRAGMA user_version=14");
+  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 14);
+  db.exec("PRAGMA user_version=15");
   db.close();
   assert.throws(() => f.open(), /UNSUPPORTED_SCHEMA/);
 });

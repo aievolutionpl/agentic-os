@@ -1,3 +1,5 @@
+> **Historical record.** Current release status: [docs/RELEASE_STATUS.md](docs/RELEASE_STATUS.md). This file is kept unchanged as an audit trail.
+
 Zaimplementowałem pierwszy działający zakres: Electron + React + SQLite, trwałe projekty, szkice zadań, pamięć projektu ze źródłami, zamianę ról Codex/Claude oraz PL/EN i jasny/ciemny motyw.
 
 Weryfikacja:

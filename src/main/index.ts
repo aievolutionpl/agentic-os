@@ -24,6 +24,7 @@ import { ProjectBrowser } from "./browser.js";
 import { OpenRouterConnection } from "./openrouter.js";
 import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
+import { capabilityMatrix } from "./capabilities.js";
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
 import { Chats } from "./chats.js";
@@ -207,8 +208,15 @@ app
           consent: true,
         });
       },
-      providerCheck: (input) => supervisor.health(input),
-      providerSignIn: (input) => supervisor.signIn(input),
+      providerCheck: async (input) => {
+        const health = await supervisor.health(input);
+        // An unconfigured profile was not probed; it is not handshake evidence.
+        return health.detail === "PROVIDER_NOT_CONFIGURED"
+          ? health
+          : store.capabilities.record(health);
+      },
+      providerSignIn: async (input) =>
+        store.capabilities.record(await supervisor.signIn(input)),
       providerConnectDetected: (input) => {
         const p = exact(input, ["agent", "consent"]);
         if (p.consent !== true || !AGENTS.includes(p.agent as Agent))
@@ -399,14 +407,19 @@ app
       connectorScan: async () => {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
+        const connectors = withExecutionSettings(
+          await scanConnectors(),
+          supervisor.settings(),
+          router.settings().configured,
+        );
         return {
           observedAt: new Date().toISOString(),
-          connectors: withExecutionSettings(
-            await scanConnectors(),
-            supervisor.settings(),
-            router.settings().configured,
-          ),
+          connectors,
           usage: store.runs.usage(startOfDay.getTime()),
+          capabilities: capabilityMatrix(connectors, supervisor.settings(), {
+            checks: store.capabilities.list(),
+            runs: store.runs.evidence(),
+          }),
         };
       },
       projectData: (id) => store.projectData(id),

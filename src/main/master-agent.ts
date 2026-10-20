@@ -402,6 +402,25 @@ export class MasterAgent {
             !this.changesRequested(run.id)))
       )
         continue;
+      // A run the operator started for this task (a requested revision, say)
+      // may still be going: wait for it rather than judge it unfinished.
+      if (
+        run &&
+        ["preparing", "running", "reviewing", "applying"].includes(run.state)
+      ) {
+        mission.runId = run.id;
+        await this.supervisor.waitForRun(run.id);
+        this.check(signal);
+        run = this.store.runs.get(mission.projectId, run.id)!;
+        if (
+          ["preparing", "running", "reviewing", "applying"].includes(run.state)
+        ) {
+          mission.status = "blocked";
+          mission.reason = "TASK_RUN_ACTIVE";
+          this.event(mission, mission.reason);
+          return;
+        }
+      }
       if (
         run &&
         [

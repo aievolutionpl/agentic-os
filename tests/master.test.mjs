@@ -485,6 +485,22 @@ test("a no-change mission step whose reviewer requests changes stops the mission
       0,
       "the dependent step never started",
     );
+    // Continuing while the requested revision still runs waits for it
+    // instead of failing the mission.
+    const revision = await supervisor.start({
+      projectId: p.id,
+      taskId: run.taskId,
+      consent: true,
+      reviseRunId: run.id,
+    });
+    await master.action(execute(p.id, mission.id));
+    await master.waitForProject(p.id);
+    const resumed = store.missions.get(p.id, mission.id);
+    assert.equal(resumed.status, "blocked");
+    // The finished revision changed files, so it now waits for the operator.
+    assert.equal(resumed.reason, "HUMAN_APPROVAL_REQUIRED");
+    assert.equal(resumed.runId, revision.id, "the revision was judged");
+    assert.equal(store.runs.get(p.id, revision.id).reviewState, "completed");
   } finally {
     await master.close();
     await supervisor.close?.();

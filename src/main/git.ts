@@ -153,6 +153,7 @@ export class Worktrees {
           "status",
           "--porcelain=v1",
           "--untracked-files=all",
+          "--ignore-submodules=none",
         ])
       ).length
     )

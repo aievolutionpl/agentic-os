@@ -2,7 +2,7 @@ import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import type { AgentAdapter, AgentInput, AgentResult } from "./providers.js";
 import type { ProcessSpec } from "./rpc.js";
-import { redact } from "./validate.js";
+import { redact, redactEnds } from "./validate.js";
 
 export type NativeProtocol = "claude-cli" | "antigravity-cli";
 
@@ -190,7 +190,7 @@ export class CliAdapter implements AgentAdapter {
             final = {
               threadId: id.slice(0, 240),
               turnId,
-              summary: redact(summary, 8000),
+              summary: redactEnds(summary, 8000),
             };
             input.session(final.threadId, turnId);
             const usage = result.usage;

@@ -1,5 +1,5 @@
 import { RpcProcess, type ProcessSpec } from "./rpc.js";
-import { object, text, redact } from "./validate.js";
+import { object, text, redact, redactEnds } from "./validate.js";
 /** Per-thread overrides preserve sign-in while excluding inherited external tool runtimes. */
 export function boundedCodexConfig(
   effective: unknown,
@@ -52,7 +52,10 @@ export class CodexAdapter implements AgentAdapter {
   readonly rpc: RpcProcess;
   private threadId = "";
   private turnId = "";
-  constructor(spec: ProcessSpec, private model?: string | null) {
+  constructor(
+    spec: ProcessSpec,
+    private model?: string | null,
+  ) {
     this.rpc = new RpcProcess(spec);
   }
   async initialize() {
@@ -142,7 +145,7 @@ export class CodexAdapter implements AgentAdapter {
             resolve({
               threadId: this.threadId,
               turnId: this.turnId || String(p.turn.id),
-              summary: redact(summary, 8000),
+              summary: redactEnds(summary, 8000),
             });
           else
             reject(

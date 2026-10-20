@@ -105,6 +105,12 @@ const draft = {
   selected: "",
   message: "",
   files: [] as { name: string; content: string }[],
+  agent: "codex" as Agent,
+  mode: "chat" as "chat" | "plan",
+  source: "default" as "default" | "local" | "github",
+  path: "",
+  repository: "",
+  existing: "",
 };
 export function ChatWorkspace({
   language,
@@ -123,12 +129,14 @@ export function ChatWorkspace({
     pl = language === "pl";
   const [sessions, setSessions] = useState<ChatSession[]>([]),
     [selected, setSelected] = useState(draft.selected);
-  const [agent, setAgent] = useState<Agent>("codex"),
-    [mode, setMode] = useState<"chat" | "plan">("chat"),
-    [source, setSource] = useState<"default" | "local" | "github">("default");
-  const [path, setPath] = useState(""),
-    [repository, setRepository] = useState(""),
-    [existing, setExisting] = useState("");
+  const [agent, setAgent] = useState<Agent>(draft.agent),
+    [mode, setMode] = useState<"chat" | "plan">(draft.mode),
+    [source, setSource] = useState<"default" | "local" | "github">(
+      draft.source,
+    );
+  const [path, setPath] = useState(draft.path),
+    [repository, setRepository] = useState(draft.repository),
+    [existing, setExisting] = useState(draft.existing);
   const [providers, setProviders] = useState<ProviderSetting[]>([]),
     [message, setMessage] = useState(draft.message),
     [busy, setBusy] = useState(false),
@@ -221,7 +229,19 @@ export function ChatWorkspace({
     draft.selected = selected;
     draft.message = message;
     draft.files = attached.files;
-  }, [selected, message, attached.files]);
+    // The draft keeps its target too: agent, mode and where it will run.
+    Object.assign(draft, { agent, mode, source, path, repository, existing });
+  }, [
+    selected,
+    message,
+    attached.files,
+    agent,
+    mode,
+    source,
+    path,
+    repository,
+    existing,
+  ]);
   async function create() {
     if (attached.reading) return;
     // Check the connection before creating a chat, so the draft stays on the

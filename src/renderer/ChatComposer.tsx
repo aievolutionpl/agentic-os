@@ -23,19 +23,22 @@ export function useAttachments(initial: Attachment[] = []) {
     setFiles(next);
   };
   function add(list: FileList | File[]) {
-    const picked = Array.from(list);
+    const picked = Array.from(list),
+      // The selection belongs to the composer as it was when it was made; a
+      // clear or chat switch while it waits in the queue discards it.
+      generation = epoch.current;
     // An unreadable file must not stall the queue for later picks.
     setReading((n) => n + 1);
     return (queue.current = queue.current
-      .then(() => append(picked))
+      .then(() => append(picked, generation))
       .catch(() => setProblem("ATTACHMENT_NOT_TEXT"))
       .finally(() => setReading((n) => n - 1)));
   }
-  async function append(list: File[]) {
+  async function append(list: File[], generation: number) {
+    // Clearing or switching chats starts a new generation; selections made
+    // before it are dropped instead of restoring files the user removed.
+    if (generation !== epoch.current) return;
     setProblem("");
-    // Clearing or switching chats starts a new generation; reads begun before
-    // it are dropped instead of restoring files the user removed.
-    const generation = epoch.current;
     for (const file of list) {
       if (file.size > LIMITS.bytes) return setProblem("ATTACHMENT_TOO_LARGE");
       const content = await file.text();

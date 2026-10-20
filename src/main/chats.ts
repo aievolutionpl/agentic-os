@@ -37,11 +37,14 @@ export async function githubRepositories(
       [
         "api",
         "user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member",
+        // Only the two fields used; full repository objects can exceed the buffer.
+        "--jq",
+        "[.[] | {full_name, private}]",
       ],
       {
         windowsHide: true,
         timeout: 20000,
-        maxBuffer: 1024 * 1024,
+        maxBuffer: 4 * 1024 * 1024,
         env: {
           ...process.env,
           GIT_TERMINAL_PROMPT: "0",

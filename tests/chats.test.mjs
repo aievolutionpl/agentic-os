@@ -164,6 +164,7 @@ test("GitHub repository list comes from the gh login and drops malformed names",
   });
   assert.equal(call[0], "gh");
   assert.equal(call[1][0], "api");
+  assert.deepEqual(call[1].slice(2), ["--jq", "[.[] | {full_name, private}]"]);
   assert.match(
     call[1][1],
     /^user\/repos\?.*affiliation=owner,collaborator,organization_member/,

@@ -11,10 +11,26 @@ export type Attachment = { name: string; content: string };
 export function useAttachments() {
   const [files, setFiles] = useState<Attachment[]>([]),
     [problem, setProblem] = useState("");
-  async function add(list: FileList | File[]) {
+  // Overlapping picks, drops and pastes run one after another against the
+  // latest list, so a slow read never overwrites files another one added.
+  const latest = useRef(files),
+    queue = useRef(Promise.resolve());
+  latest.current = files;
+  const commit = (next: Attachment[]) => {
+    latest.current = next;
+    setFiles(next);
+  };
+  function add(list: FileList | File[]) {
+    const picked = Array.from(list);
+    // An unreadable file must not stall the queue for later picks.
+    return (queue.current = queue.current
+      .then(() => append(picked))
+      .catch(() => setProblem("ATTACHMENT_NOT_TEXT")));
+  }
+  async function append(list: File[]) {
     setProblem("");
-    const next = [...files];
-    for (const file of Array.from(list)) {
+    const next = [...latest.current];
+    for (const file of list) {
       if (next.length >= LIMITS.files) return setProblem("ATTACHMENT_LIMIT");
       const total = next.reduce((n, f) => n + new Blob([f.content]).size, 0);
       if (file.size > LIMITS.bytes || total + file.size > LIMITS.total)
@@ -23,7 +39,7 @@ export function useAttachments() {
       if (content.includes("\u0000")) return setProblem("ATTACHMENT_NOT_TEXT");
       if (!next.some((f) => f.name === file.name && f.content === content))
         next.push({ name: file.name, content });
-      setFiles([...next]);
+      commit([...next]);
     }
   }
   return {
@@ -31,9 +47,10 @@ export function useAttachments() {
     problem,
     add,
     fail: setProblem,
-    remove: (index: number) => setFiles(files.filter((_, i) => i !== index)),
+    remove: (index: number) =>
+      commit(latest.current.filter((_, i) => i !== index)),
     clear: () => {
-      setFiles([]);
+      commit([]);
       setProblem("");
     },
   };

@@ -198,7 +198,9 @@ export function ChatWorkspace({
     };
   }, [selected, chat?.projectId]);
   useEffect(() => {
-    if (source !== "github" || repositories !== undefined) return;
+    // Retry a failed lookup each time GitHub is picked (e.g. after gh auth login).
+    if (source !== "github" || repositories) return;
+    setRepositories(undefined);
     void (api.githubRepositories?.() ?? Promise.resolve(null))
       .then((rows) => live.current && setRepositories(rows))
       .catch(() => live.current && setRepositories(null));

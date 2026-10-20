@@ -108,7 +108,12 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
     setStatus("");
     try {
       await fn();
-      if (message === "saved") await load();
+      if (message === "saved") {
+        // A saved change has not been checked; drop checks cached on this screen.
+        setHealth(null);
+        setFresh(({ [agent]: _old, ...rest }) => rest);
+        await load();
+      }
       setStatus(message);
     } catch {
       setStatus("error");

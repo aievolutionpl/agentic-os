@@ -159,6 +159,9 @@ export function OpenQuotaPanel({
     n === null
       ? "—"
       : `${num(n)}${m.format === "usd" ? " USD" : m.format === "percent" ? "%" : ""}`;
+  // Cards with nothing to show collapse into one line each below the grid.
+  const idle = (card: ProviderQuotaCard) =>
+    card.source === "unavailable" && !card.isCustom;
   const source = (card: ProviderQuotaCard) =>
     card.source === "manual"
       ? pl
@@ -244,172 +247,200 @@ export function OpenQuotaPanel({
         </p>
       )}
       <div className="budget-grid">
-        {cards.map((card) => (
-          <article
-            className={`budget-card status-${card.status}`}
-            key={card.id}
-            data-quota={card.id}
-          >
-            <header>
-              <ProviderIcon provider={card.icon} />
-              <div>
-                <h2>{card.name}</h2>
-                <span>{card.plan}</span>
-              </div>
-              <span className={`source-chip source-${card.source}`}>
-                {source(card)}
-              </span>
-            </header>
-            <div className="budget-main">
-              <Gauge metric={card.metrics[0]} pl={pl} />
-              <div className="budget-reading">
-                <span>
-                  {card.metrics[0]?.label ??
-                    (pl ? "LIMIT SUBSKRYPCJI" : "SUBSCRIPTION LIMIT")}
-                </span>
-                <strong>
-                  {card.metrics[0]
-                    ? display(
-                        card.metrics[0],
-                        card.metrics[0].limitValue === null
-                          ? card.metrics[0].usedValue
-                          : Math.max(
-                              0,
-                              card.metrics[0].limitValue -
-                                card.metrics[0].usedValue!,
-                            ),
-                      )
-                    : "—"}
-                </strong>
-                <small>
-                  {card.metrics[0]?.limitValue === null
-                    ? pl
-                      ? "zarejestrowane zużycie · limit nieznany"
-                      : "recorded usage · unknown limit"
-                    : card.metrics[0]
-                      ? `${pl ? "z" : "of"} ${display(card.metrics[0], card.metrics[0].limitValue)} ${pl ? "pozostało" : "remaining"}`
-                      : pl
-                        ? "oczekuje na dane"
-                        : "awaiting data"}
-                </small>
-              </div>
-            </div>
-            {card.metrics.length > 0 && (
-              <div className="budget-metrics">
-                {card.metrics.map((m) => (
-                  <div key={m.id} className="budget-metric">
-                    <div>
-                      <span>{m.label}</span>
-                      <strong>
-                        {display(m, m.usedValue)} / {display(m, m.limitValue)}
-                      </strong>
-                    </div>
-                    {m.limitValue !== null && (
-                      <progress
-                        max={100}
-                        value={m.usedPercent}
-                        aria-label={`${card.name} ${m.label} ${pl ? "zużycie" : "usage"}`}
-                      />
-                    )}
-                    <small>
-                      {m.resetsAt
-                        ? `${pl ? "Reset" : "Resets"}: ${new Date(m.resetsAt).toLocaleString(language)}`
-                        : pl
-                          ? "Termin resetu nieznany"
-                          : "Reset time unknown"}
-                    </small>
-                  </div>
-                ))}
-              </div>
-            )}
-            {card.usageTrend.length > 1 && (
-              <figure className="usage-chart">
-                <figcaption>
-                  {pl
-                    ? "Tokeny według dnia · dane dostawcy"
-                    : "Daily tokens · provider data"}
-                </figcaption>
+        {cards
+          .filter((card) => !idle(card))
+          .map((card) => (
+            <article
+              className={`budget-card status-${card.status}`}
+              key={card.id}
+              data-quota={card.id}
+            >
+              <header>
+                <ProviderIcon provider={card.icon} />
                 <div>
-                  {card.usageTrend.map((value, i) => (
-                    <span
-                      key={i}
-                      style={{
-                        height: `${Math.max(3, (value / Math.max(1, ...card.usageTrend)) * 66)}px`,
-                      }}
-                      title={`${card.trendLabels?.[i] ?? i + 1}: ${num(value)}`}
-                    />
+                  <h2>{card.name}</h2>
+                  <span>{card.plan}</span>
+                </div>
+                <span className={`source-chip source-${card.source}`}>
+                  {source(card)}
+                </span>
+              </header>
+              <div className="budget-main">
+                <Gauge metric={card.metrics[0]} pl={pl} />
+                <div className="budget-reading">
+                  <span>
+                    {card.metrics[0]?.label ??
+                      (pl ? "LIMIT SUBSKRYPCJI" : "SUBSCRIPTION LIMIT")}
+                  </span>
+                  <strong>
+                    {card.metrics[0]
+                      ? display(
+                          card.metrics[0],
+                          card.metrics[0].limitValue === null
+                            ? card.metrics[0].usedValue
+                            : Math.max(
+                                0,
+                                card.metrics[0].limitValue -
+                                  card.metrics[0].usedValue!,
+                              ),
+                        )
+                      : "—"}
+                  </strong>
+                  <small>
+                    {card.metrics[0]?.limitValue === null
+                      ? pl
+                        ? "zarejestrowane zużycie · limit nieznany"
+                        : "recorded usage · unknown limit"
+                      : card.metrics[0]
+                        ? `${pl ? "z" : "of"} ${display(card.metrics[0], card.metrics[0].limitValue)} ${pl ? "pozostało" : "remaining"}`
+                        : pl
+                          ? "oczekuje na dane"
+                          : "awaiting data"}
+                  </small>
+                </div>
+              </div>
+              {card.metrics.length > 0 && (
+                <div className="budget-metrics">
+                  {card.metrics.map((m) => (
+                    <div key={m.id} className="budget-metric">
+                      <div>
+                        <span>{m.label}</span>
+                        <strong>
+                          {display(m, m.usedValue)} / {display(m, m.limitValue)}
+                        </strong>
+                      </div>
+                      {m.limitValue !== null && (
+                        <progress
+                          max={100}
+                          value={m.usedPercent}
+                          aria-label={`${card.name} ${m.label} ${pl ? "zużycie" : "usage"}`}
+                        />
+                      )}
+                      <small>
+                        {m.resetsAt
+                          ? `${pl ? "Reset" : "Resets"}: ${new Date(m.resetsAt).toLocaleString(language)}`
+                          : pl
+                            ? "Termin resetu nieznany"
+                            : "Reset time unknown"}
+                      </small>
+                    </div>
                   ))}
                 </div>
-                <p className="sr-only">
-                  {card.usageTrend
-                    .map(
-                      (v, i) => `${card.trendLabels?.[i] ?? i + 1}: ${num(v)}`,
-                    )
-                    .join("; ")}
+              )}
+              {card.usageTrend.length > 1 && (
+                <figure className="usage-chart">
+                  <figcaption>
+                    {pl
+                      ? "Tokeny według dnia · dane dostawcy"
+                      : "Daily tokens · provider data"}
+                  </figcaption>
+                  <div>
+                    {card.usageTrend.map((value, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          height: `${Math.max(3, (value / Math.max(1, ...card.usageTrend)) * 66)}px`,
+                        }}
+                        title={`${card.trendLabels?.[i] ?? i + 1}: ${num(value)}`}
+                      />
+                    ))}
+                  </div>
+                  <p className="sr-only">
+                    {card.usageTrend
+                      .map(
+                        (v, i) =>
+                          `${card.trendLabels?.[i] ?? i + 1}: ${num(v)}`,
+                      )
+                      .join("; ")}
+                  </p>
+                </figure>
+              )}
+              {card.detail && (
+                <p className="quota-detail">
+                  {details[card.detail]?.[pl ? 0 : 1] ??
+                    (pl
+                      ? "Dane dostawcy są niedostępne."
+                      : "Provider data is unavailable.")}
                 </p>
-              </figure>
-            )}
-            {card.detail && (
-              <p className="quota-detail">
-                {details[card.detail]?.[pl ? 0 : 1] ??
-                  (pl
-                    ? "Dane dostawcy są niedostępne."
-                    : "Provider data is unavailable.")}
-              </p>
-            )}
-            {card.isCustom && (
-              <p className="quota-detail">
-                {pl
-                  ? "Aktualizowane ręcznie. Upływ terminu resetu nie zeruje tego wpisu."
-                  : "Updated manually. Passing a reset date does not reset this entry."}
-              </p>
-            )}
-            <footer>
-              <time dateTime={card.updatedAt}>
-                {new Date(card.updatedAt).toLocaleTimeString(language, {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </time>
-              {card.isCustom ? (
-                <div>
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      setForm({
-                        id: card.id,
-                        name: card.name,
-                        provider: card.icon,
-                        plan: card.plan,
-                        tokensUsed: card.metrics[0].usedValue!,
-                        tokenLimit: card.metrics[0].limitValue!,
-                        period: card.metrics[0]
-                          .label as CustomSubscriptionInput["period"],
-                        resetAt: card.metrics[0].resetsAt,
-                      })
-                    }
-                  >
-                    {pl ? "Edytuj" : "Edit"}
+              )}
+              {card.isCustom && (
+                <p className="quota-detail">
+                  {pl
+                    ? "Aktualizowane ręcznie. Upływ terminu resetu nie zeruje tego wpisu."
+                    : "Updated manually. Passing a reset date does not reset this entry."}
+                </p>
+              )}
+              <footer>
+                <time dateTime={card.updatedAt}>
+                  {new Date(card.updatedAt).toLocaleTimeString(language, {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </time>
+                {card.isCustom ? (
+                  <div>
+                    <button
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() =>
+                        setForm({
+                          id: card.id,
+                          name: card.name,
+                          provider: card.icon,
+                          plan: card.plan,
+                          tokensUsed: card.metrics[0].usedValue!,
+                          tokenLimit: card.metrics[0].limitValue!,
+                          period: card.metrics[0]
+                            .label as CustomSubscriptionInput["period"],
+                          resetAt: card.metrics[0].resetsAt,
+                        })
+                      }
+                    >
+                      {pl ? "Edytuj" : "Edit"}
+                    </button>
+                    <button
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => setDeleting(card)}
+                    >
+                      {pl ? "Usuń" : "Remove"}
+                    </button>
+                  </div>
+                ) : (
+                  <button className="text-action" onClick={onConfigure}>
+                    {pl ? "Połączenia" : "Connections"}
+                    <Icon name="chevron" />
                   </button>
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => setDeleting(card)}
-                  >
-                    {pl ? "Usuń" : "Remove"}
-                  </button>
-                </div>
-              ) : (
+                )}
+              </footer>
+            </article>
+          ))}
+      </div>
+      {cards.some(idle) && (
+        <section className="quota-idle" aria-labelledby="quota-idle-title">
+          <h2 id="quota-idle-title" className="cc-section">
+            {pl ? "Bez odczytu limitów" : "No limit reading"}
+          </h2>
+          <ul>
+            {cards.filter(idle).map((card) => (
+              <li key={card.id} data-quota={card.id}>
+                <ProviderIcon provider={card.icon} />
+                <strong>{card.name}</strong>
+                <span>
+                  {(card.detail && details[card.detail]?.[pl ? 0 : 1]) ??
+                    (pl
+                      ? "Dane dostawcy są niedostępne."
+                      : "Provider data is unavailable.")}
+                </span>
                 <button className="text-action" onClick={onConfigure}>
                   {pl ? "Połączenia" : "Connections"}
                   <Icon name="chevron" />
                 </button>
-              )}
-            </footer>
-          </article>
-        ))}
-      </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <Modal
         open={!!form}
         onClose={() => {

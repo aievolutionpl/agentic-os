@@ -79,12 +79,14 @@ export function createBackup(store: Store, target: string): BackupSummary {
     store.snapshot(temporary);
     // Backups hold every project, chat and memory entry: owner-only before publishing.
     chmodSync(temporary, 0o600);
-    inspectBackup(temporary);
+    // Summarise the validated copy before the rename: SQLite on Windows cannot open
+    // paths over MAX_PATH, which a long user-chosen target name may exceed.
+    const summary = inspectBackup(temporary);
     renameSync(temporary, target);
+    return { ...summary, file: basename(target) };
   } finally {
     rmSync(temporary, { force: true });
   }
-  return inspectBackup(target);
 }
 
 /** Read-only validation; a file that fails any check is never staged or opened for writing. */

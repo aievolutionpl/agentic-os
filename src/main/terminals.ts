@@ -22,6 +22,8 @@ function dimension(value: unknown, min: number, max: number): number {
   return Number(value);
 }
 
+const KILL_WAIT_MS = process.platform === "win32" ? 8000 : 1500;
+
 /** Explicitly opened, user-operated shells. Never used by the agent supervisor. */
 export class Terminals {
   private entries = new Map<string, Entry>();
@@ -172,7 +174,10 @@ export class Terminals {
               /* Already exited. */
             }
             resolve();
-          }, 1500);
+            // On Windows node-pty may wait up to 5 s for its console-list
+            // helper before killing the shell; wait it out so a closed
+            // session never leaves a shell (or a locked folder) behind.
+          }, KILL_WAIT_MS);
         }),
       ]);
       clearTimeout(timer);

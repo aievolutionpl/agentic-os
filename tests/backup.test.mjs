@@ -368,7 +368,9 @@ test("backups are owner-only and a failed second staging keeps the earlier stage
     "the earlier staged restore survives",
   );
   assert.deepEqual(
-    readdirSync(target).filter((f) => f.includes("partial")),
+    readdirSync(target).filter(
+      (f) => f.includes("partial") || f.startsWith(".agenting-"),
+    ),
     [],
   );
   assert.equal(applyPendingRestore(target), "restored");
@@ -447,7 +449,9 @@ test("temporary files are never left behind and use unpredictable names", (t) =>
   stageRestore(join(root), join(root, "a.sqlite"));
   store.close();
   assert.deepEqual(
-    readdirSync(root).filter((f) => f.includes("partial")),
+    readdirSync(root).filter(
+      (f) => f.includes("partial") || f.startsWith(".agenting-"),
+    ),
     [],
   );
 });
@@ -461,7 +465,9 @@ test("long target names still get a valid temporary file in the same folder", (t
   writeDiagnostics(join(root, `${"d".repeat(220)}.json`), store.file, {});
   store.close();
   assert.deepEqual(
-    readdirSync(root).filter((f) => f.includes("partial")),
+    readdirSync(root).filter(
+      (f) => f.includes("partial") || f.startsWith(".agenting-"),
+    ),
     [],
   );
 });

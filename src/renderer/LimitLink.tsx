@@ -7,6 +7,9 @@ const NAMES: Record<LimitBridgeStatus["agent"], string> = {
   antigravity: "Antigravity CLI",
 };
 
+export const formatUsd = (n: number, pl: boolean) =>
+  `$${new Intl.NumberFormat(pl ? "pl" : "en", { maximumFractionDigits: 2 }).format(n)}`;
+
 /** What one card says about the quota left, for compact places like the dashboard. */
 export function quotaSummary(
   card: ProviderQuotaCard | undefined,
@@ -14,8 +17,7 @@ export function quotaSummary(
 ): { value: string; note: string } | null {
   if (!card || card.source === "unavailable" || card.source === "manual")
     return null;
-  const money = (n: number) =>
-    `$${new Intl.NumberFormat(pl ? "pl" : "en", { maximumFractionDigits: 2 }).format(n)}`;
+  const money = (n: number) => formatUsd(n, pl);
   // An exhausted key limit binds before any account balance.
   if (typeof card.balanceUsd === "number" && card.status !== "exhausted")
     return {

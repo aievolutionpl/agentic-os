@@ -7,7 +7,7 @@ import type {
   ProviderQuotaCard,
   ProviderSetting,
 } from "../shared";
-import { quotaSummary } from "./LimitLink";
+import { formatUsd, quotaSummary } from "./LimitLink";
 import { attentionWords } from "./Inbox";
 import { ccWords } from "./cc-i18n";
 import { Icon, connectionState, relativeTime } from "./ui";
@@ -364,7 +364,7 @@ export function ControlCenter({
             <button className="quota-stat-button" onClick={onOpenQuota}>
               <span className="stat-value">
                 <Icon name="tokens" />
-                {quotaSummary(balance, pl)!.value}
+                {formatUsd(balance.balanceUsd!, pl)}
               </span>
               <span className="stat-label">
                 {pl ? "Saldo OpenRouter" : "OpenRouter balance"}

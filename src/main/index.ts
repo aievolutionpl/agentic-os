@@ -266,19 +266,24 @@ app
             !!m.resetsAt &&
             Date.parse(m.resetsAt) > Date.now(),
         );
-        return current.some(
-          (m) =>
-            m.state === "rejected" ||
-            (m.usedValue !== null &&
-              m.limitValue !== null &&
-              m.usedValue >= m.limitValue),
-        )
+        const spent = (m: (typeof current)[number]) =>
+          m.state === "rejected" ||
+          (m.usedValue !== null &&
+            m.limitValue !== null &&
+            m.usedValue >= m.limitValue);
+        // Antigravity reports one pool per model family and the app cannot
+        // tell which one the selected model draws on: an empty pool only
+        // warns, and the agent is stopped once every pool is empty.
+        const pools = current.filter((m) => m.id.startsWith("pool-"));
+        return (pools.length ? pools.every(spent) : current.some(spent))
           ? "exhausted"
-          : current.some(
-                (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
-              )
+          : pools.some(spent)
             ? "warning"
-            : "active";
+            : current.some(
+                  (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
+                )
+              ? "warning"
+              : "active";
       }
       return ["active", "warning", "exhausted"].includes(card!.status)
         ? (card!.status as "active" | "warning" | "exhausted")

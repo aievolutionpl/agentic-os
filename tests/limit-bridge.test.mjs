@@ -369,3 +369,57 @@ test("an empty account balance alone never marks OpenRouter exhausted", () => {
   );
   assert.equal(spent.status, "exhausted", "the key's own limit binds");
 });
+
+test("one empty Antigravity pool warns; all empty pools exhaust", async (t) => {
+  const { data } = setup(t);
+  const reset = Date.now() + 3600000;
+  const scan = (buckets) =>
+    scanAllQuotas(data, {
+      statusLines: () => ({
+        antigravity: { at: Date.now(), plan: null, buckets },
+      }),
+    }).then((cards) => cards.find((c) => c.id === "antigravity"));
+  const one = await scan({
+    "gemini-pro": { remainingFraction: 0, resetsAt: reset },
+    "claude-sonnet": { remainingFraction: 0.6, resetsAt: reset },
+  });
+  assert.equal(one.status, "warning", "another pool may still serve the run");
+  const all = await scan({
+    "gemini-pro": { remainingFraction: 0, resetsAt: reset },
+    "claude-sonnet": { remainingFraction: 0, resetsAt: reset },
+  });
+  assert.equal(all.status, "exhausted");
+});
+
+test("the Windows command runs the relay through PowerShell", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "agenting-bridge-win-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const bridge = new LimitBridge(
+    "C:\\Users\\Jo Doe\\AppData\\Agenting",
+    "C:\\Program Files\\Agenting\\Agenting.exe",
+    {},
+    root,
+    "win32",
+  );
+  assert.equal(
+    bridge.command("claude"),
+    'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:/Users/Jo Doe/AppData/Agenting/limit-bridge/relay.ps1" claude',
+  );
+});
+
+test("a previous command that leaves a process behind cannot hang the relay", (t) => {
+  if (process.platform === "win32") return;
+  const { home, data, bridge } = setup(t);
+  mkdirSync(join(home, ".claude"));
+  writeFileSync(
+    claudeSettings(home),
+    JSON.stringify({
+      statusLine: { type: "command", command: "echo early; sleep 30" },
+    }),
+  );
+  bridge.install({ agent: "claude", consent: true });
+  const started = Date.now();
+  const out = relay(data, "claude", { rate_limits: {} });
+  assert.ok(Date.now() - started < 8000, "the three-second cap holds");
+  assert.equal(out.stdout.trim(), "early");
+});

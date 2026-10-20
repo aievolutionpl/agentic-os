@@ -120,12 +120,27 @@ if (reading) {
 }
 const chained = previous();
 if (typeof chained === "string" && chained) {
-  const child = spawn(chained, { shell: true, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
-  let out = "";
-  const stop = setTimeout(() => child.kill(), 3000);
+  // The shell may start further processes that keep the pipe open, so the
+  // cap kills the whole tree and finishes the relay itself.
+  const win = process.platform === "win32";
+  const child = spawn(chained, { shell: true, detached: !win, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
+  let out = "", finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(stop);
+    process.stdout.write(out, () => process.exit(0));
+  };
+  const stop = setTimeout(() => {
+    try {
+      if (win) spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+      else process.kill(-child.pid, "SIGKILL");
+    } catch { child.kill(); }
+    finish();
+  }, 3000);
   child.stdout.on("data", (c) => { out += c; });
-  child.on("error", () => {});
-  child.on("close", () => { clearTimeout(stop); process.stdout.write(out); });
+  child.on("error", finish);
+  child.on("close", finish);
   child.stdin.on("error", () => {});
   child.stdin.end(raw);
 } else process.stdout.write(summary(reading));
@@ -160,15 +175,15 @@ export class LimitBridge {
       : join(this.home, ".gemini", "antigravity-cli", "settings.json");
   }
   private wrapper() {
-    return join(this.dir, this.platform === "win32" ? "relay.cmd" : "relay.sh");
+    return join(this.dir, this.platform === "win32" ? "relay.ps1" : "relay.sh");
   }
-  /** The exact command written into the CLI's settings. */
+  /** The exact command written into the CLI's settings. On Windows the CLI
+   * may run it through Git Bash or PowerShell; invoking `powershell -File`
+   * with forward slashes works in both, a bare quoted path only in Bash. */
   command(agent: BridgeAgent) {
-    const path =
-      this.platform === "win32"
-        ? this.wrapper().replace(/\\/g, "/")
-        : this.wrapper();
-    return `"${path}" ${agent}`;
+    if (this.platform !== "win32") return `"${this.wrapper()}" ${agent}`;
+    const path = this.wrapper().replace(/\\/g, "/");
+    return `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${path}" ${agent}`;
   }
   private read(agent: BridgeAgent): Settings {
     const path = this.settingsPath(agent);
@@ -247,12 +262,20 @@ export class LimitBridge {
   private files() {
     mkdirSync(this.dir, { recursive: true });
     writeFileSync(join(this.dir, "relay.mjs"), RELAY);
-    if (this.platform === "win32")
+    if (this.platform === "win32") {
+      const quote = (v: string) => `'${v.replace(/'/g, "''")}'`;
       writeFileSync(
         this.wrapper(),
-        `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${this.runtime}" "${join(this.dir, "relay.mjs")}" %*\r\n`,
+        [
+          "$ErrorActionPreference = 'SilentlyContinue'",
+          "$env:ELECTRON_RUN_AS_NODE = '1'",
+          "$OutputEncoding = [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false",
+          "$raw = [Console]::In.ReadToEnd()",
+          `$raw | & ${quote(this.runtime)} ${quote(join(this.dir, "relay.mjs"))} @args`,
+          "",
+        ].join("\r\n"),
       );
-    else {
+    } else {
       writeFileSync(
         this.wrapper(),
         `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec "${this.runtime}" "${join(this.dir, "relay.mjs")}" "$@"\n`,

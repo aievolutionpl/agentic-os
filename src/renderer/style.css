@@ -3553,3 +3553,16 @@ html[data-theme="light"] .glyph-opencode {
   justify-content: center;
   gap: 8px;
 }
+.batch-dialog .batch-tasks,
+.batch-dialog .batch-events {
+  font-size: 12px;
+  margin: 16px 0;
+  padding-left: 20px;
+  max-height: 200px;
+  overflow: auto;
+}
+.batch-dialog .batch-tasks li,
+.batch-dialog .batch-events li {
+  padding: 3px 0;
+  overflow-wrap: anywhere;
+}

@@ -28,6 +28,10 @@ const api: API = {
     ipcRenderer.invoke("app:orchestrationState", input),
   orchestrationStop: (input) =>
     ipcRenderer.invoke("app:orchestrationStop", input),
+  orchestrationEvents: (input) =>
+    ipcRenderer.invoke("app:orchestrationEvents", input),
+  orchestrationResume: (input) =>
+    ipcRenderer.invoke("app:orchestrationResume", input),
   providerDetect: () => ipcRenderer.invoke("app:providerDetect"),
   openRouterSettings: () => ipcRenderer.invoke("app:openRouterSettings"),
   openRouterSave: (input) => ipcRenderer.invoke("app:openRouterSave", input),

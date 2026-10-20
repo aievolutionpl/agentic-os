@@ -87,7 +87,9 @@ export interface Task {
   createdAt: string;
 }
 export type FailureCode =
-  "worker_error" | "validation_failed" | "lease_expired";
+  | "worker_error"
+  | "validation_failed"
+  | "lease_expired";
 export interface TaskEvent {
   seq: number;
   projectId: string;
@@ -302,12 +304,42 @@ export interface OpenRouterSetting {
   encryptionAvailable: boolean;
 }
 export interface OrchestrationState {
+  id: string | null;
   projectId: string;
-  status: "idle" | "running" | "completed" | "blocked" | "stopped" | "failed";
+  status:
+    | "idle"
+    | "running"
+    | "completed"
+    | "blocked"
+    | "stopped"
+    | "failed"
+    | "interrupted";
   taskIds: string[];
+  completedTaskIds: string[];
   finished: number;
   runId: string | null;
   reason: string | null;
+  createdAt: number | null;
+  updatedAt: number | null;
+}
+export interface OrchestrationEvent {
+  seq: number;
+  kind:
+    | "created"
+    | "dispatched"
+    | "task_completed"
+    | "reviewing"
+    | "blocked"
+    | "completed"
+    | "failed"
+    | "stopped"
+    | "interrupted"
+    | "resumed";
+  status: OrchestrationState["status"];
+  taskId: string | null;
+  runId: string | null;
+  reason: string | null;
+  at: number;
 }
 export interface LocalUsage {
   provider: string;
@@ -414,6 +446,14 @@ export interface API {
     projectId: string;
   }): Promise<OrchestrationState>;
   orchestrationStop?(input: { projectId: string }): Promise<void>;
+  orchestrationEvents?(input: {
+    projectId: string;
+  }): Promise<OrchestrationEvent[]>;
+  orchestrationResume?(input: {
+    projectId: string;
+    batchId: string;
+    consent: true;
+  }): Promise<OrchestrationState>;
   openRouterSettings?(): Promise<OpenRouterSetting>;
   openRouterSave?(input: {
     apiKey?: string;
@@ -446,7 +486,13 @@ export interface API {
   browserAction(input: {
     projectId: string;
     action:
-      "navigate" | "back" | "forward" | "reload" | "state" | "bounds" | "hide";
+      | "navigate"
+      | "back"
+      | "forward"
+      | "reload"
+      | "state"
+      | "bounds"
+      | "hide";
     url?: string;
     bounds?: { x: number; y: number; width: number; height: number };
   }): Promise<BrowserState | null>;

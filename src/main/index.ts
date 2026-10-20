@@ -250,6 +250,8 @@ app
       orchestrationStart: (input) => orchestrator!.start(input),
       orchestrationState: (input) => orchestrator!.state(input),
       orchestrationStop: (input) => orchestrator!.stop(input),
+      orchestrationEvents: (input) => orchestrator!.events(input),
+      orchestrationResume: (input) => orchestrator!.resume(input),
       providerDetect: () => detectExecutables(),
       openRouterSettings: () => router.settings(),
       openRouterSave: (input) => {

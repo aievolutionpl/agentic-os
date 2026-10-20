@@ -270,9 +270,13 @@ app
     // while the check ran, its result is returned but never recorded as evidence.
     const setupOf = (input: unknown) => {
       const agent = (input as { agent?: unknown } | null)?.agent;
-      return JSON.stringify(
+      // Auxiliary settings shape the runtime too: OpenCode runs with the
+      // router's environment, Local with its model endpoint.
+      return JSON.stringify([
         typeof agent === "string" ? (store.runs.provider(agent) ?? null) : null,
-      );
+        agent === "opencode" ? router.settings() : null,
+        agent === "local" ? localModel.settings() : null,
+      ]);
     };
     const recordIfUnchanged = (before: string, health: ProviderHealth) =>
       setupOf({ agent: health.agent }) === before
@@ -516,20 +520,28 @@ app
             );
           const runs = evidence.find((e) => e.provider === agent);
           const paid = quotaProvider(agent) === "openrouter";
+          const verdict = evaluatePolicy(
+            { agent, paid, approved: paidApprovals.has(agent) },
+            policy,
+            paid ? spent : null,
+          );
           return {
             agent,
-            configured: !!settings.find((s) => s.id === agent)?.configured,
+            // The runtime must be able to start: Local needs its model
+            // endpoint and Hermes a selected model, not only a CLI profile.
+            configured:
+              !!settings.find((s) => s.id === agent)?.configured &&
+              (agent !== "local" || localModel.settings().configured) &&
+              (agent !== "hermes" ||
+                !!settings.find((s) => s.id === "hermes")?.model),
             check: checks.find((c) => c.agent === agent)?.state ?? null,
             quota:
               fresh && ["active", "warning", "exhausted"].includes(card!.status)
                 ? (card!.status as "active" | "warning" | "exhausted")
                 : ("unknown" as const),
             paid,
-            policy: evaluatePolicy(
-              { agent, paid, approved: paidApprovals.has(agent) },
-              policy,
-              paid ? spent : null,
-            ).verdict,
+            policy: verdict.verdict,
+            policyReasons: verdict.reasons,
             successes: runs?.successes ?? 0,
             lastFailed:
               !!runs?.lastFailureAt &&

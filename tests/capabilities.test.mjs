@@ -121,7 +121,7 @@ test("capability matrix keeps detection, sign-in, handshake and real inference a
   assert.equal(row(matrix, "local").verdict, "needs-install");
 });
 
-test("connection checks persist and real-run evidence ignores interrupted and cancelled runs", (t) => {
+test("connection checks persist and real-run evidence ignores interrupted and cancelled runs", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "agenting-cap-"));
   let store = new Store(join(dir, "db.sqlite"));
   t.after(() => {
@@ -206,12 +206,44 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
   assert.ok(reviews[0].lastFailureAt);
   // A later run update (approval, apply) does not move the review outcome.
   const before = reviews[0].lastSuccessAt;
-  const reviewed = store.runs.list(
-    project.id,
-    store.tasks(project.id)[3].id,
-  )[0];
+  const reviewed = store
+    .tasks(project.id)
+    .map((t) => store.runs.list(project.id, t.id)[0])
+    .find((r) => r?.reviewState === "completed");
+  await new Promise((r) => setTimeout(r, 5));
   store.runs.update(project.id, reviewed.id, { state: "applied" });
   assert.equal(store.runs.evidence("reviewer")[0].lastSuccessAt, before);
+  const failedAt = store.runs.evidence("reviewer")[0].lastFailureAt;
+  // A review aborted by a stop or shutdown is not the reviewer's failure;
+  // a review from before outcome events still counts by its last update.
+  const extra = (title) => {
+    const task = store.createTask({
+      projectId: project.id,
+      title,
+      implementer: "codex",
+      reviewer: "claude",
+    });
+    return store.runs.create(
+      project.id,
+      task.id,
+      1,
+      "codex",
+      "claude",
+      { repository: "/r", path: "/r/w", base: "a", head: "a" },
+      "",
+    );
+  };
+  await new Promise((r) => setTimeout(r, 5));
+  const aborted = extra("aborted");
+  store.runs.update(project.id, aborted.id, { reviewState: "failed" });
+  store.runs.event(aborted.id, "review_outcome", "interrupted");
+  assert.equal(store.runs.evidence("reviewer")[0].lastFailureAt, failedAt);
+  const legacy = extra("legacy");
+  store.runs.update(project.id, legacy.id, { reviewState: "failed" });
+  assert.equal(
+    store.runs.evidence("reviewer")[0].lastFailureAt,
+    store.runs.get(project.id, legacy.id).updatedAt,
+  );
   // A late, older probe never replaces newer evidence.
   store.capabilities.record({
     agent: "codex",

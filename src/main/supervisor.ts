@@ -929,7 +929,12 @@ export class Supervisor {
           reviewState: "failed",
           error: "REVIEW_FAILED",
         });
-        this.store.runs.event(run.id, "review_outcome", "failed");
+        // A stop or app shutdown is not the reviewer's failure.
+        this.store.runs.event(
+          run.id,
+          "review_outcome",
+          controller.signal.aborted ? "interrupted" : "failed",
+        );
       } finally {
         clearTimeout(timer);
         adapter.close();

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import type { Agent, RoutingDecision, RoutingMode } from "../shared";
 import { Icon, agentName } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
+import { policyMessage } from "./PolicyPanel";
 
 const REASONS: Record<string, [string, string]> = {
   NOT_CONFIGURED: ["niepodłączony", "not connected"],
@@ -36,7 +37,9 @@ export function reasonText(reason: string, pl: boolean) {
     ? pl
       ? `ukończone runy: ${runs[1]}`
       : `finished runs: ${runs[1]}`
-    : (REASONS[code]?.[pl ? 0 : 1] ?? code);
+    : (REASONS[code]?.[pl ? 0 : 1] ??
+      (code.startsWith("POLICY_") ? policyMessage(code, pl) : null) ??
+      code);
   return points ? `${points} ${label}` : label;
 }
 

@@ -180,11 +180,19 @@ export class Runs {
   evidence(role: "implementer" | "reviewer" = "implementer") {
     return this.db
       .prepare(
+        // Outcome times come from the events written when a run or review
+        // finished; later updates (approval, apply) must not make an old
+        // success look newer. Rows from before those events fall back to
+        // the run's last update.
         role === "implementer"
-          ? "SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes, MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN state='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY provider"
-          : // Outcome times come from review_outcome events: later run
-            // updates (approval, apply) must not make a review look newer.
-            "SELECT r.reviewer AS provider, SUM(r.reviewState='completed') AS successes, (SELECT MAX(e.at) FROM run_events e JOIN runs x ON x.id=e.runId WHERE x.reviewer=r.reviewer AND e.kind='review_outcome' AND e.text='completed') AS lastSuccessAt, (SELECT MAX(e.at) FROM run_events e JOIN runs x ON x.id=e.runId WHERE x.reviewer=r.reviewer AND e.kind='review_outcome' AND e.text='failed') AS lastFailureAt FROM runs r GROUP BY r.reviewer",
+          ? `SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes,
+              MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='completed'), updatedAt) END) AS lastSuccessAt,
+              MAX(CASE WHEN state='failed' THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='failed'), updatedAt) END) AS lastFailureAt
+            FROM runs GROUP BY provider`
+          : `SELECT reviewer AS provider, SUM(reviewState='completed') AS successes,
+              MAX(CASE WHEN reviewState='completed' THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='completed'), CASE WHEN NOT EXISTS(SELECT 1 FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome') THEN updatedAt END) END) AS lastSuccessAt,
+              MAX(CASE WHEN reviewState='failed' THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='failed'), CASE WHEN NOT EXISTS(SELECT 1 FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome') THEN updatedAt END) END) AS lastFailureAt
+            FROM runs GROUP BY reviewer`,
       )
       .all()
       .map((row) => ({

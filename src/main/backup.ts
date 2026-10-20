@@ -8,6 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { SCHEMA_VERSION, type Store } from "./store.js";
@@ -38,6 +39,9 @@ const REQUIRED_COLUMNS: [number, string, string[]][] = [
   [12, "provider_settings", ["model"]],
 ];
 
+/** A fresh, unguessable sibling path; VACUUM INTO and "wx" both refuse an existing file. */
+const partial = (path: string) => `${path}.${randomUUID()}.partial`;
+
 /** True when both paths name the same file (or the live database's WAL/SHM companions). */
 export function isLiveDatabase(target: string, live: string) {
   const canonical = (path: string) => {
@@ -66,8 +70,8 @@ export function isLiveDatabase(target: string, live: string) {
  */
 export function createBackup(store: Store, target: string): BackupSummary {
   if (isLiveDatabase(target, store.file)) throw Error("BACKUP_TARGET_IS_LIVE");
-  const temporary = `${target}.partial-${process.pid}`;
-  rmSync(temporary, { force: true });
+  // Unpredictable name: another local account cannot pre-create it as a symlink.
+  const temporary = partial(target);
   try {
     store.snapshot(temporary);
     // Backups hold every project, chat and memory entry: owner-only before publishing.
@@ -153,8 +157,7 @@ export function stageRestore(dataDir: string, file: string): BackupSummary {
   // Build beside the pending file and replace it only after the new copy validates,
   // so a failed second attempt keeps an earlier staged restore intact.
   const pending = join(dataDir, PENDING),
-    temporary = `${pending}.partial-${process.pid}`;
-  rmSync(temporary, { force: true });
+    temporary = partial(pending);
   try {
     const source = new DatabaseSync(file, { readOnly: true });
     try {
@@ -178,10 +181,12 @@ export function writeDiagnostics(
   bundle: unknown,
 ) {
   if (isLiveDatabase(target, live)) throw Error("BACKUP_TARGET_IS_LIVE");
-  const temporary = `${target}.partial-${process.pid}`;
+  const temporary = partial(target);
   try {
+    // "wx": fail instead of following or reusing anything already at that path.
     writeFileSync(temporary, JSON.stringify(bundle, null, 2) + "\n", {
       mode: 0o600,
+      flag: "wx",
     });
     renameSync(temporary, target);
   } finally {
@@ -207,13 +212,27 @@ export function applyPendingRestore(
     return "rejected";
   }
   const current = join(dataDir, DATABASE),
-    stamp = now();
-  for (const suffix of ["", "-wal", "-shm"])
-    if (existsSync(current + suffix))
-      renameSync(
-        current + suffix,
-        `${current}.before-restore-${stamp}${suffix}`,
-      );
+    kept = `${current}.before-restore-${now()}`;
+  if (existsSync(current)) {
+    // One self-contained file (main + committed WAL pages), written before anything
+    // is removed, so a crash part-way can never split the old database from its WAL.
+    try {
+      const old = new DatabaseSync(current, { readOnly: true });
+      try {
+        old.prepare("VACUUM INTO ?").run(kept);
+      } finally {
+        old.close();
+      }
+    } catch {
+      // Unreadable old database: keep its raw files together under one name instead.
+      for (const suffix of ["", "-wal", "-shm"])
+        if (existsSync(current + suffix))
+          renameSync(current + suffix, kept + suffix);
+    }
+  }
+  // Companions first: a stray WAL must never be replayed onto the restored file.
+  for (const suffix of ["-shm", "-wal", ""])
+    rmSync(current + suffix, { force: true });
   renameSync(pending, current);
   return "restored";
 }

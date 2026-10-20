@@ -9,6 +9,7 @@ import {
   readFileSync,
   readdirSync,
   statSync,
+  copyFileSync,
 } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
@@ -389,4 +390,62 @@ test("a backup with orphaned rows is refused", (t) => {
   raw.exec("PRAGMA foreign_keys=OFF; DELETE FROM projects;");
   raw.close();
   assert.throws(() => inspectBackup(file), /BACKUP_INCONSISTENT/);
+});
+
+test("applying a restore keeps the old database as one self-contained file, WAL included", (t) => {
+  const root = dirs(t);
+  const source = new Store(join(root, "source.sqlite"));
+  seed(source, "From backup");
+  const backup = join(root, "backup.sqlite");
+  createBackup(source, backup);
+  source.close();
+  const target = join(root, "target");
+  mkdirSync(target);
+  // Simulate an unclean stop: the old database's newest commits exist only in its WAL.
+  // Copy the open pair instead of keeping it open, which Windows would not let us remove.
+  const crashed = join(root, "crashed.sqlite");
+  const old = new Store(crashed);
+  seed(old, "Only in WAL");
+  copyFileSync(crashed, join(target, DATABASE));
+  copyFileSync(`${crashed}-wal`, join(target, `${DATABASE}-wal`));
+  old.close();
+  stageRestore(target, backup);
+  assert.equal(
+    applyPendingRestore(target, () => 9),
+    "restored",
+  );
+  const kept = `${DATABASE}.before-restore-9`;
+  assert.deepEqual(
+    readdirSync(target)
+      .filter((f) => f.startsWith(kept))
+      .sort(),
+    [kept],
+    "no separate -wal/-shm companions for the kept copy",
+  );
+  const previous = new Store(join(target, kept));
+  assert.deepEqual(
+    previous.projects().map((p) => p.name),
+    ["Only in WAL"],
+  );
+  previous.close();
+  const restored = new Store(join(target, DATABASE));
+  assert.deepEqual(
+    restored.projects().map((p) => p.name),
+    ["From backup"],
+  );
+  restored.close();
+});
+
+test("temporary files are never left behind and use unpredictable names", (t) => {
+  const root = dirs(t);
+  const store = new Store(join(root, DATABASE));
+  seed(store, "P");
+  createBackup(store, join(root, "a.sqlite"));
+  writeDiagnostics(join(root, "d.json"), store.file, { ok: true });
+  stageRestore(join(root), join(root, "a.sqlite"));
+  store.close();
+  assert.deepEqual(
+    readdirSync(root).filter((f) => f.includes("partial")),
+    [],
+  );
 });

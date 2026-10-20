@@ -65,15 +65,17 @@ export class Orchestrator {
     const state = this.state(input);
     return state.id ? this.store.batches.events(state.projectId, state.id) : [];
   }
-  /** While a batch is held (policy refusal or failed review), its open tasks
-   * move only through Continue or Abandon: starting, reviewing or deciding
-   * one by hand would race the queue's own reconciliation. */
+  /** While a batch runs or is held (policy refusal or failed review), its
+   * open tasks belong to it: starting, reviewing, deciding or changing one by
+   * hand would race the queue. They move through the queue, Stop, Continue or
+   * Abandon. The queue's own calls go straight to the supervisor. */
   held(projectId: string, taskId: string) {
-    if (this.live.get(projectId)) return false;
-    const batch = this.store.batches.latest(projectId);
+    const live = this.live.get(projectId);
+    const batch =
+      live?.status === "running" ? live : this.store.batches.latest(projectId);
     return (
       !!batch &&
-      onHold(batch) &&
+      (batch === live || onHold(batch)) &&
       batch.taskIds.includes(taskId) &&
       !batch.completedTaskIds.includes(taskId)
     );

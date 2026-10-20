@@ -680,7 +680,11 @@ test("a held queue owns its open tasks until it is continued or abandoned", asyn
   assert.equal(queue.held(project.id, c), false, "c is not in the batch");
   approved = true;
   queue.resume({ projectId: project.id, batchId: started.id, consent: true });
-  assert.equal(queue.held(project.id, b), false, "the live queue drives it");
+  assert.equal(
+    queue.held(project.id, b),
+    true,
+    "the running queue still owns its open tasks",
+  );
   await until(
     () => queue.state({ projectId: project.id }).status !== "running",
   );

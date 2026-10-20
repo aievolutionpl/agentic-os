@@ -640,7 +640,16 @@ app
         const p = exact(input, ["url"]);
         return shell.openExternal(externalWebUrl(p.url));
       },
-      taskAction: (input) => store.taskAction(input),
+      taskAction: (input) => {
+        const p = input as { projectId?: unknown; id?: unknown } | null;
+        if (
+          typeof p?.projectId === "string" &&
+          typeof p.id === "string" &&
+          orchestrator!.held(p.projectId, p.id)
+        )
+          throw Error("TASK_HELD_BY_QUEUE");
+        return store.taskAction(input);
+      },
       createProject: (input) => store.createProject(input),
       createTask: (input) => store.createTask(input),
       createMemory: (input) => store.createMemory(input),

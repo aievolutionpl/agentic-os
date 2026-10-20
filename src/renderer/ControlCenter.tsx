@@ -4,10 +4,11 @@ import type {
   AttentionItem,
   ConnectorScan,
   ConnectorStatus,
+  ProviderSetting,
 } from "../shared";
 import { attentionWords } from "./Inbox";
 import { ccWords } from "./cc-i18n";
-import { Icon, relativeTime } from "./ui";
+import { Icon, connectionState, relativeTime } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 import { CapabilityMatrix } from "./CapabilityMatrix";
 import { DataPanel } from "./DataPanel";
@@ -67,6 +68,7 @@ export function ControlCenter({
   work = null,
   onOpenInbox,
   onOpenAttention,
+  agents = [],
 }: {
   language: "pl" | "en";
   scan: ConnectorScan | null;
@@ -80,6 +82,8 @@ export function ControlCenter({
   work?: Attention | null;
   onOpenInbox?: () => void;
   onOpenAttention?: (item: AttentionItem) => void;
+  /** Saved settings with their last recorded check: the map's evidence. */
+  agents?: ProviderSetting[];
 }) {
   const t = ccWords[language];
   const connectors = scan?.connectors ?? [];
@@ -90,15 +94,12 @@ export function ControlCenter({
   ).length;
   const runsToday = (scan?.usage ?? []).reduce((n, u) => n + u.runsToday, 0);
   const steps = nextSteps(connectors);
-  // Same vocabulary as the Connections cards; the scan already carries checks.
-  const mapState = (id: string) => {
-    const c = connectors.find((x) => x.id === id);
-    if (!c) return "none";
-    if (c.state === "ready") return "connected";
-    if (c.state === "needs-auth") return "needs-auth";
-    if (c.state === "degraded") return "unavailable";
-    return c.installed ? "detected" : "none";
-  };
+  // Same evidence and vocabulary as the Connections cards.
+  const mapState = (id: string) =>
+    connectionState(
+      agents.find((a) => a.id === id),
+      !!connectors.find((x) => x.id === id)?.installed,
+    );
   const usageOf = (id: string) => scan?.usage.find((u) => u.provider === id);
   const signIn = (c: ConnectorStatus) => {
     if (c.auth === "authenticated")

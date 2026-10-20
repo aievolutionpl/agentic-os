@@ -345,8 +345,11 @@ test("recorded connection checks give every screen the same agent state", () => 
   assert.deepEqual([c.state, c.reason], ["needs-auth", "auth_missing"]);
   [c] = withCheckEvidence([base], check("unavailable", "PROVIDER_UNAVAILABLE"));
   assert.equal(c.state, "degraded");
-  // Unconfigured, missing or non-runnable connectors ignore stray checks.
+  // Unconfigured, missing, non-runnable or currently failing connectors keep
+  // what this scan observed.
   for (const other of [
+    { ...base, state: "degraded", reason: "probe_failed" },
+    { ...base, auth: "unauthenticated", state: "needs-auth" },
     { ...base, reason: "connection_required" },
     { ...base, installed: false },
     { ...base, adapter: "planned" },

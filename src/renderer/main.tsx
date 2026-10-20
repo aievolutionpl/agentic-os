@@ -34,7 +34,7 @@ import { CommandPalette, type Command } from "./CommandPalette";
 import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { OrchestrationPanel } from "./OrchestrationPanel";
 import { MasterPanel } from "./MasterPanel";
-import { ChatWorkspace } from "./ChatWorkspace";
+import { ChatWorkspace, startNewChat } from "./ChatWorkspace";
 import { MemoryHub, SkillsHub } from "./KnowledgeHub";
 import { READ_ONLY_AGENTS } from "../shared";
 import { ccWords } from "./cc-i18n";
@@ -266,9 +266,22 @@ function App() {
       setScanning(false);
     }
   }
+  // Connection evidence changes (a check on another screen) rescan Control
+  // Center, so its counts and map never lag behind the Connections cards.
+  const evidence = agents
+    .map((a) => `${a.id}:${a.configured}:${a.lastCheck?.observedAt ?? ""}`)
+    .join("|");
+  const scannedEvidence = useRef("");
   useEffect(() => {
-    if (view === "center" && !scan && !scanning && !scanFailed) void runScan();
-  }, [view]);
+    if (view !== "center" || scanning) return;
+    const changed =
+      !!scan &&
+      !!scannedEvidence.current &&
+      evidence !== scannedEvidence.current;
+    // The first evidence load only records a baseline; it is not a change.
+    if (evidence) scannedEvidence.current = evidence;
+    if ((!scan && !scanFailed) || changed) void runScan();
+  }, [view, evidence]);
   async function refresh() {
     if (!api) return;
     try {
@@ -960,9 +973,11 @@ function App() {
                 failed={attentionFailed}
                 onRefresh={() => void readAttention()}
                 onOpen={openAttention}
-                onStart={(target) =>
-                  target === "project" ? openProject() : setView(target)
-                }
+                onStart={(target) => {
+                  if (target === "project") return openProject();
+                  if (target === "chat") startNewChat();
+                  setView(target);
+                }}
               />
             ) : view === "connections" ? (
               <ProviderSetup language={prefs.language} />
@@ -985,6 +1000,7 @@ function App() {
                 work={attention}
                 onOpenInbox={() => setView("inbox")}
                 onOpenAttention={openAttention}
+                agents={agents}
               />
             ) : !snapshot && !error ? (
               <div className="loading-workspace" aria-label={w.loading}>

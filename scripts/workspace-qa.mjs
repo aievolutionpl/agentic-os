@@ -81,10 +81,11 @@ try {
       .click();
   }
   await nav("Limity i tokeny");
-  await page.locator(".budget-card").first().waitFor();
+  // Providers without a reading collapse into one honest line, never a gauge.
+  await page.locator('.quota-idle [data-quota="antigravity"]').waitFor();
   assert.equal(
-    await page.locator('[data-quota="antigravity"] .budget-gauge').innerText(),
-    "—\nbrak danych",
+    await page.locator('[data-quota="antigravity"] .budget-gauge').count(),
+    0,
   );
   await page.getByRole("button", { name: "Dodaj budżet", exact: true }).click();
   let dialog = page.getByRole("dialog");

@@ -680,7 +680,10 @@ export function withCheckEvidence(
       !check ||
       c.adapter !== "available" ||
       !c.installed ||
-      c.reason === "connection_required"
+      c.reason === "connection_required" ||
+      // A failure observed by this scan outranks an older successful check.
+      c.state === "degraded" ||
+      c.auth === "unauthenticated"
     )
       return c;
     if (check.state === "connected")

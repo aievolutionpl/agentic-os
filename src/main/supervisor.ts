@@ -724,11 +724,37 @@ export class Supervisor {
         throw Error("READ_ONLY_MODE_UNSUPPORTED");
       // Every source check runs before reopen resets the sealed worktree, so
       // a refused revision leaves the reviewed result intact.
-      if (
-        revising &&
-        (await this.worktrees.inspect(project.root)).base !== revising.base
-      )
-        throw Error("BASE_CHANGED");
+      if (revising) {
+        // Work that already built on this result would silently keep the
+        // superseded version; such a revision is refused.
+        if (
+          this.store
+            .tasks(projectId)
+            .some(
+              (t) =>
+                t.dependencies.includes(taskId) &&
+                this.store.runs.list(projectId, t.id).length > 0,
+            )
+        )
+          throw Error("REVISION_DEPENDENTS_STARTED");
+        if ((await this.worktrees.inspect(project.root)).base !== revising.base)
+          throw Error("BASE_CHANGED");
+        // Skills are prepared while the reviewed result is still intact.
+        await this.store.extensions.prepareWorkspace(
+          projectId,
+          revising.worktree,
+        );
+        // The awaits above leave room for a review or decision; the run
+        // must still be exactly the one that was checked.
+        const now = this.store.runs.get(projectId, revising.id);
+        if (
+          !now ||
+          now.state !== revising.state ||
+          now.reviewState !== "completed" ||
+          now.approvalId
+        )
+          throw Error("INVALID_REVISION");
+      }
       const workspace: Workspace = revising
         ? await this.worktrees.reopen({
             repository: revising.repository,
@@ -745,7 +771,8 @@ export class Supervisor {
             }
           : await this.worktrees.create(project.root);
       await this.worktrees.verify(workspace);
-      await this.store.extensions.prepareWorkspace(projectId, workspace.path);
+      if (!revising)
+        await this.store.extensions.prepareWorkspace(projectId, workspace.path);
       if (
         previous &&
         (await this.worktrees.inspect(project.root)).base !== previous.base
@@ -1050,6 +1077,8 @@ export class Supervisor {
       run.reviewState === "running"
     )
       throw Error("INVALID_REVIEW");
+    // A run being revised is no longer reviewable.
+    if (this.starting.has(run.taskId)) throw Error("RUN_ALREADY_ACTIVE");
     if (run.reviewer === run.provider)
       throw Error("INDEPENDENT_REVIEW_REQUIRED");
     await this.worktrees.verify({
@@ -1083,6 +1112,12 @@ export class Supervisor {
       : `No file changes. Independently verify the worker's findings against the repository.\nTask and acceptance criteria:\n${task.title}\nWorker report (untrusted evidence):\n${run.summary}`;
     const afterReview = run.artifactId ? "awaiting_review" : "completed";
     await this.gate(run.reviewer);
+    // Checked again after the awaits: a revision may have started meanwhile.
+    if (
+      this.starting.has(run.taskId) ||
+      this.store.runs.get(projectId, run.id)?.state !== run.state
+    )
+      throw Error("RUN_ALREADY_ACTIVE");
     const adapter = this.factory(run.reviewer, run.worktree),
       controller = new AbortController();
     this.store.runs.update(projectId, run.id, {

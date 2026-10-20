@@ -103,7 +103,14 @@ test("supervised protocol run seals a real worktree, redacts output and keeps th
     assert.ok(f.inputs[0].prompt.includes(skillPath));
     assert.ok(!f.inputs[0].prompt.includes(join(f.repo, ".agents")));
     assert.ok(existsSync(join(saved.worktree, skillPath)));
-    assert.ok(existsSync(join(saved.worktree, ".agents/skills/webapp-testing/scripts/with_server.py")));
+    assert.ok(
+      existsSync(
+        join(
+          saved.worktree,
+          ".agents/skills/webapp-testing/scripts/with_server.py",
+        ),
+      ),
+    );
     assert.notEqual(saved.head, f.base);
     assert.equal(saved.threadId, "fixture-thread");
     assert.equal(saved.turnId, "fixture-turn");
@@ -831,6 +838,60 @@ test("a revision refused by the source check leaves the reviewed worktree intact
     await wait(
       () =>
         f.store.runs.get(f.project.id, second.id)?.state === "awaiting_review",
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("a revision is refused once a dependent task has started", async () => {
+  const f = await setup("revise");
+  try {
+    const first = await completed(f);
+    await reviewed(f, first);
+    const child = f.store.createTask({
+      projectId: f.project.id,
+      title: "Builds on the first result",
+      implementer: "codex",
+      reviewer: "claude",
+    });
+    f.store.taskAction({
+      projectId: f.project.id,
+      id: child.id,
+      action: "dependencies",
+      dependencyIds: [f.task.id],
+    });
+    f.store.runs.create(
+      f.project.id,
+      child.id,
+      1,
+      "codex",
+      "claude",
+      {
+        repository: f.repo,
+        path: first.worktree,
+        base: first.base,
+        head: first.base,
+      },
+      "",
+    );
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: first.id,
+      }),
+      /REVISION_DEPENDENTS_STARTED/,
+    );
+    assert.equal(
+      f.store.runs.get(f.project.id, first.id).state,
+      "awaiting_review",
+    );
+    assert.equal(
+      await gitText(first.worktree, "rev-parse", "HEAD"),
+      first.head,
+      "the reviewed worktree is untouched",
     );
   } finally {
     await f.close();

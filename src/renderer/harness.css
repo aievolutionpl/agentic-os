@@ -1811,3 +1811,40 @@ summary:focus-visible {
     display: none;
   }
 }
+.review-evidence {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left-width: 3px;
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+}
+.review-evidence.verdict-approve {
+  border-left-color: var(--success);
+}
+.review-evidence.verdict-changes_requested {
+  border-left-color: var(--warning);
+}
+.review-evidence ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.review-evidence li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.evidence-outside {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--warning);
+}

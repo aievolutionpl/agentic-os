@@ -52,7 +52,12 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       return;
     }
     if (p.sandboxPolicy.type !== "readOnly") {
-      writeFileSync(join(cwd, "result.txt"), "isolated result\n");
+      writeFileSync(
+        join(cwd, "result.txt"),
+        p.input?.[0]?.text?.includes("This is a revision")
+          ? "revised result\n"
+          : "isolated result\n",
+      );
       if (process.env.QA_BEHAVIOR === "protected")
         writeFileSync(join(cwd, ".env"), "DUMMY=value\n");
       if (process.env.QA_BEHAVIOR === "ignored") {
@@ -70,6 +75,12 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       p.sandboxPolicy.type === "readOnly"
         ? "Fixture independent review completed."
         : "Fixture implementation completed. sk-" + "q".repeat(40);
+    if (
+      process.env.QA_BEHAVIOR === "revise" &&
+      p.sandboxPolicy.type === "readOnly"
+    )
+      message =
+        "Fixture review.\nVERDICT: CHANGES_REQUESTED\nFINDINGS:\n- `result.txt:1` — content must say revised\n- docs/missing.md — behaviour is not documented";
     if (p.input?.[0]?.text?.includes("Continue this conversation")) {
       message = "Fixture chat reply: source reviewed. This is a protocol test, not a live model.\n\nPlan:\n1. Inspect the existing UI.\n2. Implement the bounded change.\n3. Verify with tests.";
     }

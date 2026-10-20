@@ -175,6 +175,19 @@ export class Lifecycle {
       }
     });
   }
+  /** Internal only (no renderer IPC): a reviewed result goes back to the
+   * queue for a revision, within the task's attempt limit. */
+  reopen(projectId: unknown, id: unknown, maxAttempts: number) {
+    return this.transaction(() => {
+      const t = this.row(projectId, id);
+      if (t.status !== "completed") throw Error("INVALID_TRANSITION");
+      if (t.attempt >= maxAttempts) throw Error("REVISION_LIMIT_REACHED");
+      this.db
+        .prepare("UPDATE tasks SET status='queued',failure=NULL WHERE id=?")
+        .run(t.id);
+      this.event(t, "revision");
+    });
+  }
   private ttl(value: unknown): number {
     if (
       typeof value !== "number" ||

@@ -47,21 +47,20 @@ async function setup(behavior = "write", clock = Date.now) {
     reviewer: "claude",
   });
   const inputs = [];
-  const supervisor = new Supervisor(
-    store,
-    join(dir, "app"),
-    () => {
-      const adapter = new CodexAdapter({
-        command: process.execPath,
-        args: [fixture],
-        cwd: repo,
-        env: { QA_BEHAVIOR: behavior },
-      });
-      const run = adapter.run.bind(adapter);
-      adapter.run = input => { inputs.push(input); return run(input); };
-      return adapter;
-    },
-  );
+  const supervisor = new Supervisor(store, join(dir, "app"), () => {
+    const adapter = new CodexAdapter({
+      command: process.execPath,
+      args: [fixture],
+      cwd: repo,
+      env: { QA_BEHAVIOR: behavior },
+    });
+    const run = adapter.run.bind(adapter);
+    adapter.run = (input) => {
+      inputs.push(input);
+      return run(input);
+    };
+    return adapter;
+  });
   return {
     dir,
     repo,
@@ -104,7 +103,14 @@ test("supervised protocol run seals a real worktree, redacts output and keeps th
     assert.ok(f.inputs[0].prompt.includes(skillPath));
     assert.ok(!f.inputs[0].prompt.includes(join(f.repo, ".agents")));
     assert.ok(existsSync(join(saved.worktree, skillPath)));
-    assert.ok(existsSync(join(saved.worktree, ".agents/skills/webapp-testing/scripts/with_server.py")));
+    assert.ok(
+      existsSync(
+        join(
+          saved.worktree,
+          ".agents/skills/webapp-testing/scripts/with_server.py",
+        ),
+      ),
+    );
     assert.notEqual(saved.head, f.base);
     assert.equal(saved.threadId, "fixture-thread");
     assert.equal(saved.turnId, "fixture-turn");
@@ -191,9 +197,18 @@ test("orchestrator dispatches a real worktree run and reviewer, shares frozen me
     assert.equal(run.state, "awaiting_review");
     assert.equal(run.reviewState, "completed");
     assert.match(f.store.runs.context(run.id), /Shared team convention/);
-    assert.match(f.store.runs.context(run.id), /Skill builtin:teamwork@1\.0\.0/);
-    assert.match(f.inputs.find(input => input.readOnly).prompt, /Shared team convention/);
-    assert.match(f.inputs.find(input => input.readOnly).prompt, /\+isolated result/);
+    assert.match(
+      f.store.runs.context(run.id),
+      /Skill builtin:teamwork@1\.0\.0/,
+    );
+    assert.match(
+      f.inputs.find((input) => input.readOnly).prompt,
+      /Shared team convention/,
+    );
+    assert.match(
+      f.inputs.find((input) => input.readOnly).prompt,
+      /\+isolated result/,
+    );
     assert.equal(f.store.runs.list(f.project.id).length, 1);
     assert.equal(await gitText(f.repo, "rev-parse", "HEAD"), f.base);
     assert.equal(existsSync(join(f.repo, "result.txt")), false);
@@ -688,6 +703,219 @@ test("a policy refusal stops a task run before any run, worktree or process exis
     assert.deepEqual(
       [rows[0].role, rows[0].agent, rows[0].runId, rows[0].outcome],
       ["implementer", "codex", run.id, "completed"],
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("reviewer evidence drives a bounded, explicitly started revision of the same worktree", async () => {
+  const f = await setup("revise");
+  try {
+    const first = await completed(f);
+    await reviewed(f, first);
+    const review = f.inputs.find((i) => i.readOnly);
+    assert.match(review.prompt, /VERDICT: <verdict>/);
+    const evidence = f.store.runs.reviewEvidence(first.id);
+    assert.equal(evidence.verdict, "changes_requested");
+    assert.deepEqual(
+      evidence.findings.map((x) => [x.path, x.line, x.inDiff]),
+      [
+        ["result.txt", 1, true],
+        ["docs/missing.md", null, false],
+      ],
+    );
+
+    const second = await f.supervisor.start({
+      projectId: f.project.id,
+      taskId: f.task.id,
+      consent: true,
+      reviseRunId: first.id,
+    });
+    await wait(
+      () =>
+        f.store.runs.get(f.project.id, second.id)?.state === "awaiting_review",
+    );
+    const revised = f.store.runs.get(f.project.id, second.id);
+    assert.equal(revised.previousRunId, first.id);
+    assert.equal(revised.worktree, first.worktree, "same isolated worktree");
+    assert.equal(revised.base, first.base);
+    assert.equal(f.store.runs.get(f.project.id, first.id).state, "rejected");
+    const prompt = f.inputs.filter((i) => !i.readOnly).at(-1).prompt;
+    assert.match(prompt, /This is a revision/);
+    assert.match(prompt, /result\.txt:1 — content must say revised/);
+    const diff = f.store.artifacts
+      .get(f.project.id, f.task.id, revised.artifactId)
+      .diff.toString("utf8");
+    assert.match(diff, /\+revised result/);
+    assert.doesNotMatch(
+      diff,
+      /isolated result/,
+      "one cumulative diff from base",
+    );
+    assert.equal(
+      existsSync(join(f.repo, "result.txt")),
+      false,
+      "source untouched",
+    );
+
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: revised.id,
+      }),
+      /INVALID_REVISION/,
+      "no revision before the new result is reviewed",
+    );
+    await reviewed(f, revised);
+    const third = await f.supervisor.start({
+      projectId: f.project.id,
+      taskId: f.task.id,
+      consent: true,
+      reviseRunId: revised.id,
+    });
+    await wait(
+      () =>
+        f.store.runs.get(f.project.id, third.id)?.state === "awaiting_review",
+    );
+    await reviewed(f, f.store.runs.get(f.project.id, third.id));
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: third.id,
+      }),
+      /REVISION_LIMIT_REACHED/,
+    );
+    assert.equal(
+      f.store.tasks(f.project.id).find((t) => t.id === f.task.id).attempt,
+      3,
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("a revision refused by the source check leaves the reviewed worktree intact", async () => {
+  const f = await setup("revise");
+  try {
+    const first = await completed(f);
+    await reviewed(f, first);
+    writeFileSync(join(f.repo, "dirty.txt"), "local edit");
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: first.id,
+      }),
+      /REPOSITORY_NOT_CLEAN/,
+    );
+    assert.equal(
+      f.store.runs.get(f.project.id, first.id).state,
+      "awaiting_review",
+    );
+    assert.equal(
+      await gitText(first.worktree, "rev-parse", "HEAD"),
+      first.head,
+      "worktree not reset",
+    );
+    rmSync(join(f.repo, "dirty.txt"));
+    const second = await f.supervisor.start({
+      projectId: f.project.id,
+      taskId: f.task.id,
+      consent: true,
+      reviseRunId: first.id,
+    });
+    assert.equal(
+      f.store.runs.context(second.id),
+      f.store.runs.context(first.id),
+      "the frozen context is reused",
+    );
+    await wait(
+      () =>
+        f.store.runs.get(f.project.id, second.id)?.state === "awaiting_review",
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("a revision is refused once a dependent task has started", async () => {
+  const f = await setup("revise");
+  try {
+    const first = await completed(f);
+    await reviewed(f, first);
+    const child = f.store.createTask({
+      projectId: f.project.id,
+      title: "Builds on the first result",
+      implementer: "codex",
+      reviewer: "claude",
+    });
+    f.store.taskAction({
+      projectId: f.project.id,
+      id: child.id,
+      action: "dependencies",
+      dependencyIds: [f.task.id],
+    });
+    f.store.runs.create(
+      f.project.id,
+      child.id,
+      1,
+      "codex",
+      "claude",
+      {
+        repository: f.repo,
+        path: first.worktree,
+        base: first.base,
+        head: first.base,
+      },
+      "",
+    );
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: first.id,
+      }),
+      /REVISION_DEPENDENTS_STARTED/,
+    );
+    assert.equal(
+      f.store.runs.get(f.project.id, first.id).state,
+      "awaiting_review",
+    );
+    assert.equal(
+      await gitText(first.worktree, "rev-parse", "HEAD"),
+      first.head,
+      "the reviewed worktree is untouched",
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("a review without a changes-requested verdict cannot start a revision", async () => {
+  const f = await setup();
+  try {
+    const run = await completed(f);
+    await reviewed(f, run);
+    assert.equal(f.store.runs.reviewEvidence(run.id).verdict, "unknown");
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+        reviseRunId: run.id,
+      }),
+      /INVALID_REVISION/,
+    );
+    assert.equal(
+      f.store.runs.get(f.project.id, run.id).state,
+      "awaiting_review",
     );
   } finally {
     await f.close();

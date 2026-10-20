@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { redact } from "./validate.js";
 import type { LocalUsage, Run, RunEvent, RunState } from "../shared.js";
 import type { Workspace } from "./git.js";
+import type { ReviewEvidence } from "./review-evidence.js";
 export class Runs {
   constructor(
     private db: DatabaseSync,
@@ -114,7 +115,7 @@ export class Runs {
         )
         .run(...entries.map(([, v]) => v ?? null), this.clock(), projectId, id);
   }
-  event(runId: string, kind: string, value: string) {
+  event(runId: string, kind: string, value: string, limit = 4000) {
     const count = Number(
       this.db
         .prepare("SELECT count(*) AS n FROM run_events WHERE runId=?")
@@ -130,13 +131,28 @@ export class Runs {
         "application",
         "approval",
         "review",
+        "review_evidence",
+        "revision",
         "review_outcome",
       ].includes(kind)
     )
       return;
     this.db
       .prepare("INSERT INTO run_events(runId,kind,text,at) VALUES(?,?,?,?)")
-      .run(runId, kind, redact(value), this.clock());
+      .run(runId, kind, redact(value, limit), this.clock());
+  }
+  /** Latest structured review evidence recorded for a run, if any. */
+  reviewEvidence(runId: string): ReviewEvidence | null {
+    const row = this.db
+      .prepare(
+        "SELECT text FROM run_events WHERE runId=? AND kind='review_evidence' ORDER BY seq DESC LIMIT 1",
+      )
+      .get(runId);
+    try {
+      return row ? (JSON.parse(String(row.text)) as ReviewEvidence) : null;
+    } catch {
+      return null;
+    }
   }
   events(projectId: string, id: string): RunEvent[] {
     if (!this.get(projectId, id)) throw Error("RUN_NOT_FOUND");

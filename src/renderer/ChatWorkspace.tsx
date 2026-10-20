@@ -9,8 +9,15 @@ import type {
   ProviderSetting,
 } from "../shared";
 import { AGENTS, READ_ONLY_AGENTS } from "../shared";
-import { Icon, Modal, agentName } from "./ui";
+import { Icon, Modal, agentName, connectionLabel, connectionState } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
+import {
+  AgentStrip,
+  AttachButton,
+  AttachmentChips,
+  useAttachments,
+  useDrop,
+} from "./ChatComposer";
 
 function MessageText({ content }: { content: string }) {
   return (
@@ -60,6 +67,22 @@ const errors: Record<string, [string, string]> = {
     "Odczyt dostawcy wskazuje wyczerpany limit. Sprawdź OpenQuota.",
     "The provider reports an exhausted quota. Check OpenQuota.",
   ],
+  ATTACHMENT_LIMIT: [
+    "Możesz dołączyć maksymalnie 5 plików do jednej wiadomości.",
+    "You can attach up to 5 files per message.",
+  ],
+  ATTACHMENT_TOO_LARGE: [
+    "Plik jest za duży. Limit to 100 KB na plik i 200 KB łącznie.",
+    "The file is too large. The limit is 100 KB per file and 200 KB in total.",
+  ],
+  ATTACHMENT_MESSAGE_REQUIRED: [
+    "Dopisz wiadomość — pliki są wysyłane razem z nią.",
+    "Add a message — files are sent together with it.",
+  ],
+  ATTACHMENT_NOT_TEXT: [
+    "Można dołączać tylko pliki tekstowe (kod, Markdown, JSON, CSV, logi).",
+    "Only text files can be attached (code, Markdown, JSON, CSV, logs).",
+  ],
   CHAT_CANCELLED: ["Odpowiedź została zatrzymana.", "Response stopped."],
   CHAT_INTERRUPTED: [
     "Aplikacja została zamknięta podczas odpowiedzi. Możesz wysłać kolejną wiadomość.",
@@ -73,6 +96,21 @@ const errors: Record<string, [string, string]> = {
     "Zbyt dużo pamięci lub skilli. Zmniejsz wybrany kontekst.",
     "Too much memory or too many skills. Reduce selected context.",
   ],
+};
+/**
+ * Unsent work survives leaving the chat view (e.g. to fix a connection) for the
+ * rest of this app session. Kept in memory only, never written to disk.
+ */
+const draft = {
+  selected: "",
+  message: "",
+  files: [] as { name: string; content: string }[],
+  agent: "codex" as Agent,
+  mode: "chat" as "chat" | "plan",
+  source: "default" as "default" | "local" | "github",
+  path: "",
+  repository: "",
+  existing: "",
 };
 export function ChatWorkspace({
   language,
@@ -90,15 +128,17 @@ export function ChatWorkspace({
   const api = window.agenting!,
     pl = language === "pl";
   const [sessions, setSessions] = useState<ChatSession[]>([]),
-    [selected, setSelected] = useState("");
-  const [agent, setAgent] = useState<Agent>("codex"),
-    [mode, setMode] = useState<"chat" | "plan">("chat"),
-    [source, setSource] = useState<"default" | "local" | "github">("default");
-  const [path, setPath] = useState(""),
-    [repository, setRepository] = useState(""),
-    [existing, setExisting] = useState("");
+    [selected, setSelected] = useState(draft.selected);
+  const [agent, setAgent] = useState<Agent>(draft.agent),
+    [mode, setMode] = useState<"chat" | "plan">(draft.mode),
+    [source, setSource] = useState<"default" | "local" | "github">(
+      draft.source,
+    );
+  const [path, setPath] = useState(draft.path),
+    [repository, setRepository] = useState(draft.repository),
+    [existing, setExisting] = useState(draft.existing);
   const [providers, setProviders] = useState<ProviderSetting[]>([]),
-    [message, setMessage] = useState(""),
+    [message, setMessage] = useState(draft.message),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [memory, setMemory] = useState<Memory[]>([]),
@@ -111,6 +151,11 @@ export function ChatWorkspace({
     [notice, setNotice] = useState("");
   const [handoff, setHandoff] = useState<ChatMessage | null>(null),
     [reviewer, setReviewer] = useState<Agent>("claude");
+  const attached = useAttachments(draft.files),
+    drop = useDrop((files) => void attached.add(files));
+  const [repositories, setRepositories] = useState<
+    { name: string; private: boolean }[] | null | undefined
+  >(undefined);
   const bottom = useRef<HTMLDivElement>(null),
     current = useRef(selected),
     live = useRef(true);
@@ -170,9 +215,42 @@ export function ChatWorkspace({
     };
   }, [selected, chat?.projectId]);
   useEffect(() => {
+    // Retry a failed lookup each time GitHub is picked (e.g. after gh auth login).
+    if (source !== "github" || repositories) return;
+    setRepositories(undefined);
+    void (api.githubRepositories?.() ?? Promise.resolve(null))
+      .then((rows) => live.current && setRepositories(rows))
+      .catch(() => live.current && setRepositories(null));
+  }, [source]);
+  useEffect(() => {
     bottom.current?.scrollIntoView({ block: "nearest" });
   }, [chat?.messages.length]);
+  useEffect(() => {
+    draft.selected = selected;
+    draft.message = message;
+    draft.files = attached.files;
+    // The draft keeps its target too: agent, mode and where it will run.
+    Object.assign(draft, { agent, mode, source, path, repository, existing });
+  }, [
+    selected,
+    message,
+    attached.files,
+    agent,
+    mode,
+    source,
+    path,
+    repository,
+    existing,
+  ]);
   async function create() {
+    if (attached.reading) return;
+    // Check the connection before creating a chat, so the draft stays on the
+    // start screen while the user fixes it.
+    if (!providers.find((p) => p.id === agent)?.configured)
+      return setError("PROVIDER_NOT_CONFIGURED");
+    // Files travel with a message; without one they would be dropped silently.
+    if (attached.files.length && !message.trim())
+      return attached.fail("ATTACHMENT_MESSAGE_REQUIRED");
     setBusy(true);
     setError("");
     try {
@@ -191,28 +269,40 @@ export function ChatWorkspace({
       setSessions((rows) => [row, ...rows]);
       setSelected(row.id);
       onProjectsChanged();
+      // The first message typed on the start screen goes straight to the agent.
+      if (message.trim()) await deliver(row, []);
     } catch (e) {
       setError(String(e));
     } finally {
       setBusy(false);
     }
   }
+  async function deliver(target: ChatSession, contextIds: string[]) {
+    const row = await api.chatSend!({
+      id: target.id,
+      message,
+      contextIds,
+      skillIds: target.id === chat?.id ? skillIds : [],
+      consent: true,
+      ...(attached.files.length && { attachments: attached.files }),
+    });
+    setSessions((rows) =>
+      rows.some((s) => s.id === row.id)
+        ? rows.map((s) => (s.id === row.id ? row : s))
+        : [row, ...rows],
+    );
+    setMessage("");
+    attached.clear();
+  }
   async function send() {
-    if (!chat || !message.trim() || running || busy) return;
+    if (!chat || !message.trim() || running || busy || attached.reading) return;
     setBusy(true);
     setError("");
     try {
-      const row = await api.chatSend!({
-        id: chat.id,
-        message,
-        contextIds: memoryIds.filter(
-          (id) => !memory.find((m) => m.id === id)?.pinned,
-        ),
-        skillIds,
-        consent: true,
-      });
-      setSessions((rows) => rows.map((s) => (s.id === row.id ? row : s)));
-      setMessage("");
+      await deliver(
+        chat,
+        memoryIds.filter((id) => !memory.find((m) => m.id === id)?.pinned),
+      );
     } catch (e) {
       setError(String(e));
     } finally {
@@ -254,6 +344,7 @@ export function ChatWorkspace({
           className="secondary"
           onClick={() => {
             setSelected("");
+            attached.clear();
             setMessage("");
           }}
         >
@@ -281,7 +372,10 @@ export function ChatWorkspace({
             <button
               key={s.id}
               className={selected === s.id ? "active" : ""}
-              onClick={() => setSelected(s.id)}
+              onClick={() => {
+                if (s.id !== selected) attached.clear();
+                setSelected(s.id);
+              }}
             >
               <ProviderIcon provider={s.agent} />
               <span>
@@ -322,44 +416,48 @@ export function ChatWorkspace({
                 </div>
               </header>
               <div className="chat-start-form">
-                <div className="form-pair">
-                  <label>
-                    {pl ? "Agent" : "Agent"}
-                    <select
-                      aria-label={pl ? "Agent czatu" : "Chat agent"}
-                      value={agent}
-                      onChange={(e) => {
-                        setAgent(e.target.value as Agent);
-                        if (!READ_ONLY_AGENTS.includes(e.target.value as Agent))
-                          setMode("chat");
-                      }}
+                <AgentStrip
+                  value={agent}
+                  providers={providers}
+                  pl={pl}
+                  onChange={(id) => {
+                    setAgent(id);
+                    if (!READ_ONLY_AGENTS.includes(id)) setMode("chat");
+                  }}
+                />
+                <div
+                  className="mode-toggle"
+                  role="group"
+                  aria-label={pl ? "Tryb pracy" : "Work mode"}
+                >
+                  {(["chat", "plan"] as const).map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={mode === value}
+                      className={mode === value ? "chosen" : ""}
+                      disabled={
+                        value === "plan" && !READ_ONLY_AGENTS.includes(agent)
+                      }
+                      title={
+                        value === "plan" && !READ_ONLY_AGENTS.includes(agent)
+                          ? pl
+                            ? "Ten agent nie ma zweryfikowanego trybu tylko do odczytu"
+                            : "This agent has no verified read-only mode"
+                          : undefined
+                      }
+                      onClick={() => setMode(value)}
                     >
-                      {AGENTS.map((id) => (
-                        <option key={id} value={id}>
-                          {agentName(id)}
-                          {providers.find((p) => p.id === id)?.configured
-                            ? ""
-                            : " · " + (pl ? "do połączenia" : "connect first")}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    {pl ? "Tryb pracy" : "Work mode"}
-                    <select
-                      aria-label={pl ? "Tryb pracy" : "Work mode"}
-                      value={mode}
-                      onChange={(e) => setMode(e.target.value as typeof mode)}
-                    >
-                      <option value="chat">{pl ? "Rozmowa" : "Chat"}</option>
-                      <option
-                        value="plan"
-                        disabled={!READ_ONLY_AGENTS.includes(agent)}
-                      >
-                        {pl ? "Planowanie" : "Planning"}
-                      </option>
-                    </select>
-                  </label>
+                      <Icon name={value === "plan" ? "plan" : "message"} />
+                      {value === "plan"
+                        ? pl
+                          ? "Planowanie"
+                          : "Planning"
+                        : pl
+                          ? "Rozmowa"
+                          : "Chat"}
+                    </button>
+                  ))}
                 </div>
                 <fieldset className="workspace-source">
                   <legend>
@@ -461,36 +559,135 @@ export function ChatWorkspace({
                     {pl ? "Repozytorium GitHub" : "GitHub repository"}
                     <input
                       placeholder="owner/repository"
+                      list="github-repositories"
                       value={repository}
                       onChange={(e) => setRepository(e.target.value)}
                     />
-                    <small>
-                      {pl
-                        ? "Pobierzemy lokalny klon. Dostęp prywatny przez istniejące logowanie GitHub CLI."
-                        : "A local clone is created. Private access uses your existing GitHub CLI login."}
+                    <datalist id="github-repositories">
+                      {(repositories ?? []).map((r) => (
+                        <option key={r.name} value={r.name}>
+                          {r.private ? (pl ? "prywatne" : "private") : ""}
+                        </option>
+                      ))}
+                    </datalist>
+                    <small className="github-state">
+                      <Icon name="github" />
+                      {repositories === undefined
+                        ? pl
+                          ? "Sprawdzam logowanie GitHub CLI…"
+                          : "Checking GitHub CLI sign-in…"
+                        : repositories === null
+                          ? pl
+                            ? "GitHub CLI niepołączone. Uruchom gh auth login, aby wybierać z listy; adres owner/repo działa dla repozytoriów publicznych."
+                            : "GitHub CLI not connected. Run gh auth login to pick from a list; owner/repo works for public repositories."
+                          : pl
+                            ? `Połączono z GitHub · ${repositories.length} repozytoriów do wyboru. Pobierzemy lokalny klon.`
+                            : `Connected to GitHub · ${repositories.length} repositories to pick from. A local clone is created.`}
                     </small>
                   </label>
                 )}
-                <div className="panel-actions">
-                  <button
-                    className="primary"
-                    disabled={
-                      busy ||
-                      (source === "local" && !path && !existing) ||
-                      (source === "github" && !repository)
+                <div
+                  className={`chat-composer start-composer${drop.over ? " drop-over" : ""}`}
+                  {...drop.props}
+                >
+                  <textarea
+                    aria-label={pl ? "Pierwsza wiadomość" : "First message"}
+                    value={message}
+                    maxLength={12000}
+                    placeholder={
+                      pl
+                        ? "Opisz, co chcesz zrobić (opcjonalnie) — możesz też upuścić tu pliki…"
+                        : "Describe what you want to do (optional) — or drop files here…"
                     }
-                    onClick={() => void create()}
-                  >
-                    <Icon name={busy ? "refresh" : "message"} />
-                    {busy
-                      ? pl
-                        ? "Przygotowuję…"
-                        : "Preparing…"
-                      : pl
-                        ? "Otwórz rozmowę"
-                        : "Open conversation"}
-                  </button>
+                    disabled={busy}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        !e.shiftKey &&
+                        !e.nativeEvent.isComposing &&
+                        message.trim()
+                      ) {
+                        e.preventDefault();
+                        if (
+                          !busy &&
+                          !(source === "local" && !path && !existing) &&
+                          !(source === "github" && !repository)
+                        )
+                          void create();
+                      }
+                    }}
+                    onPaste={(e) => {
+                      if (e.clipboardData.files.length) {
+                        e.preventDefault();
+                        void attached.add(e.clipboardData.files);
+                      }
+                    }}
+                  />
+                  <AttachmentChips
+                    files={attached.files}
+                    pl={pl}
+                    onRemove={attached.remove}
+                  />
+                  <div className="composer-toolbar">
+                    <AttachButton
+                      pl={pl}
+                      disabled={busy}
+                      onFiles={(f) => void attached.add(f)}
+                    />
+                    <span className="composer-chip">
+                      <ProviderIcon provider={agent} />
+                      {agentName(agent)}
+                    </span>
+                    <span className="composer-chip">
+                      <Icon
+                        name={
+                          source === "github"
+                            ? "github"
+                            : source === "local"
+                              ? "folder"
+                              : "spark"
+                        }
+                      />
+                      {source === "github"
+                        ? repository || "GitHub"
+                        : source === "local"
+                          ? (projects.find((p) => p.id === existing)?.name ??
+                            (path.split(/[\\/]/).filter(Boolean).pop() ||
+                              (pl ? "Folder" : "Folder")))
+                          : pl
+                            ? "Domyślny workspace"
+                            : "Default workspace"}
+                    </span>
+                    <button
+                      className="primary composer-send"
+                      disabled={
+                        busy ||
+                        attached.reading ||
+                        (source === "local" && !path && !existing) ||
+                        (source === "github" && !repository)
+                      }
+                      onClick={() => void create()}
+                    >
+                      <Icon name={busy ? "refresh" : "message"} />
+                      {busy
+                        ? pl
+                          ? "Przygotowuję…"
+                          : "Preparing…"
+                        : pl
+                          ? "Otwórz rozmowę"
+                          : "Open conversation"}
+                    </button>
+                  </div>
+                </div>
+                {attached.problem && (
+                  <p className="error" role="alert">
+                    {explain(attached.problem)}
+                  </p>
+                )}
+                <div className="panel-actions">
                   <button className="secondary" onClick={onConfigure}>
+                    <Icon name="connections" />
                     {pl ? "Połącz subskrypcję" : "Connect subscription"}
                   </button>
                 </div>
@@ -498,8 +695,19 @@ export function ChatWorkspace({
             </>
           ) : (
             <>
-              <header className="conversation-head">
-                <ProviderIcon provider={chat.agent} />
+              <header
+                className={`conversation-head state-${connectionState(providers.find((p) => p.id === chat.agent))}`}
+              >
+                <span
+                  className="picker-glyph"
+                  title={connectionLabel(
+                    connectionState(providers.find((p) => p.id === chat.agent)),
+                    pl,
+                  )}
+                >
+                  <ProviderIcon provider={chat.agent} />
+                  <i className="connection-dot" aria-hidden="true" />
+                </span>
                 <div>
                   <h2>{chat.title}</h2>
                   <small>
@@ -511,8 +719,19 @@ export function ChatWorkspace({
                       : pl
                         ? "Rozmowa"
                         : "Chat"}{" "}
-                    · {chat.source}
-                    {providers.find(p=>p.id===chat.agent)?.model ? ` · ${providers.find(p=>p.id===chat.agent)!.model}` : ""}
+                    ·{" "}
+                    {chat.source === "github"
+                      ? (chat.repository ?? "GitHub")
+                      : chat.source === "local"
+                        ? pl
+                          ? "folder lokalny"
+                          : "local folder"
+                        : pl
+                          ? "domyślny workspace"
+                          : "default workspace"}
+                    {providers.find((p) => p.id === chat.agent)?.model
+                      ? ` · ${providers.find((p) => p.id === chat.agent)!.model}`
+                      : ""}
                   </small>
                   <span className="chat-root" title={chat.root}>
                     {chat.root}
@@ -594,6 +813,9 @@ export function ChatWorkspace({
                         })}
                       </time>
                     </div>
+                    {m.attachments && (
+                      <AttachmentChips files={m.attachments} pl={pl} />
+                    )}
                     {m.content ? (
                       <MessageText content={m.content} />
                     ) : (
@@ -717,7 +939,8 @@ export function ChatWorkspace({
                 </div>
               </details>
               <form
-                className="chat-composer"
+                className={`chat-composer${drop.over ? " drop-over" : ""}`}
+                {...drop.props}
                 onSubmit={(e) => {
                   e.preventDefault();
                   void send();
@@ -744,8 +967,57 @@ export function ChatWorkspace({
                       void send();
                     }
                   }}
+                  onPaste={(e) => {
+                    if (e.clipboardData.files.length) {
+                      e.preventDefault();
+                      void attached.add(e.clipboardData.files);
+                    }
+                  }}
                 />
-                <div>
+                <AttachmentChips
+                  files={attached.files}
+                  pl={pl}
+                  onRemove={attached.remove}
+                />
+                {attached.problem && (
+                  <p className="error" role="alert">
+                    {explain(attached.problem)}
+                  </p>
+                )}
+                <div className="composer-toolbar">
+                  <AttachButton
+                    pl={pl}
+                    disabled={busy || running}
+                    onFiles={(f) => void attached.add(f)}
+                  />
+                  <span className="composer-chip" title={chat.root}>
+                    <Icon
+                      name={
+                        chat.source === "github"
+                          ? "github"
+                          : chat.source === "local"
+                            ? "folder"
+                            : "spark"
+                      }
+                    />
+                    {chat.source === "default"
+                      ? pl
+                        ? "Domyślny workspace"
+                        : "Default workspace"
+                      : chat.source === "github"
+                        ? (chat.repository ?? "GitHub")
+                        : chat.root.split(/[\\/]/).filter(Boolean).pop()}
+                  </span>
+                  <span className="composer-chip">
+                    <Icon name={chat.mode === "plan" ? "plan" : "message"} />
+                    {chat.mode === "plan"
+                      ? pl
+                        ? "Planowanie"
+                        : "Planning"
+                      : pl
+                        ? "Rozmowa"
+                        : "Chat"}
+                  </span>
                   <small>
                     <Icon name="shield" />
                     {READ_ONLY_AGENTS.includes(chat.agent)
@@ -769,7 +1041,7 @@ export function ChatWorkspace({
                   ) : (
                     <button
                       className="primary"
-                      disabled={busy || !message.trim()}
+                      disabled={busy || attached.reading || !message.trim()}
                     >
                       <Icon name="send" />
                       {pl ? "Wyślij" : "Send"}

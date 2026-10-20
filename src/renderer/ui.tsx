@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
-import type { Agent } from "../shared";
+import type { Agent, ProviderSetting } from "../shared";
 import { ProviderIcon } from "./ProviderIcon";
 import {
   Layers3,
@@ -45,6 +45,9 @@ import {
   BookOpen,
   type LucideIcon,
   Inbox,
+  Paperclip,
+  FileText,
+  ArrowUp,
 } from "lucide-react";
 const iconLibrary: Record<string, LucideIcon> = {
   layers: Layers3,
@@ -89,6 +92,9 @@ const iconLibrary: Record<string, LucideIcon> = {
   code: Code2,
   skill: BookOpen,
   inbox: Inbox,
+  attach: Paperclip,
+  file: FileText,
+  up: ArrowUp,
 };
 
 export function Icon({
@@ -473,4 +479,31 @@ export function relativeTime(at: string, language: string) {
   if (Math.abs(seconds) < 86400)
     return formatter.format(Math.round(seconds / 3600), "hour");
   return formatter.format(Math.round(seconds / 86400), "day");
+}
+
+export type ConnectionState =
+  | "connected"
+  | "needs-auth"
+  | "unavailable"
+  | "saved"
+  | "detected"
+  | "none";
+/** Evidence order: a recorded check beats a saved setting, which beats discovery. */
+export function connectionState(
+  setting: ProviderSetting | undefined,
+  detected = false,
+): ConnectionState {
+  if (setting?.configured)
+    return setting.lastCheck ? setting.lastCheck.state : "saved";
+  return detected ? "detected" : "none";
+}
+export function connectionLabel(state: ConnectionState, pl: boolean) {
+  return {
+    connected: pl ? "Połączony" : "Connected",
+    "needs-auth": pl ? "Wymaga logowania" : "Sign-in required",
+    unavailable: pl ? "Niedostępny" : "Unavailable",
+    saved: pl ? "Zapisany · niesprawdzony" : "Saved · not checked",
+    detected: pl ? "Wykryto na urządzeniu" : "Detected on device",
+    none: pl ? "Wybierz program" : "Choose executable",
+  }[state];
 }

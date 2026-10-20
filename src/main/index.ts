@@ -40,10 +40,10 @@ import {
 } from "./backup.js";
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
-import { Chats } from "./chats.js";
+import { Chats, githubRepositories } from "./chats.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
-import { AGENTS, type Agent } from "../shared.js";
+import { AGENTS, type Agent, type ProviderHealth } from "../shared.js";
 import {
   scanAllQuotas,
   saveCustomSubscription,
@@ -223,6 +223,18 @@ app
         checks: store.capabilities.list(),
         runs: store.runs.evidence(),
       });
+    // A check describes the setup it ran against. If that setup was saved again
+    // while the check ran, its result is returned but never recorded as evidence.
+    const setupOf = (input: unknown) => {
+      const agent = (input as { agent?: unknown } | null)?.agent;
+      return JSON.stringify(
+        typeof agent === "string" ? (store.runs.provider(agent) ?? null) : null,
+      );
+    };
+    const recordIfUnchanged = (before: string, health: ProviderHealth) =>
+      setupOf({ agent: health.agent }) === before
+        ? store.capabilities.record(health)
+        : health;
     const handlers: Record<string, (input: unknown) => unknown> = {
       chatList: () => chats!.list(),
       chatCreate: (input) => chats!.create(input),
@@ -250,14 +262,17 @@ app
         });
       },
       providerCheck: async (input) => {
+        const before = setupOf(input);
         const health = await supervisor.health(input);
         // An unconfigured profile was not probed; it is not handshake evidence.
         return health.detail === "PROVIDER_NOT_CONFIGURED"
           ? health
-          : store.capabilities.record(health);
+          : recordIfUnchanged(before, health);
       },
-      providerSignIn: async (input) =>
-        store.capabilities.record(await supervisor.signIn(input)),
+      providerSignIn: async (input) => {
+        const before = setupOf(input);
+        return recordIfUnchanged(before, await supervisor.signIn(input));
+      },
       providerConnectDetected: (input) => {
         const p = exact(input, ["agent", "consent"]);
         if (p.consent !== true || !AGENTS.includes(p.agent as Agent))
@@ -265,6 +280,7 @@ app
         const agent = p.agent as Agent,
           command = detectExecutables()[agent];
         if (!command) throw Error("PROVIDER_NOT_FOUND");
+        store.capabilities.clear(agent);
         supervisor.configure({
           agent,
           command,
@@ -366,9 +382,22 @@ app
       runtimeReview: (input) => supervisor.review(input),
       configureProvider: (input) => {
         supervisor.configure(input);
+        store.capabilities.clear((input as { agent: Agent }).agent);
         quotaMonitor!.invalidate();
       },
-      providerSettings: () => supervisor.settings(),
+      providerSettings: () => {
+        const checks = store.capabilities.list();
+        return supervisor.settings().map((setting) => {
+          const check = checks.find((c) => c.agent === setting.id);
+          return {
+            ...setting,
+            lastCheck: check
+              ? { state: check.state, observedAt: check.observedAt }
+              : null,
+          };
+        });
+      },
+      githubRepositories: () => githubRepositories(),
       chooseExecutable: async () => {
         const result = await dialog.showOpenDialog(window!, {
           title: "Choose a trusted agent executable",
@@ -568,6 +597,9 @@ app
               "GITHUB_CLONE_FAILED",
               "ISOLATED_GIT_WORKSPACE_REQUIRED",
               "FOLDER_REQUIRED",
+              "ATTACHMENT_LIMIT",
+              "ATTACHMENT_TOO_LARGE",
+              "ATTACHMENT_NOT_TEXT",
             ].includes(code)
           )
             throw Error(code);

@@ -38,7 +38,8 @@ export class CapabilityChecks {
   record(health: ProviderHealth) {
     this.db
       .prepare(
-        "INSERT INTO capability_checks VALUES(?,?,?,?,?) ON CONFLICT(agent) DO UPDATE SET state=excluded.state,detail=excluded.detail,models=excluded.models,observedAt=excluded.observedAt",
+        // A slower, older probe finishing late never replaces newer evidence.
+        "INSERT INTO capability_checks VALUES(?,?,?,?,?) ON CONFLICT(agent) DO UPDATE SET state=excluded.state,detail=excluded.detail,models=excluded.models,observedAt=excluded.observedAt WHERE excluded.observedAt>=capability_checks.observedAt",
       )
       .run(
         health.agent,
@@ -48,6 +49,10 @@ export class CapabilityChecks {
         health.observedAt,
       );
     return health;
+  }
+  /** A changed configuration has not been checked yet. */
+  clear(agent: Agent) {
+    this.db.prepare("DELETE FROM capability_checks WHERE agent=?").run(agent);
   }
   list(): CapabilityEvidence["checks"] {
     return this.db

@@ -7,6 +7,7 @@ const api: API = {
   chatAction: (input) => ipcRenderer.invoke("app:chatAction", input),
   chatRemember: (input) => ipcRenderer.invoke("app:chatRemember", input),
   chatTask: (input) => ipcRenderer.invoke("app:chatTask", input),
+  githubRepositories: () => ipcRenderer.invoke("app:githubRepositories"),
   memoryList: () => ipcRenderer.invoke("app:memoryList"),
   memoryUpdate: (input) => ipcRenderer.invoke("app:memoryUpdate", input),
   skillCatalog: () => ipcRenderer.invoke("app:skillCatalog"),

@@ -6,6 +6,9 @@ import {
   rmSync,
   writeFileSync,
   existsSync,
+  readFileSync,
+  readdirSync,
+  statSync,
 } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +21,7 @@ import {
   diagnostics,
   inspectBackup,
   stageRestore,
+  writeDiagnostics,
 } from "../dist/main/backup.js";
 
 function dirs(t) {
@@ -315,4 +319,74 @@ test("diagnostics keep only the executable name even for another platform's path
   store.close();
   assert.equal(bundle.providers[0].command, "codex.cmd");
   assert.ok(!JSON.stringify(bundle).includes("Alice"));
+});
+
+test("diagnostics never overwrite the live database and are written owner-only", (t) => {
+  const root = dirs(t);
+  const live = join(root, DATABASE);
+  const store = new Store(live);
+  seed(store, "Live");
+  for (const target of [live, `${live}-wal`, `${live}-shm`])
+    assert.throws(
+      () => writeDiagnostics(target, live, { kind: "x" }),
+      /BACKUP_TARGET_IS_LIVE/,
+    );
+  const file = join(root, "diag.json");
+  writeDiagnostics(file, live, { kind: "agenting-os-diagnostics" });
+  assert.equal(
+    JSON.parse(readFileSync(file, "utf8")).kind,
+    "agenting-os-diagnostics",
+  );
+  if (process.platform !== "win32")
+    assert.equal(statSync(file).mode & 0o077, 0);
+  assert.deepEqual(
+    store.projects().map((p) => p.name),
+    ["Live"],
+  );
+  store.close();
+});
+
+test("backups are owner-only and a failed second staging keeps the earlier staged restore", (t) => {
+  const root = dirs(t);
+  const source = new Store(join(root, "source.sqlite"));
+  seed(source, "First choice");
+  const backup = join(root, "backup.sqlite");
+  createBackup(source, backup);
+  source.close();
+  if (process.platform !== "win32")
+    assert.equal(statSync(backup).mode & 0o077, 0);
+  const target = join(root, "target");
+  mkdirSync(target);
+  stageRestore(target, backup);
+  const junk = join(root, "junk.sqlite");
+  writeFileSync(junk, "not sqlite");
+  assert.throws(() => stageRestore(target, junk), /BACKUP_CORRUPT/);
+  assert.equal(
+    inspectBackup(join(target, `${DATABASE}.restore`)).projects,
+    1,
+    "the earlier staged restore survives",
+  );
+  assert.deepEqual(
+    readdirSync(target).filter((f) => f.includes("partial")),
+    [],
+  );
+  assert.equal(applyPendingRestore(target), "restored");
+  const restored = new Store(join(target, DATABASE));
+  assert.deepEqual(
+    restored.projects().map((p) => p.name),
+    ["First choice"],
+  );
+  restored.close();
+});
+
+test("a backup with orphaned rows is refused", (t) => {
+  const root = dirs(t);
+  const file = join(root, "orphans.sqlite");
+  const store = new Store(file);
+  seed(store, "Parent");
+  store.close();
+  const raw = new DatabaseSync(file);
+  raw.exec("PRAGMA foreign_keys=OFF; DELETE FROM projects;");
+  raw.close();
+  assert.throws(() => inspectBackup(file), /BACKUP_INCONSISTENT/);
 });

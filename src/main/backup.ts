@@ -1,10 +1,12 @@
 import { DatabaseSync } from "node:sqlite";
 import {
+  chmodSync,
   existsSync,
   realpathSync,
   renameSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
@@ -37,7 +39,7 @@ const REQUIRED_COLUMNS: [number, string, string[]][] = [
 ];
 
 /** True when both paths name the same file (or the live database's WAL/SHM companions). */
-function isLiveDatabase(target: string, live: string) {
+export function isLiveDatabase(target: string, live: string) {
   const canonical = (path: string) => {
     try {
       return realpathSync(path);
@@ -68,6 +70,8 @@ export function createBackup(store: Store, target: string): BackupSummary {
   rmSync(temporary, { force: true });
   try {
     store.snapshot(temporary);
+    // Backups hold every project, chat and memory entry: owner-only before publishing.
+    chmodSync(temporary, 0o600);
     inspectBackup(temporary);
     renameSync(temporary, target);
   } finally {
@@ -112,6 +116,9 @@ export function inspectBackup(file: string): BackupSummary {
       if (columns.some((column) => !present.has(column)))
         throw Error("BACKUP_INCOMPLETE");
     }
+    // Opening with foreign keys on does not repair rows orphaned while they were off.
+    if (db.prepare("PRAGMA foreign_key_check").all().length)
+      throw Error("BACKUP_INCONSISTENT");
     const count = (table: string) =>
       tables.has(table)
         ? Number(db!.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()!.n)
@@ -143,19 +150,42 @@ export function stageRestore(dataDir: string, file: string): BackupSummary {
   if (isLiveDatabase(file, join(dataDir, DATABASE)))
     throw Error("BACKUP_SOURCE_IS_LIVE");
   inspectBackup(file);
-  const pending = join(dataDir, PENDING);
-  rmSync(pending, { force: true });
-  const source = new DatabaseSync(file, { readOnly: true });
+  // Build beside the pending file and replace it only after the new copy validates,
+  // so a failed second attempt keeps an earlier staged restore intact.
+  const pending = join(dataDir, PENDING),
+    temporary = `${pending}.partial-${process.pid}`;
+  rmSync(temporary, { force: true });
   try {
-    source.prepare("VACUUM INTO ?").run(pending);
+    const source = new DatabaseSync(file, { readOnly: true });
+    try {
+      source.prepare("VACUUM INTO ?").run(temporary);
+    } finally {
+      source.close();
+    }
+    chmodSync(temporary, 0o600);
+    const summary = inspectBackup(temporary);
+    renameSync(temporary, pending);
+    return { ...summary, file: basename(file) };
   } finally {
-    source.close();
+    rmSync(temporary, { force: true });
   }
+}
+
+/** Write the diagnostics bundle, refusing the live database and replacing atomically. */
+export function writeDiagnostics(
+  target: string,
+  live: string,
+  bundle: unknown,
+) {
+  if (isLiveDatabase(target, live)) throw Error("BACKUP_TARGET_IS_LIVE");
+  const temporary = `${target}.partial-${process.pid}`;
   try {
-    return { ...inspectBackup(pending), file: basename(file) };
-  } catch (error) {
-    rmSync(pending, { force: true });
-    throw error;
+    writeFileSync(temporary, JSON.stringify(bundle, null, 2) + "\n", {
+      mode: 0o600,
+    });
+    renameSync(temporary, target);
+  } finally {
+    rmSync(temporary, { force: true });
   }
 }
 

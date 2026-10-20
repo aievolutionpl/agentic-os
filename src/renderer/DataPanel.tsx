@@ -34,6 +34,8 @@ const COPY = {
       BACKUP_NOT_AGENTING: "This file is not an Agenting OS backup.",
       BACKUP_INCOMPLETE:
         "This backup is missing tables its version requires and was not used.",
+      BACKUP_INCONSISTENT:
+        "This backup contains broken references between records and was not used.",
       BACKUP_TARGET_IS_LIVE:
         "Choose another location: this is the database the app is using.",
       BACKUP_SOURCE_IS_LIVE:
@@ -72,6 +74,8 @@ const COPY = {
       BACKUP_NOT_AGENTING: "Ten plik nie jest kopią Agenting OS.",
       BACKUP_INCOMPLETE:
         "W tej kopii brakuje tabel wymaganych przez jej wersję — nie została użyta.",
+      BACKUP_INCONSISTENT:
+        "Ta kopia zawiera zerwane powiązania między rekordami — nie została użyta.",
       BACKUP_TARGET_IS_LIVE:
         "Wybierz inne miejsce: to jest baza, z której korzysta aplikacja.",
       BACKUP_SOURCE_IS_LIVE:

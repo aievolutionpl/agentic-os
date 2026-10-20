@@ -9,7 +9,7 @@ import {
   safeStorage,
 } from "electron";
 import { join, dirname } from "node:path";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
 import { trustedSender } from "./security.js";
@@ -32,6 +32,7 @@ import {
   createBackup,
   diagnostics,
   stageRestore,
+  writeDiagnostics,
 } from "./backup.js";
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
@@ -474,7 +475,7 @@ app
           dataDir: app.getPath("userData"),
           capabilities: capabilities(await scanAll()),
         });
-        writeFileSync(result.filePath, JSON.stringify(bundle, null, 2) + "\n");
+        writeDiagnostics(result.filePath, store.file, bundle);
         return result.filePath.split(/[\\/]/).pop() ?? null;
       },
       restoreStatus: () => restoreResult,

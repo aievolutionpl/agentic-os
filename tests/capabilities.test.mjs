@@ -121,7 +121,7 @@ test("capability matrix keeps detection, sign-in, handshake and real inference a
   assert.equal(row(matrix, "local").verdict, "needs-install");
 });
 
-test("connection checks persist and real-run evidence ignores interrupted and cancelled runs", (t) => {
+test("connection checks persist and real-run evidence ignores interrupted and cancelled runs", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "agenting-cap-"));
   let store = new Store(join(dir, "db.sqlite"));
   t.after(() => {
@@ -172,7 +172,13 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
       { repository: "/r", path: "/r/w", base: "a", head: "a" },
       "",
     );
-    store.runs.update(project.id, run.id, { state });
+    store.runs.update(project.id, run.id, {
+      state,
+      ...(i === 3 && { reviewState: "completed" }),
+      ...(i === 4 && { reviewState: "failed" }),
+    });
+    if (i === 3) store.runs.event(run.id, "review_outcome", "completed");
+    if (i === 4) store.runs.event(run.id, "review_outcome", "failed");
   }
   store.close();
   store = new Store(join(dir, "db.sqlite"));
@@ -190,6 +196,74 @@ test("connection checks persist and real-run evidence ignores interrupted and ca
   assert.equal(codex.successes, 2);
   assert.ok(codex.lastSuccessAt);
   assert.ok(codex.lastFailureAt);
+  // Outcome lookups are indexed, not a scan of every event per run.
+  const plan = store.db
+    .prepare(
+      "EXPLAIN QUERY PLAN SELECT MAX(at) FROM run_events WHERE runId=? AND kind='review_outcome'",
+    )
+    .all("x")
+    .map((r) => r.detail)
+    .join(" ");
+  assert.match(plan, /run_events_outcome/);
+  // Routing credit counts only results that were not rejected.
+  assert.equal(
+    store.runs.evidence("implementer", { accepted: true })[0].successes,
+    1,
+  );
+  // Reviewer history counts only the reviews an agent actually did.
+  const reviews = store.runs.evidence("reviewer");
+  assert.deepEqual(
+    reviews.map((r) => [r.provider, r.successes]),
+    [["claude", 1]],
+  );
+  assert.ok(reviews[0].lastSuccessAt);
+  assert.ok(reviews[0].lastFailureAt);
+  // A later run update (approval, apply) does not move the review outcome.
+  const before = reviews[0].lastSuccessAt;
+  const reviewed = store
+    .tasks(project.id)
+    .map((t) => store.runs.list(project.id, t.id)[0])
+    .find((r) => r?.reviewState === "completed");
+  await new Promise((r) => setTimeout(r, 5));
+  store.runs.update(project.id, reviewed.id, { state: "applied" });
+  assert.equal(store.runs.evidence("reviewer")[0].lastSuccessAt, before);
+  const failedAt = store.runs.evidence("reviewer")[0].lastFailureAt;
+  // A review aborted by a stop or shutdown is not the reviewer's failure;
+  // a review from before outcome events still counts by its last update.
+  const extra = (title) => {
+    const task = store.createTask({
+      projectId: project.id,
+      title,
+      implementer: "codex",
+      reviewer: "claude",
+    });
+    return store.runs.create(
+      project.id,
+      task.id,
+      1,
+      "codex",
+      "claude",
+      { repository: "/r", path: "/r/w", base: "a", head: "a" },
+      "",
+    );
+  };
+  await new Promise((r) => setTimeout(r, 5));
+  const aborted = extra("aborted");
+  store.runs.update(project.id, aborted.id, { reviewState: "failed" });
+  store.runs.event(aborted.id, "review_outcome", "interrupted");
+  assert.equal(store.runs.evidence("reviewer")[0].lastFailureAt, failedAt);
+  // A completed review that is rerun and interrupted keeps its success.
+  const rerun = extra("rerun");
+  store.runs.event(rerun.id, "review_outcome", "completed");
+  store.runs.update(project.id, rerun.id, { reviewState: "failed" });
+  store.runs.event(rerun.id, "review_outcome", "interrupted");
+  assert.equal(store.runs.evidence("reviewer")[0].successes, 2);
+  const legacy = extra("legacy");
+  store.runs.update(project.id, legacy.id, { reviewState: "failed" });
+  assert.equal(
+    store.runs.evidence("reviewer")[0].lastFailureAt,
+    store.runs.get(project.id, legacy.id).updatedAt,
+  );
   // A late, older probe never replaces newer evidence.
   store.capabilities.record({
     agent: "codex",

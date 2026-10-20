@@ -134,6 +134,7 @@ export function RunPanel({
     [error, setError] = useState(false),
     [policyCode, setPolicyCode] = useState(""),
     [heldByQueue, setHeldByQueue] = useState(false),
+    [readOnlyRefused, setReadOnlyRefused] = useState(false),
     // The agent whose start the policy refused: the reviewer for review runs.
     [policyAgent, setPolicyAgent] = useState<Agent>(task.implementer),
     [consent, setConsent] = useState(false),
@@ -219,6 +220,7 @@ export function RunPanel({
     setError(false);
     setPolicyCode("");
     setHeldByQueue(false);
+    setReadOnlyRefused(false);
     try {
       await fn();
       await refresh();
@@ -226,6 +228,7 @@ export function RunPanel({
     } catch (e) {
       const code = e instanceof Error ? e.message : "";
       if (code === "TASK_HELD_BY_QUEUE") setHeldByQueue(true);
+      else if (code.endsWith("READ_ONLY_UNSUPPORTED")) setReadOnlyRefused(true);
       else if (policyMessage(code, true)) {
         setPolicyAgent(agent);
         setPolicyCode(code);
@@ -283,6 +286,13 @@ export function RunPanel({
           {language === "pl"
             ? "To zadanie czeka w kolejce zespołu. Kontynuuj albo porzuć kolejkę w panelu pracy zespołowej."
             : "This task is held by the team queue. Continue or abandon the queue in the teamwork panel."}
+        </p>
+      )}
+      {readOnlyRefused && (
+        <p className="inline-error" role="alert">
+          {language === "pl"
+            ? "Ten agent nie ma trybu tylko do odczytu, więc nie może wykonać tego workflow. Wybierz implementację albo innego wykonawcę."
+            : "This agent has no read-only mode, so it can't run this workflow. Choose implementation or a different implementer."}
         </p>
       )}
       {policyCode && (

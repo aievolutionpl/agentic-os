@@ -29,12 +29,12 @@ const WINDOWS = process.platform === "win32";
  * taskkill has finished. node-pty's own kill relies on a helper that can
  * fail to start, which leaves descendants (and the folders they hold). */
 function killTree(pid: number) {
-  return new Promise<void>((resolve) =>
+  return new Promise<boolean>((resolve) =>
     execFile(
       "taskkill",
       ["/PID", String(pid), "/T", "/F"],
       { windowsHide: true, timeout: 10_000 },
-      () => resolve(),
+      (error) => resolve(!error),
     ),
   );
 }
@@ -173,24 +173,33 @@ export class Terminals {
     const p = exact(input, ["id"]);
     const entry = this.entry(p.id);
     if (entry.info.state === "running") {
-      if (WINDOWS) await killTree(entry.pty.pid);
-      try {
-        entry.pty.kill();
-      } catch {
-        /* Process may have just exited. */
-      }
+      // After a successful tree kill node-pty cleans up on the exit event by
+      // itself; calling its kill() then would schedule a delayed kill of the
+      // bare shell PID, which Windows may already have reused (node-pty#967).
+      const ended = WINDOWS && (await killTree(entry.pty.pid));
+      if (!ended)
+        try {
+          entry.pty.kill();
+        } catch {
+          /* Process may have just exited. */
+        }
       let timer: ReturnType<typeof setTimeout> | undefined;
       await Promise.race([
         entry.stopped,
         new Promise<void>((resolve) => {
-          timer = setTimeout(() => {
-            try {
-              entry.pty.kill("SIGKILL");
-            } catch {
-              /* Already exited. */
-            }
-            resolve();
-          }, 1500);
+          timer = setTimeout(
+            () => {
+              if (!ended)
+                try {
+                  entry.pty.kill("SIGKILL");
+                } catch {
+                  /* Already exited. */
+                }
+              resolve();
+            },
+            // node-pty flushes output before it reports a Windows exit.
+            ended ? 5000 : 1500,
+          );
         }),
       ]);
       clearTimeout(timer);

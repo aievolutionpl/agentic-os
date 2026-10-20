@@ -241,7 +241,7 @@ export function RunPanel({
     }
   }
   const mayStart = ["draft", "queued"].includes(task.status) && !run;
-  const evidence = reviewEvidence(view?.events),
+  const evidence = reviewEvidence(view?.events, run?.reviewState),
     activity = (view?.events ?? []).filter((e) => e.kind !== "review_evidence");
   // A revision needs a reviewer who asked for changes, no approval yet and an
   // attempt left; each one is started explicitly by the operator.

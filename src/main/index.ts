@@ -299,7 +299,12 @@ app
     );
     mcp = new McpTools(store.extensions, app.getPath("userData"));
     browser = new ProjectBrowser(store, () => window);
-    const applications = new Applications(store, supervisor.worktrees);
+    const applications = new Applications(
+      store,
+      supervisor.worktrees,
+      Date.now,
+      (taskId) => supervisor.starts(taskId),
+    );
     await applications.reconcile();
     session.defaultSession.setPermissionRequestHandler(
       (_wc, _permission, callback) => callback(false),
@@ -371,15 +376,28 @@ app
       },
       memoryVaultOpen: async () => {
         await memoryVault!.sync();
-        if (await shell.openPath(memoryVault!.directory)) throw Error("FOLDER_REQUIRED");
+        if (await shell.openPath(memoryVault!.directory))
+          throw Error("FOLDER_REQUIRED");
       },
       memoryUpdate: (input) => store.updateMemory(input),
       skillCatalog: () => store.extensions.catalog(),
       skillInstall: async (input) => {
-        const p = exact(input, ["projectId", "id"]), projectId = text(p.projectId), id = text(p.id);
+        const p = exact(input, ["projectId", "id"]),
+          projectId = text(p.projectId),
+          id = text(p.id);
         const skill = await store.extensions.install(projectId, id);
         const source = `skill:${id}`;
-        if (!store.memory(projectId).some(m => m.projectId === projectId && m.source === source)) store.createMemory({ projectId, source, scope: "project", content: `Installed skill: ${skill.name}\nSource: ${skill.source}\nVersion: ${skill.version}\nInstructions: ${skill.installPath}/SKILL.md` });
+        if (
+          !store
+            .memory(projectId)
+            .some((m) => m.projectId === projectId && m.source === source)
+        )
+          store.createMemory({
+            projectId,
+            source,
+            scope: "project",
+            content: `Installed skill: ${skill.name}\nSource: ${skill.source}\nVersion: ${skill.version}\nInstructions: ${skill.installPath}/SKILL.md`,
+          });
         return skill;
       },
       skillImportFile: async (input) => {

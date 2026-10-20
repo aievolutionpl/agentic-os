@@ -7,7 +7,8 @@ let cwd = process.cwd();
 createInterface({ input: process.stdin }).on("line", (line) => {
   const m = JSON.parse(line),
     p = m.params ?? {};
-  if (process.env.QA_PROTOCOL_LOG) appendFileSync(process.env.QA_PROTOCOL_LOG, JSON.stringify(m) + "\n");
+  if (process.env.QA_PROTOCOL_LOG)
+    appendFileSync(process.env.QA_PROTOCOL_LOG, JSON.stringify(m) + "\n");
   const reply = (result) => send({ id: m.id, result });
   if (m.method === "initialize")
     reply({ userAgent: "Agenting OS protocol fixture" });
@@ -33,9 +34,22 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     reply({ data: [], nextCursor: null });
   else if (m.method === "account/read")
     reply({ account: null, requiresOpenaiAuth: true });
-  else if (m.method === "account/rateLimits/read") reply({rateLimits:{primary:{usedPercent:25,windowDurationMins:300,resetsAt:2000000000}}});
+  else if (m.method === "account/rateLimits/read")
+    reply({
+      rateLimits: {
+        primary: {
+          usedPercent: 25,
+          windowDurationMins: 300,
+          resetsAt: 2000000000,
+        },
+      },
+    });
   else if (m.method === "account/usage/read") reply({});
-  else if (m.method === "model/list") reply({ data: [{ model: "fixture-model", displayName: "Fixture model" }], nextCursor: null });
+  else if (m.method === "model/list")
+    reply({
+      data: [{ model: "fixture-model", displayName: "Fixture model" }],
+      nextCursor: null,
+    });
   else if (m.method === "turn/start") {
     reply({ turn: { id: "fixture-turn", status: "inProgress" } });
     if (process.env.QA_BEHAVIOR === "disconnect") {
@@ -82,7 +96,8 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       message =
         "Fixture review.\nVERDICT: CHANGES_REQUESTED\nFINDINGS:\n- `result.txt:1` — content must say revised\n- docs/missing.md — behaviour is not documented";
     if (p.input?.[0]?.text?.includes("Continue this conversation")) {
-      message = "Fixture chat reply: source reviewed. This is a protocol test, not a live model.\n\nPlan:\n1. Inspect the existing UI.\n2. Implement the bounded change.\n3. Verify with tests.";
+      message =
+        "Fixture chat reply: source reviewed. This is a protocol test, not a live model.\n\nPlan:\n1. Inspect the existing UI.\n2. Implement the bounded change.\n3. Verify with tests.";
     }
     if (process.env.QA_BEHAVIOR === "master") {
       const prompt = p.input?.[0]?.text ?? "";
@@ -117,6 +132,11 @@ createInterface({ input: process.stdin }).on("line", (line) => {
           nextSteps: "",
         });
     }
+    if (
+      process.env.QA_REVIEW_VERDICT &&
+      (p.input?.[0]?.text ?? "").includes("Independently review")
+    )
+      message = `Fixture review.\nVERDICT: ${process.env.QA_REVIEW_VERDICT}\nFINDINGS:\n- original.txt:1 — report is incomplete`;
     send({
       method: "item/agentMessage/delta",
       params: { threadId: "fixture-thread", delta: message },

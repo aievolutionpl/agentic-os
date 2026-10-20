@@ -47,21 +47,20 @@ async function setup(behavior = "write", clock = Date.now) {
     reviewer: "claude",
   });
   const inputs = [];
-  const supervisor = new Supervisor(
-    store,
-    join(dir, "app"),
-    () => {
-      const adapter = new CodexAdapter({
-        command: process.execPath,
-        args: [fixture],
-        cwd: repo,
-        env: { QA_BEHAVIOR: behavior },
-      });
-      const run = adapter.run.bind(adapter);
-      adapter.run = input => { inputs.push(input); return run(input); };
-      return adapter;
-    },
-  );
+  const supervisor = new Supervisor(store, join(dir, "app"), () => {
+    const adapter = new CodexAdapter({
+      command: process.execPath,
+      args: [fixture],
+      cwd: repo,
+      env: { QA_BEHAVIOR: behavior },
+    });
+    const run = adapter.run.bind(adapter);
+    adapter.run = (input) => {
+      inputs.push(input);
+      return run(input);
+    };
+    return adapter;
+  });
   return {
     dir,
     repo,
@@ -184,9 +183,18 @@ test("orchestrator dispatches a real worktree run and reviewer, shares frozen me
     assert.equal(run.state, "awaiting_review");
     assert.equal(run.reviewState, "completed");
     assert.match(f.store.runs.context(run.id), /Shared team convention/);
-    assert.match(f.store.runs.context(run.id), /Skill builtin:teamwork@1\.0\.0/);
-    assert.match(f.inputs.find(input => input.readOnly).prompt, /Shared team convention/);
-    assert.match(f.inputs.find(input => input.readOnly).prompt, /\+isolated result/);
+    assert.match(
+      f.store.runs.context(run.id),
+      /Skill builtin:teamwork@1\.0\.0/,
+    );
+    assert.match(
+      f.inputs.find((input) => input.readOnly).prompt,
+      /Shared team convention/,
+    );
+    assert.match(
+      f.inputs.find((input) => input.readOnly).prompt,
+      /\+isolated result/,
+    );
     assert.equal(f.store.runs.list(f.project.id).length, 1);
     assert.equal(await gitText(f.repo, "rev-parse", "HEAD"), f.base);
     assert.equal(existsSync(join(f.repo, "result.txt")), false);
@@ -693,7 +701,10 @@ test("reviewer evidence drives a bounded, explicitly started revision of the sam
     const first = await completed(f);
     await reviewed(f, first);
     const review = f.inputs.find((i) => i.readOnly);
-    assert.match(review.prompt, /VERDICT: APPROVE or VERDICT: CHANGES_REQUESTED/);
+    assert.match(
+      review.prompt,
+      /VERDICT: APPROVE or VERDICT: CHANGES_REQUESTED/,
+    );
     const evidence = f.store.runs.reviewEvidence(first.id);
     assert.equal(evidence.verdict, "changes_requested");
     assert.deepEqual(
@@ -726,8 +737,16 @@ test("reviewer evidence drives a bounded, explicitly started revision of the sam
       .get(f.project.id, f.task.id, revised.artifactId)
       .diff.toString("utf8");
     assert.match(diff, /\+revised result/);
-    assert.doesNotMatch(diff, /isolated result/, "one cumulative diff from base");
-    assert.equal(existsSync(join(f.repo, "result.txt")), false, "source untouched");
+    assert.doesNotMatch(
+      diff,
+      /isolated result/,
+      "one cumulative diff from base",
+    );
+    assert.equal(
+      existsSync(join(f.repo, "result.txt")),
+      false,
+      "source untouched",
+    );
 
     await assert.rejects(
       f.supervisor.start({
@@ -784,7 +803,34 @@ test("a review without a changes-requested verdict cannot start a revision", asy
       }),
       /INVALID_REVISION/,
     );
-    assert.equal(f.store.runs.get(f.project.id, run.id).state, "awaiting_review");
+    assert.equal(
+      f.store.runs.get(f.project.id, run.id).state,
+      "awaiting_review",
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("a read-only workflow is refused for an agent without a read-only mode", async () => {
+  const f = await setup();
+  try {
+    const task = f.store.createTask({
+      projectId: f.project.id,
+      title: "Research with Hermes",
+      implementer: "hermes",
+      reviewer: "claude",
+    });
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: task.id,
+        consent: true,
+        workflow: "research",
+      }),
+      /READ_ONLY_MODE_UNSUPPORTED/,
+    );
+    assert.equal(f.store.runs.list(f.project.id, task.id).length, 0);
   } finally {
     await f.close();
   }

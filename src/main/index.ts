@@ -12,7 +12,8 @@ import { join, dirname } from "node:path";
 import { mkdirSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
-import { trustedSender } from "./security.js";
+import { trustedSender, externalWebUrl } from "./security.js";
+import { Terminals } from "./terminals.js";
 import { probeProviders, withProviderProbes } from "./adapters.js";
 import {
   defaultRunner,
@@ -78,6 +79,7 @@ let quotaMonitor: QuotaMonitor | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
 let browser: ProjectBrowser | undefined;
+let terminals: Terminals | undefined;
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 let window: BrowserWindow | null = null;
@@ -116,6 +118,11 @@ app
     mkdirSync(app.getPath("userData"), { recursive: true });
     restoreResult = applyPendingRestore(app.getPath("userData"));
     store = new Store(join(app.getPath("userData"), DATABASE));
+    terminals = new Terminals(app.getPath("userData"), (id) => {
+      const project = store.projects().find((p) => p.id === id);
+      if (!project) throw Error("PROJECT_NOT_FOUND");
+      return project.root;
+    });
     const router = new OpenRouterConnection(app.getPath("userData"), {
       available: () =>
         safeStorage.isEncryptionAvailable() &&
@@ -191,6 +198,55 @@ app
       agent === "opencode" && router.settings().configured
         ? "openrouter"
         : agent;
+    /** A provider's quota state for routing and the start gate: a reading
+     * counts only when fresh and backed by a provider-reported limit that is
+     * still in its window; usage alone says nothing about what is left. */
+    const quotaState = (
+      cards: Awaited<ReturnType<typeof quotas>>,
+      agent: Agent,
+    ): "active" | "warning" | "exhausted" | "unknown" => {
+      const card = cards.find(
+        (c) => c.id === quotaProvider(agent) && c.source !== "manual",
+      );
+      const fresh =
+        !!card &&
+        Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
+        card.metrics.some(
+          (m) =>
+            (m.format === "percent" || m.limitValue !== null) &&
+            // Limits seen in a CLI stream age with their window: only one
+            // that has not reset yet still describes the quota.
+            (card.source !== "cli-stream" ||
+              (!!m.resetsAt && Date.parse(m.resetsAt) > Date.now())),
+        );
+      if (!fresh) return "unknown";
+      if (card!.source === "cli-stream") {
+        // Judge only the windows still in force; an old window with no reset
+        // must not keep a usable provider exhausted.
+        const current = card!.metrics.filter(
+          (m) =>
+            (m.format === "percent" || m.limitValue !== null) &&
+            !!m.resetsAt &&
+            Date.parse(m.resetsAt) > Date.now(),
+        );
+        return current.some(
+          (m) =>
+            m.state === "rejected" ||
+            (m.usedValue !== null &&
+              m.limitValue !== null &&
+              m.usedValue >= m.limitValue),
+        )
+          ? "exhausted"
+          : current.some(
+                (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
+              )
+            ? "warning"
+            : "active";
+      }
+      return ["active", "warning", "exhausted"].includes(card!.status)
+        ? (card!.status as "active" | "warning" | "exhausted")
+        : "unknown";
+    };
     // Policy gate: allowed agents, paid API mode and monthly budget, enforced
     // here before any agent process starts. Approvals live in memory only.
     const paidApprovals = new PaidApprovals();
@@ -204,14 +260,24 @@ app
     };
     supervisor.paid = (agent) => quotaProvider(agent) === "openrouter";
     supervisor.gate = async (agent) => {
-      const policy = store.policies.get(),
-        paid = quotaProvider(agent) === "openrouter";
+      const paid = quotaProvider(agent) === "openrouter";
+      // Spend is fetched first; policy and approval are read after the await so
+      // a change made meanwhile (stricter budget, revoked approval) applies.
+      const spent =
+        paid && store.policies.get().monthlyBudgetUsd !== null
+          ? await monthlySpend()
+          : null;
+      const policy = store.policies.get();
       const decision = evaluatePolicy(
         { agent, paid, approved: paidApprovals.has(agent) },
         policy,
-        paid && policy.monthlyBudgetUsd !== null ? await monthlySpend() : null,
+        spent,
       );
       if (decision.verdict !== "allow") throw Error(decision.reasons[0]);
+      // A fresh provider reading that says the limit is used up stops the run
+      // here too, so a routed task can't start into a 429 after the preview.
+      if (quotaState(await quotas().catch(() => []), agent) === "exhausted")
+        throw Error("POLICY_QUOTA_EXHAUSTED");
     };
     chats = new Chats(
       store,
@@ -264,14 +330,27 @@ app
     // while the check ran, its result is returned but never recorded as evidence.
     const setupOf = (input: unknown) => {
       const agent = (input as { agent?: unknown } | null)?.agent;
-      return JSON.stringify(
+      // Auxiliary settings shape the runtime too: OpenCode runs with the
+      // router's environment, Local with its model endpoint.
+      return JSON.stringify([
         typeof agent === "string" ? (store.runs.provider(agent) ?? null) : null,
-      );
+        agent === "opencode" ? router.settings() : null,
+        agent === "local" ? localModel.settings() : null,
+      ]);
     };
     const recordIfUnchanged = (before: string, health: ProviderHealth) =>
       setupOf({ agent: health.agent }) === before
         ? store.capabilities.record(health)
         : health;
+    // A held team queue owns its open tasks until it is continued or abandoned.
+    const heldRun = (input: unknown) => {
+      const p = input as { projectId?: unknown; runId?: unknown } | null;
+      if (typeof p?.projectId !== "string" || typeof p.runId !== "string")
+        return;
+      const run = store.runs.get(p.projectId, p.runId);
+      if (run && orchestrator!.held(p.projectId, run.taskId))
+        throw Error("TASK_HELD_BY_QUEUE");
+    };
     const handlers: Record<string, (input: unknown) => unknown> = {
       chatList: () => chats!.list(),
       chatCreate: (input) => chats!.create(input),
@@ -347,8 +426,17 @@ app
       missionAction: (input) => masterAgent!.action(input),
       missionRemember: (input) => masterAgent!.remember(input),
       localModelSettings: () => localModel.settings(),
-      localModelSave: (input) => localModel.save(input),
-      localModelRemove: () => localModel.remove(),
+      // A changed endpoint makes an earlier connection check stale.
+      localModelSave: (input) => {
+        const value = localModel.save(input);
+        store.capabilities.clear("local");
+        return value;
+      },
+      localModelRemove: () => {
+        const value = localModel.remove();
+        store.capabilities.clear("local");
+        return value;
+      },
       orchestrationStart: (input) => orchestrator!.start(input),
       orchestrationState: (input) => orchestrator!.state(input),
       orchestrationStop: (input) => orchestrator!.stop(input),
@@ -360,11 +448,14 @@ app
       openRouterSave: (input) => {
         const value = router.save(input);
         quotaMonitor!.invalidate();
+        // OpenCode runs with the router's environment; recheck it.
+        store.capabilities.clear("opencode");
         return value;
       },
       openRouterRemove: () => {
         const value = router.remove();
         quotaMonitor!.invalidate();
+        store.capabilities.clear("opencode");
         return value;
       },
       openRouterModels: () => router.models(),
@@ -391,7 +482,10 @@ app
         store.extensions.get(projectId, id);
         return mcp!.disconnect(projectId, id);
       },
-      runDecision: (input) => applications.decide(input),
+      runDecision: (input) => {
+        heldRun(input);
+        return applications.decide(input);
+      },
       memorySearch: (input) => {
         const p = exact(input, ["projectId", "query"]);
         return store.knowledge.search(
@@ -414,9 +508,21 @@ app
         );
       },
       runtimeView: (input) => supervisor.view(input),
-      runtimeStart: (input) => supervisor.start(input),
+      runtimeStart: (input) => {
+        const p = input as { projectId?: unknown; taskId?: unknown } | null;
+        if (
+          typeof p?.projectId === "string" &&
+          typeof p.taskId === "string" &&
+          orchestrator!.held(p.projectId, p.taskId)
+        )
+          throw Error("TASK_HELD_BY_QUEUE");
+        return supervisor.start(input);
+      },
       runtimeAction: (input) => supervisor.action(input),
-      runtimeReview: (input) => supervisor.review(input),
+      runtimeReview: (input) => {
+        heldRun(input);
+        return supervisor.review(input);
+      },
       configureProvider: (input) => {
         supervisor.configure(input);
         store.capabilities.clear((input as { agent: Agent }).agent);
@@ -477,33 +583,51 @@ app
           throw Error("INVALID_INPUT");
         const settings = supervisor.settings(),
           checks = store.capabilities.list(),
-          evidence = store.runs.evidence(),
+          // History for the role being routed: reviews count for reviewers.
+          evidence = store.runs.evidence(p.role as "implementer" | "reviewer", {
+            accepted: true,
+          }),
           policy = store.policies.get();
+        // The same spend the execution gate uses, so a capped budget is not
+        // proposed and then refused at start.
+        const spent =
+          policy.monthlyBudgetUsd !== null && router.settings().configured
+            ? await monthlySpend()
+            : null;
         // A quota reading counts only while fresh; otherwise it is unknown.
         const cards = await quotas().catch(() => []);
         const facts = AGENTS.map((agent) => {
-          const card = cards.find(
-            (c) => c.id === quotaProvider(agent) && c.source !== "manual",
-          );
-          const fresh =
-            !!card &&
-            Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000;
           const runs = evidence.find((e) => e.provider === agent);
           const paid = quotaProvider(agent) === "openrouter";
+          const verdict = evaluatePolicy(
+            { agent, paid, approved: paidApprovals.has(agent) },
+            policy,
+            paid ? spent : null,
+          );
           return {
             agent,
-            configured: !!settings.find((s) => s.id === agent)?.configured,
-            check: checks.find((c) => c.agent === agent)?.state ?? null,
-            quota:
-              fresh && ["active", "warning", "exhausted"].includes(card!.status)
-                ? (card!.status as "active" | "warning" | "exhausted")
-                : ("unknown" as const),
+            // The runtime must be able to start: Local needs its model
+            // endpoint and Hermes a selected model, not only a CLI profile.
+            configured:
+              !!settings.find((s) => s.id === agent)?.configured &&
+              (agent !== "local" || localModel.settings().configured) &&
+              // OpenCode's key lives in secure storage; without it, no start.
+              (agent !== "opencode" ||
+                !router.settings().configured ||
+                router.settings().encryptionAvailable) &&
+              (agent !== "hermes" ||
+                !!settings.find((s) => s.id === "hermes")?.model),
+            // Same 6 h age limit as Connections: an old check is unchecked.
+            check: (() => {
+              const c = checks.find((c) => c.agent === agent);
+              return c && Date.now() - Date.parse(c.observedAt) < 6 * 3600_000
+                ? c.state
+                : null;
+            })(),
+            quota: quotaState(cards, agent),
             paid,
-            policy: evaluatePolicy(
-              { agent, paid, approved: paidApprovals.has(agent) },
-              policy,
-              null,
-            ).verdict,
+            policy: verdict.verdict,
+            policyReasons: verdict.reasons,
             successes: runs?.successes ?? 0,
             lastFailed:
               !!runs?.lastFailureAt &&
@@ -664,7 +788,34 @@ app
         app.quit();
       },
       projectData: (id) => store.projectData(id),
-      taskAction: (input) => store.taskAction(input),
+      terminalList: () => terminals!.list(),
+      terminalOpen: (input) => terminals!.open(input),
+      terminalRead: (input) => terminals!.read(input),
+      terminalWrite: (input) => terminals!.write(input),
+      terminalResize: (input) => terminals!.resize(input),
+      terminalClose: (input) => terminals!.close(input),
+      chatRename: (input) => {
+        const p = exact(input, ["id", "title"]);
+        const chat = store.chats.get(text(p.id, 100));
+        if (chat.status === "running") throw Error("CHAT_BUSY");
+        chat.title = text(p.title, 120);
+        store.chats.save(chat);
+        return chat;
+      },
+      openExternalLink: (input) => {
+        const p = exact(input, ["url"]);
+        return shell.openExternal(externalWebUrl(p.url));
+      },
+      taskAction: (input) => {
+        const p = input as { projectId?: unknown; id?: unknown } | null;
+        if (
+          typeof p?.projectId === "string" &&
+          typeof p.id === "string" &&
+          orchestrator!.held(p.projectId, p.id)
+        )
+          throw Error("TASK_HELD_BY_QUEUE");
+        return store.taskAction(input);
+      },
       createProject: (input) => store.createProject(input),
       createTask: (input) => store.createTask(input),
       createMemory: (input) => store.createMemory(input),
@@ -706,6 +857,14 @@ app
             throw Error(code);
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
+          if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
+          if (name.startsWith("terminal") && code.startsWith("TERMINAL_"))
+            throw Error(code);
+          if (
+            name.startsWith("runtime") &&
+            code.endsWith("READ_ONLY_UNSUPPORTED")
+          )
+            throw Error(code);
           if (
             (name.startsWith("mission") || name.startsWith("chat")) &&
             [
@@ -771,6 +930,7 @@ app.on("before-quit", (event) => {
     quotaMonitor?.close(),
     supervisor?.close(),
     mcp?.close(),
+    terminals?.dispose(),
   ]).finally(() => {
     try {
       browser?.close();

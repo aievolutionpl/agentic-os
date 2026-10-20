@@ -1,17 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JSDOM } from "jsdom";
-import { mkdtempSync, rmSync, readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Store } from "../dist/main/store.js";
-const bundle = readFileSync(
-  join(
-    "dist/renderer/assets",
-    readdirSync("dist/renderer/assets").find((n) => n.endsWith(".js")),
-  ),
-  "utf8",
-);
+import { bundle } from "./ui-bundle.mjs";
+
 const wait = async (fn) => {
   for (let i = 0; i < 150; i++) {
     if (fn()) return;

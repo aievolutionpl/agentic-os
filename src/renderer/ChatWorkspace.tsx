@@ -8,10 +8,12 @@ import type {
   Project,
   ProviderSetting,
 } from "../shared";
-import { AGENTS, READ_ONLY_AGENTS } from "../shared";
+import { AGENTS, READ_ONLY_AGENTS, chatMarkdown } from "../shared";
 import { Icon, Modal, agentName, connectionLabel, connectionState } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
+import { MessageText } from "./MessageText";
+import { copyText } from "./clipboard";
 import {
   AgentStrip,
   AttachButton,
@@ -20,21 +22,6 @@ import {
   useDrop,
 } from "./ChatComposer";
 
-function MessageText({ content }: { content: string }) {
-  return (
-    <div className="message-text">
-      {content.split(/```/).map((part, i) =>
-        i % 2 ? (
-          <pre key={i}>
-            <code>{part.replace(/^[\w-]+\n/, "")}</code>
-          </pre>
-        ) : (
-          <span key={i}>{part}</span>
-        ),
-      )}
-    </div>
-  );
-}
 const errors: Record<string, [string, string]> = {
   PROVIDER_MODEL_REQUIRED: [
     "W Połączeniach wybierz i zapisz model Hermesa, np. model z subskrypcji ChatGPT/Codex.",
@@ -113,9 +100,16 @@ const draft = {
   repository: "",
   existing: "",
 };
+type ComposerDraft = {
+  message: string;
+  files: { name: string; content: string }[];
+};
+const drafts = new Map<string, ComposerDraft>();
 /** Open the start screen next time the chat view mounts. */
 export function startNewChat() {
   draft.selected = "";
+  draft.message = drafts.get("")?.message ?? "";
+  draft.files = drafts.get("")?.files ?? [];
 }
 export function ChatWorkspace({
   language,
@@ -156,6 +150,11 @@ export function ChatWorkspace({
     [notice, setNotice] = useState("");
   const [handoff, setHandoff] = useState<ChatMessage | null>(null),
     [reviewer, setReviewer] = useState<Agent>("claude");
+  const [search, setSearch] = useState(""),
+    [historyOpen, setHistoryOpen] = useState(false);
+  const [rename, setRename] = useState<string | null>(null);
+  const [unseen, setUnseen] = useState(false);
+  const autoFollow = useRef(true);
   const attached = useAttachments(draft.files),
     drop = useDrop((files) => void attached.add(files));
   const [repositories, setRepositories] = useState<
@@ -230,12 +229,19 @@ export function ChatWorkspace({
       .catch(() => live.current && setRepositories(null));
   }, [source]);
   useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "nearest" });
-  }, [chat?.messages.length]);
+    autoFollow.current = true;
+    setUnseen(false);
+  }, [selected]);
+  useEffect(() => {
+    if (autoFollow.current)
+      bottom.current?.scrollIntoView({ block: "nearest" });
+    else setUnseen(true);
+  }, [selected, chat?.messages.length, chat?.messages.at(-1)?.content]);
   useEffect(() => {
     draft.selected = selected;
     draft.message = message;
     draft.files = attached.files;
+    drafts.set(selected, { message, files: attached.files });
     // The draft keeps its target too: agent, mode and where it will run.
     Object.assign(draft, { agent, mode, source, path, repository, existing });
   }, [
@@ -249,6 +255,18 @@ export function ChatWorkspace({
     repository,
     existing,
   ]);
+  function selectChat(id: string) {
+    if (id === selected) return;
+    drafts.set(selected, { message, files: attached.files });
+    const saved = drafts.get(id);
+    setMessage(saved?.message ?? "");
+    attached.restore(saved?.files ?? []);
+    current.current = id;
+    setSelected(id);
+    setHistoryOpen(false);
+    setError("");
+    setNotice("");
+  }
   async function create() {
     if (attached.reading) return;
     // Check the connection before creating a chat, so the draft stays on the
@@ -274,7 +292,9 @@ export function ChatWorkspace({
             : {}),
       });
       setSessions((rows) => [row, ...rows]);
+      current.current = row.id;
       setSelected(row.id);
+      drafts.delete("");
       onProjectsChanged();
       // The first message typed on the start screen goes straight to the agent.
       if (message.trim()) await deliver(row, []);
@@ -298,8 +318,11 @@ export function ChatWorkspace({
         ? rows.map((s) => (s.id === row.id ? row : s))
         : [row, ...rows],
     );
-    setMessage("");
-    attached.clear();
+    drafts.set(target.id, { message: "", files: [] });
+    if (current.current === target.id) {
+      setMessage("");
+      attached.clear();
+    }
   }
   async function send() {
     if (!chat || !message.trim() || running || busy || attached.reading) return;
@@ -321,7 +344,10 @@ export function ChatWorkspace({
     setBusy(true);
     try {
       await api.chatAction!({ id: chat.id, action });
-      if (action === "delete") setSelected("");
+      if (action === "delete") {
+        selectChat("");
+        drafts.delete(chat.id);
+      }
       await refresh();
     } catch (e) {
       setError(String(e));
@@ -333,7 +359,7 @@ export function ChatWorkspace({
     values.includes(id) ? values.filter((x) => x !== id) : [...values, id];
   return (
     <section
-      className="chat-workspace"
+      className={`chat-workspace${chat ? " has-conversation" : ""}${!sessions.length ? " no-history" : ""}${historyOpen ? " history-open" : ""}`}
       aria-label={pl ? "Czat z agentem" : "Agent chat"}
     >
       <div className="chat-topline">
@@ -341,33 +367,53 @@ export function ChatWorkspace({
           <span className="section-eyebrow">
             AI EVOLUTION POLSKA / WORKSPACE
           </span>
-          <h1>
-            {pl
-              ? "Rozmowa, od której zaczyna się praca."
-              : "Where the work begins."}
-          </h1>
+          <h1>{pl ? "Przestrzeń rozmów" : "Conversation workspace"}</h1>
         </div>
-        <button
-          className="secondary"
-          onClick={() => {
-            setSelected("");
-            attached.clear();
-            setMessage("");
-          }}
-        >
-          <Icon name="plus" />
-          {pl ? "Nowy czat" : "New chat"}
-        </button>
+        <div className="chat-heading-actions">
+          {!!sessions.length && (
+            <button
+              className="secondary history-toggle"
+              aria-expanded={historyOpen}
+              aria-controls="chat-history"
+              onClick={() => setHistoryOpen(!historyOpen)}
+            >
+              <Icon name="history" />
+              {pl ? "Historia" : "History"}
+            </button>
+          )}
+          <button
+            className="secondary"
+            onClick={() => {
+              selectChat("");
+            }}
+          >
+            <Icon name="plus" />
+            {pl ? "Nowy czat" : "New chat"}
+          </button>
+        </div>
       </div>
       <div className="chat-layout">
         <aside
           className="chat-history"
+          id="chat-history"
           aria-label={pl ? "Historia czatów" : "Chat history"}
         >
           <div className="mini-heading">
             <Icon name="history" />
             {pl ? "Twoje rozmowy" : "Your conversations"}
           </div>
+          {!!sessions.length && (
+            <label className="chat-search">
+              <Icon name="search" />
+              <input
+                type="search"
+                aria-label={pl ? "Szukaj rozmów" : "Search conversations"}
+                placeholder={pl ? "Szukaj rozmów…" : "Search conversations…"}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </label>
+          )}
           {!sessions.length && (
             <p className="helper">
               {pl
@@ -375,32 +421,47 @@ export function ChatWorkspace({
                 : "Conversations are saved on this device."}
             </p>
           )}
-          {sessions.map((s) => (
-            <button
-              key={s.id}
-              className={selected === s.id ? "active" : ""}
-              onClick={() => {
-                if (s.id !== selected) attached.clear();
-                setSelected(s.id);
-              }}
-            >
-              <ProviderIcon provider={s.agent} />
-              <span>
-                <strong>{s.title}</strong>
-                <small>
-                  {agentName(s.agent)} ·{" "}
-                  {s.mode === "plan"
-                    ? pl
-                      ? "plan"
-                      : "plan"
-                    : pl
-                      ? "rozmowa"
-                      : "chat"}
-                  {s.status === "running" ? " · ●" : ""}
-                </small>
-              </span>
-            </button>
-          ))}
+          {sessions
+            .filter((s) =>
+              `${s.title} ${agentName(s.agent)}`
+                .toLocaleLowerCase()
+                .includes(search.toLocaleLowerCase()),
+            )
+            .map((s) => (
+              <button
+                key={s.id}
+                className={selected === s.id ? "active" : ""}
+                onClick={() => {
+                  selectChat(s.id);
+                }}
+              >
+                <ProviderIcon provider={s.agent} />
+                <span>
+                  <strong>{s.title}</strong>
+                  <small>
+                    {agentName(s.agent)} ·{" "}
+                    {s.mode === "plan"
+                      ? pl
+                        ? "plan"
+                        : "plan"
+                      : pl
+                        ? "rozmowa"
+                        : "chat"}
+                    {s.status === "running" ? " · ●" : ""}
+                  </small>
+                </span>
+              </button>
+            ))}
+          {!!search &&
+            !sessions.some((s) =>
+              `${s.title} ${agentName(s.agent)}`
+                .toLocaleLowerCase()
+                .includes(search.toLocaleLowerCase()),
+            ) && (
+              <p className="helper">
+                {pl ? "Brak pasujących rozmów." : "No matching conversations."}
+              </p>
+            )}
         </aside>
         <div className="chat-stage">
           {!chat ? (
@@ -746,6 +807,50 @@ export function ChatWorkspace({
                 </div>
                 <button
                   className="icon-button"
+                  aria-label={
+                    pl
+                      ? "Kopiuj rozmowę jako Markdown"
+                      : "Copy conversation as Markdown"
+                  }
+                  title={
+                    pl
+                      ? "Kopiuj rozmowę jako Markdown"
+                      : "Copy conversation as Markdown"
+                  }
+                  disabled={!chat.messages.length}
+                  onClick={() => {
+                    void copyText(chatMarkdown(chat))
+                      .then(() =>
+                        setNotice(
+                          pl
+                            ? "Rozmowa skopiowana jako Markdown."
+                            : "Conversation copied as Markdown.",
+                        ),
+                      )
+                      .catch(() =>
+                        setNotice(
+                          pl
+                            ? "Nie udało się skopiować rozmowy."
+                            : "Could not copy the conversation.",
+                        ),
+                      );
+                  }}
+                >
+                  <Icon name="copy" />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label={
+                    pl ? "Zmień nazwę rozmowy" : "Rename conversation"
+                  }
+                  title={pl ? "Zmień nazwę rozmowy" : "Rename conversation"}
+                  disabled={busy || running}
+                  onClick={() => setRename(chat.title)}
+                >
+                  <Icon name="edit" />
+                </button>
+                <button
+                  className="icon-button"
                   aria-label={pl ? "Usuń rozmowę" : "Delete conversation"}
                   title={pl ? "Usuń rozmowę" : "Delete conversation"}
                   disabled={busy || running}
@@ -767,6 +872,14 @@ export function ChatWorkspace({
                 className="chat-transcript"
                 role="log"
                 aria-label={pl ? "Wiadomości" : "Messages"}
+                aria-live="polite"
+                aria-relevant="additions"
+                onScroll={(e) => {
+                  const el = e.currentTarget;
+                  autoFollow.current =
+                    el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+                  if (autoFollow.current) setUnseen(false);
+                }}
               >
                 {!chat.messages.length && (
                   <div className="conversation-empty">
@@ -824,7 +937,7 @@ export function ChatWorkspace({
                       <AttachmentChips files={m.attachments} pl={pl} />
                     )}
                     {m.content ? (
-                      <MessageText content={m.content} />
+                      <MessageText content={m.content} pl={pl} />
                     ) : m.status !== "streaming" ? (
                       <span className="message-empty">
                         {m.status === "cancelled"
@@ -869,8 +982,7 @@ export function ChatWorkspace({
                         </button>
                         <button
                           onClick={() =>
-                            void navigator.clipboard
-                              .writeText(m.content)
+                            void copyText(m.content)
                               .then(() =>
                                 setNotice(pl ? "Skopiowano." : "Copied."),
                               )
@@ -886,6 +998,19 @@ export function ChatWorkspace({
                 ))}
                 <div ref={bottom} />
               </div>
+              {unseen && (
+                <button
+                  className="jump-latest secondary"
+                  onClick={() => {
+                    autoFollow.current = true;
+                    setUnseen(false);
+                    bottom.current?.scrollIntoView({ block: "nearest" });
+                  }}
+                >
+                  <Icon name="down" />
+                  {pl ? "Najnowsza odpowiedź" : "Latest response"}
+                </button>
+              )}
               {!!chat.activity.length && (
                 <details className="chat-activity">
                   <summary>
@@ -963,6 +1088,26 @@ export function ChatWorkspace({
                   void send();
                 }}
               >
+                <div className="composer-status">
+                  <span
+                    className={
+                      running ? "run-indicator active" : "run-indicator"
+                    }
+                    role="status"
+                  >
+                    <i aria-hidden="true" />
+                    {running
+                      ? pl
+                        ? "Agent pracuje"
+                        : "Agent working"
+                      : pl
+                        ? "Gotowy na wiadomość"
+                        : "Ready for a message"}
+                  </span>
+                  <span>
+                    {message.length.toLocaleString(language)} / 12 000
+                  </span>
+                </div>
                 <textarea
                   aria-label={pl ? "Wiadomość do agenta" : "Message to agent"}
                   value={message}
@@ -1066,6 +1211,11 @@ export function ChatWorkspace({
                   )}
                 </div>
               </form>
+              <p className="composer-hint">
+                {pl
+                  ? "Enter — wyślij · Shift+Enter — nowa linia · osobny szkic dla każdej rozmowy"
+                  : "Enter to send · Shift+Enter for a new line · separate draft for each conversation"}
+              </p>
             </>
           )}
           {(error || chat?.error) && (
@@ -1086,6 +1236,51 @@ export function ChatWorkspace({
           )}
         </div>
       </div>
+      <Modal
+        open={rename !== null}
+        onClose={() => setRename(null)}
+        titleId="rename-chat-title"
+      >
+        <h2 id="rename-chat-title">
+          {pl ? "Nazwa rozmowy" : "Conversation name"}
+        </h2>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!chat || !rename?.trim() || busy) return;
+            setBusy(true);
+            void api.chatRename!({ id: chat.id, title: rename })
+              .then((row) => {
+                setSessions((rows) =>
+                  rows.map((s) => (s.id === row.id ? row : s)),
+                );
+                setRename(null);
+              })
+              .catch((e) => setError(String(e)))
+              .finally(() => setBusy(false));
+          }}
+        >
+          <input
+            aria-label={pl ? "Nazwa rozmowy" : "Conversation name"}
+            value={rename ?? ""}
+            maxLength={120}
+            onChange={(e) => setRename(e.target.value)}
+            autoFocus
+          />
+          <div className="panel-actions">
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setRename(null)}
+            >
+              {pl ? "Anuluj" : "Cancel"}
+            </button>
+            <button className="primary" disabled={busy || !rename?.trim()}>
+              {pl ? "Zapisz nazwę" : "Save name"}
+            </button>
+          </div>
+        </form>
+      </Modal>
       <Modal
         open={!!saving}
         onClose={() => setSaving(null)}

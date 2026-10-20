@@ -5,7 +5,7 @@ import { resolve, join } from "node:path";
 import { collectContrast } from "./contrast-dom.mjs";
 import { measure, threshold } from "./contrast-math.mjs";
 
-const out = resolve("docs/evidence/release-04/contrast");
+const out = resolve(process.env.AGENTING_QA_OUTPUT || ".runtime/contrast-qa");
 mkdirSync(out, { recursive: true });
 const profile = mkdtempSync(join(tmpdir(), "agenting-contrast-"));
 const env = { ...process.env, AGENTING_DATA_DIR: profile };
@@ -30,13 +30,26 @@ process.on("exit", (code) => {
 });
 let app;
 try {
-  app = await electron.launch({ args: [resolve(".")], env, timeout: 30000 });
+  app = await electron.launch({
+    args: [
+      resolve("."),
+      ...(process.env.AGENTING_TEST_NO_SANDBOX === "1"
+        ? ["--no-sandbox", "--no-zygote"]
+        : []),
+    ],
+    env,
+    timeout: 30000,
+  });
   const page = await app.firstWindow();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.getByRole("button", { name: "Język", exact: true }).click();
   await page.getByRole("option", { name: "English", exact: true }).click();
   await page.waitForFunction(() => document.documentElement.lang === "en");
+  await page
+    .locator(".primary-nav")
+    .getByRole("button", { name: "Control Center", exact: true })
+    .click();
   async function capture(name) {
     await page.mouse.move(0, 0);
     await page.locator('main[aria-busy="false"]').waitFor();
@@ -90,7 +103,9 @@ try {
           .first()
           .waitFor({ timeout: 60000 });
         await capture("dark-320-control-center");
-        await page.getByRole("button", { name: "Projects", exact: true }).click();
+        await page
+          .getByRole("button", { name: "Projects", exact: true })
+          .click();
         await page
           .locator(".projects-drawer[open]")
           .getByRole("button", { name: "New project", exact: true })
@@ -104,6 +119,10 @@ try {
         await page
           .getByRole("heading", { name: "Contrast QA", exact: true })
           .waitFor();
+        await page
+          .locator(".tabs")
+          .getByRole("button", { name: /^Tasks/ })
+          .click();
         await page.locator("#task-title").fill("Contrast regression task");
         await page
           .getByRole("button", { name: "Save draft", exact: true })
@@ -115,7 +134,10 @@ try {
           })
           .waitFor();
       }
-      await page.locator(".tabs button").nth(0).click();
+      await page
+        .locator(".tabs")
+        .getByRole("button", { name: /^Tasks/ })
+        .click();
       await capture(`${theme}-${width}-tasks`);
       await page
         .getByRole("button", { name: "Filter by status", exact: true })
@@ -134,15 +156,23 @@ try {
       await capture(`${theme}-${width}-confirmation`);
       await page.keyboard.press("Escape");
       await page.keyboard.press("Escape");
-      await page.locator(".tabs button").nth(1).click();
+      await page
+        .locator(".tabs")
+        .getByRole("button", { name: /^Shared memory/ })
+        .click();
       await capture(`${theme}-${width}-memory`);
-      await page.locator(".tabs button").nth(2).click();
+      await page
+        .locator(".tabs")
+        .getByRole("button", { name: "Integrations", exact: true })
+        .click();
       await capture(`${theme}-${width}-integrations`);
-      await page.getByRole("button",{name:"Extensions",exact:true}).click();
-      await page.getByText("Evidence-based review",{exact:true}).waitFor();
-      await page.getByText("Import JSON manifest",{exact:true}).click();
+      await page
+        .getByRole("button", { name: "Extensions", exact: true })
+        .click();
+      await page.getByText("Evidence-based review", { exact: true }).waitFor();
+      await page.getByText("Import JSON manifest", { exact: true }).click();
       await capture(`${theme}-${width}-extensions`);
-      await page.getByRole("button",{name:"Browser",exact:true}).click();
+      await page.getByRole("button", { name: "Browser", exact: true }).click();
       await capture(`${theme}-${width}-browser`);
       if (await page.locator(".projects-toggle").isVisible()) {
         await page.locator(".projects-toggle").click();

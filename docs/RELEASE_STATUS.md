@@ -1,34 +1,42 @@
 # Release status — single source of truth
 
-This is the only document that states the **current** release status. Everything else (`docs/RELEASE_GATES.md`, `docs/STATUS.md` history, `HANDOFF_PL.md`, the root `BUILD_BRIEF.md` / `NEXT_*.md` / `WORKER_RESULT.md` briefs, audits and evidence folders) is a dated historical record. If they disagree with this page, this page wins; if this page disagrees with CI on the current commit, CI wins.
+This document describes current release readiness. Older audits, handoffs, briefs and evidence folders are historical records. CI on the commit being distributed takes precedence over a local report.
 
-**How status is determined:** by the GitHub Actions `CI` workflow on the exact commit (`verify` on Windows and Linux, Electron smoke, `npm audit`, unsigned Windows installer build). A status claim without a commit SHA and a CI run is not a release claim.
+## Current: 0.5.0-rc.1 public preview candidate
 
-## Current: 0.4.x early release (not 1.0)
+The workbench changes have local Linux verification dated **2026-10-20**. This is preparation for review and publication, not an announcement that an installer has been released. No signed/stable 1.0 release is claimed.
 
-| Area | State | Evidence |
-| --- | --- | --- |
-| Automated tests, typecheck, Electron smoke (Windows + Linux) | Gated by CI on every PR and `main` push | `.github/workflows`, Actions run of the commit |
-| Unsigned Windows NSIS installer | Built and uploaded by CI | Actions artifact |
-| Signed installer, install/upgrade/uninstall QA in a clean profile | **Not done** | Roadmap v4 / V4.5 |
-| Auto-update channel | **Not provided** (only after signing and lifecycle QA) | — |
-| OS-level isolation of trusted ACP/MCP processes | **Not provided** | `SECURITY.md` |
-| Manual queue survives restart without replay | Implemented (schema v13) | `tests/orchestration-journal.test.mjs` |
-| Per-provider capability evidence (detected / profile / sign-in / handshake / real run / roles) | Implemented (schema v14), shown in Control Center | `tests/capabilities.test.mjs` |
-| Operator inbox (cross-project decisions), Ctrl/Cmd+K palette, Control Center "Right now" | Implemented, read-only aggregation | `tests/attention.test.mjs` |
-| Backup, staged restore (undoable) and redacted diagnostics | Implemented | `tests/backup.test.mjs` |
-| Real provider inference | **Per machine, per provider.** Never inferred from configuration. Automated tests make no model calls | Control Center → *Verified capabilities*; `docs/SUBSCRIPTION_CONNECTIONS.md` for dated manual sessions |
-| Provider quotas | Codex official data and OpenRouter key budget only; other subscriptions show **Unknown** | OpenQuota |
+| Area | State / evidence |
+| --- | --- |
+| TypeScript and automated tests | Passed: 123 tests and typecheck on Node 26; [local evidence](evidence/workbench-05/README.md) |
+| Native Electron UI, Git/SQLite, provider protocol fixtures | Local Linux/Xvfb checks; automated tests make no model calls |
+| Embedded terminal | Real local PTY execution, resize, interruption, independent sessions, bounded output and shutdown tested on Linux |
+| Conversation Markdown, draft isolation, copying and queue preview | Native Electron scenario in `scripts/workbench-qa.mjs` |
+| Screenshots and responsive themes | Actual Electron captures with labeled example data in [images](images); reproducible script, not generated mockups |
+| Windows verification and unsigned NSIS installer | CI configured on Windows and Linux; **current candidate Windows run and installer not verified in this Linux environment** |
+| Packaged Linux executable | Passed with an existing N-API module (`npmRebuild=false`); [scope and evidence](evidence/workbench-05/package-linux.json). This is an unpacked test build, not a Linux installer release |
+| Packaged native terminal on Windows | `asarUnpack` configured; Windows `smoke:package` now requires actual PTY execution. **Awaiting Windows CI** |
+| Signing; clean-profile install, upgrade and uninstall | **Not done**; separate public distribution gates |
+| Automatic updates | **Not provided** |
+| Live provider inference for this candidate | **Not repeated**. Existing dated checks in [provider documentation](PROVIDERS.md) are historical evidence, not a blanket compatibility guarantee |
+| OS sandbox for trusted ACP/MCP processes or manual terminal | **Not provided**; see [SECURITY.md](../SECURITY.md) |
+| General accessibility certification | **Not claimed**. Automated DOM text contrast/reflow checks, keyboard scenarios and reduced motion cover selected states only |
 
-## Meaning of capability states
+## Before public distribution
 
-- **Detected** — an executable was found by a fixed read-only version probe.
-- **Profile** — the user explicitly saved an execution profile with consent.
-- **Sign-in** — `Reported by CLI` comes from the provider's own status command; `Verified` only from an explicit connection check in this app.
-- **Handshake** — the last explicit connection check (protocol initialize / account read / model catalog). It never runs inference.
-- **Real run** — at least one run of this provider actually finished (completed, awaiting review, applied or rejected) on this machine. Interrupted and cancelled runs do not count.
-- **Verified** — handshake passed **and** a real run finished. Anything less is shown as `Unverified`, `Needs sign-in`, `Needs connection` or `Not installed`.
+1. Run the repository's **Verify and package** workflow on the exact proposed commit. Require both OS verification jobs and the Windows package job, including the packaged PTY smoke.
+2. Check installation, upgrade from the existing version, cancellation and uninstall on a clean Windows profile. Verify that saved projects and the database survive an upgrade.
+3. Decide whether this is explicitly labeled **unsigned preview** distribution or a signed release. Stable distribution requires signing and a verified update strategy; signing credentials are not present in this workspace.
+4. Exercise the supported provider/model/account combinations using explicit opt-in real tasks, including cancellation and reviewer roles. Publish that matrix with CLI versions and dates.
+5. Review the diff, licenses and remaining findings, then publish an artifact and release notes associated with the tested commit. Preparing this candidate does not publish or merge it.
 
-## 1.0 gate (Roadmap v4)
+## What readiness labels mean
 
-Zero unresolved critical/high security or change-integrity issues; fresh install and upgrade tests; signed installer; an explicit matrix of supported providers and modes. See [Roadmap v4](ROADMAP_V4.md).
+- **Detected**: a fixed read-only probe found an executable.
+- **Profile**: the user explicitly saved an execution configuration.
+- **Sign-in reported**: the provider CLI reports its own sign-in state.
+- **Handshake passed**: the app's explicit protocol/account/model check succeeded; this does not perform inference.
+- **Real run**: a provider task finished on this machine; failed or interrupted tasks do not prove readiness.
+- **Verified**: both handshake and completed-run evidence exist. This remains dated evidence, not a guarantee of future availability.
+
+The queue preview reads saved settings and check timestamps only. It never starts inference to choose a provider. A missing reviewer is visible before dispatch; the existing queue pauses before changes can be applied. Unknown provider quota remains unknown.

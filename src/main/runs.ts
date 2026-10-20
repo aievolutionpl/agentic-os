@@ -20,6 +20,18 @@ export class Runs {
       CREATE TABLE run_events(seq INTEGER PRIMARY KEY AUTOINCREMENT,runId TEXT NOT NULL REFERENCES runs(id),kind TEXT NOT NULL,text TEXT NOT NULL,at INTEGER NOT NULL);
       CREATE TABLE provider_settings(id TEXT PRIMARY KEY,command TEXT NOT NULL,args TEXT NOT NULL,protocol TEXT NOT NULL,consent INTEGER NOT NULL DEFAULT 0);
       PRAGMA user_version=6;COMMIT;`);
+    // Outcome lookups for routing evidence read events by run and kind. An
+    // index adds no data, so it is created idempotently on any schema.
+    if (
+      db
+        .prepare(
+          "SELECT 1 FROM sqlite_master WHERE type='table' AND name='run_events'",
+        )
+        .get()
+    )
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS run_events_outcome ON run_events(runId,kind,at)",
+      );
   }
   create(
     projectId: string,
@@ -121,6 +133,7 @@ export class Runs {
         "review",
         "review_evidence",
         "revision",
+        "review_outcome",
       ].includes(kind)
     )
       return;
@@ -191,10 +204,43 @@ export class Runs {
       }));
   }
   /** Real inference evidence: runs whose provider turn actually finished, not configuration. */
-  evidence() {
+  /** Finished and failed work per agent, for the role it played. */
+  /** Finished and failed work per agent, for the role it played. `accepted`
+   * counts only results that were not rejected (routing quality credit);
+   * without it any finished inference counts (capability "live" evidence). */
+  evidence(
+    role: "implementer" | "reviewer" = "implementer",
+    { accepted = false }: { accepted?: boolean } = {},
+  ) {
+    const ok = accepted
+      ? "('completed','awaiting_review','applied')"
+      : "('completed','awaiting_review','applied','rejected')";
     return this.db
       .prepare(
-        "SELECT provider, SUM(state IN ('completed','awaiting_review','applied','rejected')) AS successes, MAX(CASE WHEN state IN ('completed','awaiting_review','applied','rejected') THEN updatedAt END) AS lastSuccessAt, MAX(CASE WHEN state='failed' THEN updatedAt END) AS lastFailureAt FROM runs GROUP BY provider",
+        // Outcome times come from the events written when a run or review
+        // finished; later updates (approval, apply) must not make an old
+        // success look newer. Rows from before those events fall back to
+        // the run's last update.
+        role === "implementer"
+          ? `SELECT provider, SUM(state IN ${ok}) AS successes,
+              MAX(CASE WHEN state IN ${ok} THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='completed'), updatedAt) END) AS lastSuccessAt,
+              MAX(CASE WHEN state='failed' THEN COALESCE((SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='failed'), updatedAt) END) AS lastFailureAt
+            FROM runs GROUP BY provider`
+          : // Reviews come from their outcome events; an interrupted rerun
+            // never erases an earlier completed review. A run's latest
+            // non-interrupted outcome decides whether it counts as a success.
+            `WITH o AS (
+              SELECT reviewer AS provider, reviewState, updatedAt,
+                EXISTS(SELECT 1 FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome') AS evented,
+                (SELECT e.text FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text IN ('completed','failed') ORDER BY e.seq DESC LIMIT 1) AS latest,
+                (SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='completed') AS doneAt,
+                (SELECT MAX(at) FROM run_events e WHERE e.runId=runs.id AND e.kind='review_outcome' AND e.text='failed') AS failAt
+              FROM runs)
+            SELECT provider,
+              SUM(CASE WHEN evented THEN latest='completed' ELSE reviewState='completed' END) AS successes,
+              MAX(CASE WHEN evented THEN doneAt WHEN reviewState='completed' THEN updatedAt END) AS lastSuccessAt,
+              MAX(CASE WHEN evented THEN failAt WHEN reviewState='failed' THEN updatedAt END) AS lastFailureAt
+            FROM o GROUP BY provider`,
       )
       .all()
       .map((row) => ({

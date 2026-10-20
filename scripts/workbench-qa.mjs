@@ -240,7 +240,13 @@ try {
     (id) => window.agenting.chatAction({ id, action: "delete" }),
     unsafeId,
   );
-
+  // Deleting the open chat returns to the start screen, which hides the
+  // history: wait for that to land, then open it again.
+  await history
+    .getByRole("button", { name: /Przykład · obsługa treści/ })
+    .waitFor({ state: "detached" });
+  if (!(await history.isVisible()))
+    await page.getByRole("button", { name: "Historia", exact: true }).click();
   await history
     .getByRole("button", { name: /Przykład · plan wydania/ })
     .click();

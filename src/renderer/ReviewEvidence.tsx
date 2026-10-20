@@ -12,9 +12,16 @@ export interface Evidence {
   omitted?: number;
 }
 
-/** Latest structured review evidence among a run's events. */
-export function reviewEvidence(events: RunEvent[] = []): Evidence | null {
+/** Structured evidence of the latest completed review attempt. A re-review
+ * that is running or failed shows none, never an older verdict. */
+export function reviewEvidence(
+  events: RunEvent[] = [],
+  reviewState?: string,
+): Evidence | null {
+  if (reviewState !== undefined && reviewState !== "completed") return null;
+  const outcome = events.filter((e) => e.kind === "review_outcome").at(-1);
   const event = events.filter((e) => e.kind === "review_evidence").at(-1);
+  if (event && outcome && outcome.seq > event.seq) return null;
   try {
     return event ? (JSON.parse(event.text) as Evidence) : null;
   } catch {

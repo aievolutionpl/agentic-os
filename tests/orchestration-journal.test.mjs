@@ -93,8 +93,9 @@ function runtime(store, projectId, outcome) {
 test("a crash mid-batch is journaled as interrupted, never replayed, and continues only on explicit consent", async (t) => {
   const f = fixture(t);
   let store = f.open();
-  const { project, tasks } = seed(store, 3);
-  const [a, b, c] = tasks.map((x) => x.id);
+  const { project } = seed(store, 3);
+  // Same-millisecond tasks are ordered by id, so take the queue's real order.
+  const [a, b, c] = store.tasks(project.id).map((x) => x.id);
   const first = runtime(store, project.id, (id) => (id === b ? "hang" : "ok"));
   const queue = new Orchestrator(store, first);
   const started = queue.start({

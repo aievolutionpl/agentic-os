@@ -821,6 +821,16 @@ export function ChatWorkspace({
                     )}
                     {m.content ? (
                       <MessageText content={m.content} />
+                    ) : m.status !== "streaming" ? (
+                      <span className="message-empty">
+                        {m.status === "cancelled"
+                          ? pl
+                            ? "Zatrzymano przed odpowiedzią."
+                            : "Stopped before a reply."
+                          : pl
+                            ? "Brak odpowiedzi — szczegóły poniżej."
+                            : "No reply — details below."}
+                      </span>
                     ) : (
                       <span className="thinking">
                         <i />

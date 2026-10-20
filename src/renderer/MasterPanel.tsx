@@ -11,6 +11,7 @@ import {
   type Task,
 } from "../shared";
 import { Icon, SelectField, agentName } from "./ui";
+import { PaidApproval, policyMessage } from "./PolicyPanel";
 import { ProviderIcon } from "./ProviderIcon";
 
 export function MasterPanel({
@@ -137,8 +138,9 @@ export function MasterPanel({
         interrupted: "Interrupted on restart",
       };
   const reason = (code: string) =>
+    policyMessage(code, pl) ??
     (
-      ({
+      {
         HUMAN_APPROVAL_REQUIRED: pl
           ? "Otwórz wynik zadania, przejrzyj zmiany i zdecyduj o zastosowaniu. Następnie kontynuuj misję."
           : "Open the task result, review and apply the changes, then continue the mission.",
@@ -166,8 +168,9 @@ export function MasterPanel({
         INVALID_MASTER_PLAN: pl
           ? "Master zwrócił nieprawidłowy plan. Zadania nie zostały uruchomione; przygotuj nowy plan."
           : "Master returned an invalid plan. No tasks were launched; create a new plan.",
-      }) as Record<string, string>
-    )[code] ?? (pl ? `Szczegóły: ${code}` : `Details: ${code}`);
+      } as Record<string, string>
+    )[code] ??
+    (pl ? `Szczegóły: ${code}` : `Details: ${code}`);
   async function act(work: () => Promise<unknown>) {
     setBusy(true);
     setError("");
@@ -503,7 +506,13 @@ export function MasterPanel({
             <p className="mission-summary">{mission.summary}</p>
           )}
           {mission.reason && (
-            <p className="master-alert">{reason(mission.reason)}</p>
+            <p className="master-alert">
+              {reason(mission.reason)}
+              {/* Only OpenCode via OpenRouter is paid per token today. */}
+              {mission.reason === "POLICY_APPROVAL_REQUIRED" && (
+                <PaidApproval agent="opencode" pl={pl} />
+              )}
+            </p>
           )}
           <ol className="mission-steps">
             {mission.steps.map((step, index) => {

@@ -1522,3 +1522,17 @@ summary:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+.policy-panel input[type="radio"],
+.policy-panel input[type="checkbox"] {
+  width: auto;
+  flex: none;
+  margin: 2px 0 0;
+}
+.policy-paid label {
+  justify-content: flex-start;
+  text-align: left;
+}
+.message-empty {
+  color: var(--text-muted);
+  font-size: 12px;
+}

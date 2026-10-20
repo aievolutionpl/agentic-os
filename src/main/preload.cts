@@ -12,6 +12,7 @@ const api: API = {
   policySet: (input) => ipcRenderer.invoke("app:policySet", input),
   policyApprove: (input) => ipcRenderer.invoke("app:policyApprove", input),
   routePreview: (input) => ipcRenderer.invoke("app:routePreview", input),
+  usageReport: () => ipcRenderer.invoke("app:usageReport"),
   memoryList: () => ipcRenderer.invoke("app:memoryList"),
   memoryUpdate: (input) => ipcRenderer.invoke("app:memoryUpdate", input),
   skillCatalog: () => ipcRenderer.invoke("app:skillCatalog"),

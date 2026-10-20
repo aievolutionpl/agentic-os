@@ -483,6 +483,8 @@ export interface API {
     paidApi: WorkspacePolicy["paidApi"];
     monthlyBudgetUsd: number | null;
   }): Promise<WorkspacePolicy>;
+  /** Usage ledger: per-agent totals for 30 days and the latest entries. */
+  usageReport?(): Promise<{ summary: UsageSummary[]; recent: UsageEntry[] }>;
   /** Preview the router's choice; it never starts anything. */
   routePreview?(input: {
     mode: RoutingMode;
@@ -766,6 +768,33 @@ export interface RunEvent {
   kind: string;
   text: string;
   at: number;
+}
+/** One agent invocation. Null tokens mean the CLI reported nothing: unknown. */
+export interface UsageEntry {
+  id: number;
+  agent: Agent;
+  role: "implementer" | "reviewer" | "chat" | "master";
+  projectId: string | null;
+  runId: string | null;
+  outcome: "completed" | "failed" | "cancelled";
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+  source: "cli-stream" | "unknown";
+  paid: boolean;
+  at: number;
+}
+export interface UsageSummary {
+  agent: Agent;
+  invocations: number;
+  /** Invocations with a CLI token report. */
+  measured: number;
+  /** Invocations without one; their tokens are not counted anywhere. */
+  unmeasured: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+  paid: number;
 }
 export type RoutingMode =
   | "manual"

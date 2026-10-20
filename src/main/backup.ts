@@ -32,6 +32,7 @@ const REQUIRED_TABLES: [number, string[]][] = [
   [13, ["batches", "batch_events"]],
   [14, ["capability_checks"]],
   [15, ["workspace_policy"]],
+  [16, ["usage_ledger"]],
 ];
 const REQUIRED_COLUMNS: [number, string, string[]][] = [
   [9, "memory", ["scope"]],

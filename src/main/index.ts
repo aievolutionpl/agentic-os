@@ -219,7 +219,31 @@ app
             (card.source !== "cli-stream" ||
               (!!m.resetsAt && Date.parse(m.resetsAt) > Date.now())),
         );
-      return fresh && ["active", "warning", "exhausted"].includes(card!.status)
+      if (!fresh) return "unknown";
+      if (card!.source === "cli-stream") {
+        // Judge only the windows still in force; an old window with no reset
+        // must not keep a usable provider exhausted.
+        const current = card!.metrics.filter(
+          (m) =>
+            (m.format === "percent" || m.limitValue !== null) &&
+            !!m.resetsAt &&
+            Date.parse(m.resetsAt) > Date.now(),
+        );
+        return current.some(
+          (m) =>
+            m.state === "rejected" ||
+            (m.usedValue !== null &&
+              m.limitValue !== null &&
+              m.usedValue >= m.limitValue),
+        )
+          ? "exhausted"
+          : current.some(
+                (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
+              )
+            ? "warning"
+            : "active";
+      }
+      return ["active", "warning", "exhausted"].includes(card!.status)
         ? (card!.status as "active" | "warning" | "exhausted")
         : "unknown";
     };

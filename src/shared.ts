@@ -293,6 +293,8 @@ export interface QuotaMetric {
   usedValue: number | null;
   limitValue: number | null;
   unit?: string | null;
+  /** The provider's own verdict for this window, when its CLI reported one. */
+  state?: string;
 }
 export interface ProviderQuotaCard {
   id: string;

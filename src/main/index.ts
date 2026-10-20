@@ -198,6 +198,31 @@ app
       agent === "opencode" && router.settings().configured
         ? "openrouter"
         : agent;
+    /** A provider's quota state for routing and the start gate: a reading
+     * counts only when fresh and backed by a provider-reported limit that is
+     * still in its window; usage alone says nothing about what is left. */
+    const quotaState = (
+      cards: Awaited<ReturnType<typeof quotas>>,
+      agent: Agent,
+    ): "active" | "warning" | "exhausted" | "unknown" => {
+      const card = cards.find(
+        (c) => c.id === quotaProvider(agent) && c.source !== "manual",
+      );
+      const fresh =
+        !!card &&
+        Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
+        card.metrics.some(
+          (m) =>
+            (m.format === "percent" || m.limitValue !== null) &&
+            // Limits seen in a CLI stream age with their window: only one
+            // that has not reset yet still describes the quota.
+            (card.source !== "cli-stream" ||
+              (!!m.resetsAt && Date.parse(m.resetsAt) > Date.now())),
+        );
+      return fresh && ["active", "warning", "exhausted"].includes(card!.status)
+        ? (card!.status as "active" | "warning" | "exhausted")
+        : "unknown";
+    };
     // Policy gate: allowed agents, paid API mode and monthly budget, enforced
     // here before any agent process starts. Approvals live in memory only.
     const paidApprovals = new PaidApprovals();
@@ -220,16 +245,7 @@ app
       if (decision.verdict !== "allow") throw Error(decision.reasons[0]);
       // A fresh provider reading that says the limit is used up stops the run
       // here too, so a routed task can't start into a 429 after the preview.
-      const cards = await quotas().catch(() => []);
-      if (
-        cards.some(
-          (q) =>
-            q.id === quotaProvider(agent) &&
-            q.source !== "manual" &&
-            q.status === "exhausted" &&
-            Math.abs(Date.now() - Date.parse(q.updatedAt)) < 300000,
-        )
-      )
+      if (quotaState(await quotas().catch(() => []), agent) === "exhausted")
         throw Error("POLICY_QUOTA_EXHAUSTED");
     };
     chats = new Chats(
@@ -522,22 +538,6 @@ app
         // A quota reading counts only while fresh; otherwise it is unknown.
         const cards = await quotas().catch(() => []);
         const facts = AGENTS.map((agent) => {
-          const card = cards.find(
-            (c) => c.id === quotaProvider(agent) && c.source !== "manual",
-          );
-          // Fresh and backed by a provider-reported limit; usage alone (token
-          // observations, lifetime spend) says nothing about what is left.
-          const fresh =
-            !!card &&
-            Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
-            card.metrics.some(
-              (m) =>
-                (m.format === "percent" || m.limitValue !== null) &&
-                // Limits seen in a CLI stream age with their window: only
-                // one that has not reset yet still describes the quota.
-                (card.source !== "cli-stream" ||
-                  (!!m.resetsAt && Date.parse(m.resetsAt) > Date.now())),
-            );
           const runs = evidence.find((e) => e.provider === agent);
           const paid = quotaProvider(agent) === "openrouter";
           const verdict = evaluatePolicy(
@@ -565,10 +565,7 @@ app
                 ? c.state
                 : null;
             })(),
-            quota:
-              fresh && ["active", "warning", "exhausted"].includes(card!.status)
-                ? (card!.status as "active" | "warning" | "exhausted")
-                : ("unknown" as const),
+            quota: quotaState(cards, agent),
             paid,
             policy: verdict.verdict,
             policyReasons: verdict.reasons,

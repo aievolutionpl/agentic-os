@@ -203,3 +203,116 @@ test("diagnostics carry counts and states but no content, paths or credentials",
   assert.match(bundle.recentErrors[0].error, /\[REDACTED\]/);
   assert.match(bundle.recentErrors[0].error, /~\/work/);
 });
+
+test("the live database is refused as a backup target or restore source and stays intact", (t) => {
+  const root = dirs(t);
+  const live = join(root, DATABASE);
+  const store = new Store(live);
+  seed(store, "Live");
+  assert.throws(() => createBackup(store, live), /BACKUP_TARGET_IS_LIVE/);
+  assert.throws(
+    () => createBackup(store, `${live}-wal`),
+    /BACKUP_TARGET_IS_LIVE/,
+  );
+  assert.throws(() => stageRestore(root, live), /BACKUP_SOURCE_IS_LIVE/);
+  seed(store, "Still writable");
+  assert.equal(store.projects().length, 2);
+  // An existing backup file is replaced only after a valid snapshot exists.
+  const target = join(root, "backup.sqlite");
+  writeFileSync(target, "old");
+  assert.equal(createBackup(store, target).projects, 2);
+  store.close();
+  const reopened = new Store(live);
+  assert.deepEqual(
+    reopened
+      .projects()
+      .map((p) => p.name)
+      .sort(),
+    ["Live", "Still writable"],
+  );
+  reopened.close();
+});
+
+test("staging a restore from a database that is still open keeps rows that live only in its WAL", (t) => {
+  const root = dirs(t);
+  const sourceFile = join(root, "source.sqlite");
+  const source = new Store(sourceFile);
+  seed(source, "Committed but not checkpointed");
+  assert.ok(existsSync(`${sourceFile}-wal`));
+  const target = join(root, "target");
+  mkdirSync(target);
+  assert.equal(stageRestore(target, sourceFile).projects, 1);
+  source.close();
+  assert.equal(applyPendingRestore(target), "restored");
+  const restored = new Store(join(target, DATABASE));
+  assert.deepEqual(
+    restored.projects().map((p) => p.name),
+    ["Committed but not checkpointed"],
+  );
+  restored.close();
+});
+
+test("a backup missing tables or columns its schema requires is refused", (t) => {
+  const root = dirs(t);
+  const make = (name, sql) => {
+    const file = join(root, name);
+    const store = new Store(file);
+    seed(store, name);
+    store.close();
+    const raw = new DatabaseSync(file);
+    raw.exec(sql);
+    raw.close();
+    return file;
+  };
+  assert.throws(
+    () =>
+      inspectBackup(
+        make("no-runs.sqlite", "DROP TABLE run_events; DROP TABLE runs"),
+      ),
+    /BACKUP_INCOMPLETE/,
+  );
+  assert.throws(
+    () =>
+      inspectBackup(
+        make("no-pinned.sqlite", "ALTER TABLE memory DROP COLUMN pinned"),
+      ),
+    /BACKUP_INCOMPLETE/,
+  );
+  assert.throws(
+    () => stageRestore(root, join(root, "no-runs.sqlite")),
+    /BACKUP_INCOMPLETE/,
+  );
+  assert.equal(existsSync(join(root, `${DATABASE}.restore`)), false);
+});
+
+test("diagnostics keep only the executable name even for another platform's path", (t) => {
+  const root = dirs(t);
+  const file = join(root, DATABASE);
+  const store = new Store(file);
+  const raw = new DatabaseSync(file);
+  raw
+    .prepare(
+      "INSERT INTO provider_settings(id,command,args,protocol,consent,profile,model) VALUES(?,?,?,?,?,?,?)",
+    )
+    .run(
+      "codex",
+      "C:\\Users\\Alice\\bin\\codex.cmd",
+      "[]",
+      "codex",
+      1,
+      "existing",
+      null,
+    );
+  raw.close();
+  const bundle = diagnostics(store, {
+    version: "0.4.0",
+    platform: "linux",
+    arch: "x64",
+    versions: {},
+    dataDir: root,
+    capabilities: [],
+  });
+  store.close();
+  assert.equal(bundle.providers[0].command, "codex.cmd");
+  assert.ok(!JSON.stringify(bundle).includes("Alice"));
+});

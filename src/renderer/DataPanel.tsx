@@ -32,6 +32,12 @@ const COPY = {
       BACKUP_UNSUPPORTED_SCHEMA:
         "This backup comes from a newer version of Agenting OS.",
       BACKUP_NOT_AGENTING: "This file is not an Agenting OS backup.",
+      BACKUP_INCOMPLETE:
+        "This backup is missing tables its version requires and was not used.",
+      BACKUP_TARGET_IS_LIVE:
+        "Choose another location: this is the database the app is using.",
+      BACKUP_SOURCE_IS_LIVE:
+        "This is the database the app is already using. Choose a backup file.",
       default: "The operation failed. Your data was not changed.",
     } as Record<string, string>,
   },
@@ -64,6 +70,12 @@ const COPY = {
       BACKUP_UNSUPPORTED_SCHEMA:
         "Ta kopia pochodzi z nowszej wersji Agenting OS.",
       BACKUP_NOT_AGENTING: "Ten plik nie jest kopią Agenting OS.",
+      BACKUP_INCOMPLETE:
+        "W tej kopii brakuje tabel wymaganych przez jej wersję — nie została użyta.",
+      BACKUP_TARGET_IS_LIVE:
+        "Wybierz inne miejsce: to jest baza, z której korzysta aplikacja.",
+      BACKUP_SOURCE_IS_LIVE:
+        "To jest baza, z której aplikacja już korzysta. Wybierz plik kopii.",
       default: "Operacja się nie udała. Twoje dane nie zostały zmienione.",
     } as Record<string, string>,
   },
@@ -182,9 +194,14 @@ export function DataPanel({ language }: { language: "pl" | "en" }) {
             disabled={busy}
             onClick={() =>
               void run(async () => {
-                const summary = await api.backupRestore!({ consent: true });
-                setConfirm(false);
-                if (summary) setStaged(summary);
+                // Close in every case: the modal makes the page inert, so an error
+                // shown outside it would otherwise be invisible.
+                try {
+                  const summary = await api.backupRestore!({ consent: true });
+                  if (summary) setStaged(summary);
+                } finally {
+                  setConfirm(false);
+                }
               })
             }
           >

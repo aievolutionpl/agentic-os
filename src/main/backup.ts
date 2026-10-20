@@ -1,13 +1,13 @@
 import { DatabaseSync } from "node:sqlite";
 import {
-  copyFileSync,
   existsSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { SCHEMA_VERSION, type Store } from "./store.js";
 import { redact } from "./validate.js";
 import type { BackupSummary, Capability } from "../shared.js";
@@ -15,10 +15,64 @@ import type { BackupSummary, Capability } from "../shared.js";
 export const DATABASE = "agenting.sqlite";
 const PENDING = `${DATABASE}.restore`;
 
-/** Consistent snapshot of the live database, including committed WAL pages. */
+/** Tables and columns each schema version must already have; missing ones are never recreated. */
+const REQUIRED_TABLES: [number, string[]][] = [
+  [1, ["projects", "tasks", "memory", "preferences"]],
+  [2, ["task_dependencies", "task_events"]],
+  [3, ["approval_records"]],
+  [4, ["diff_artifacts"]],
+  [6, ["runs", "run_events", "provider_settings"]],
+  [7, ["memory_search"]],
+  [8, ["extensions", "extension_events"]],
+  [10, ["missions"]],
+  [11, ["chats"]],
+  [13, ["batches", "batch_events"]],
+  [14, ["capability_checks"]],
+];
+const REQUIRED_COLUMNS: [number, string, string[]][] = [
+  [9, "memory", ["scope"]],
+  [9, "provider_settings", ["profile"]],
+  [11, "memory", ["pinned", "updatedAt"]],
+  [12, "provider_settings", ["model"]],
+];
+
+/** True when both paths name the same file (or the live database's WAL/SHM companions). */
+function isLiveDatabase(target: string, live: string) {
+  const canonical = (path: string) => {
+    try {
+      return realpathSync(path);
+    } catch {
+      // A target that does not exist yet: resolve its folder instead.
+      try {
+        return join(realpathSync(dirname(path)), basename(path));
+      } catch {
+        return resolve(path);
+      }
+    }
+  };
+  const key = (path: string) =>
+    process.platform === "win32" ? path.toLowerCase() : path;
+  const file = key(canonical(target)),
+    database = key(canonical(live));
+  return [database, `${database}-wal`, `${database}-shm`].includes(file);
+}
+
+/**
+ * Consistent snapshot of the live database, including committed WAL pages.
+ * It is written to a temporary file and moved into place, so a failed or
+ * misdirected backup never removes an existing file first.
+ */
 export function createBackup(store: Store, target: string): BackupSummary {
-  rmSync(target, { force: true });
-  store.snapshot(target);
+  if (isLiveDatabase(target, store.file)) throw Error("BACKUP_TARGET_IS_LIVE");
+  const temporary = `${target}.partial-${process.pid}`;
+  rmSync(temporary, { force: true });
+  try {
+    store.snapshot(temporary);
+    inspectBackup(temporary);
+    renameSync(temporary, target);
+  } finally {
+    rmSync(temporary, { force: true });
+  }
   return inspectBackup(target);
 }
 
@@ -42,8 +96,22 @@ export function inspectBackup(file: string): BackupSummary {
         .all()
         .map((row) => String(row.name)),
     );
-    for (const table of ["projects", "tasks", "memory", "preferences"])
+    for (const table of REQUIRED_TABLES[0]![1])
       if (!tables.has(table)) throw Error("BACKUP_NOT_AGENTING");
+    for (const [version, names] of REQUIRED_TABLES)
+      if (schema >= version && names.some((name) => !tables.has(name)))
+        throw Error("BACKUP_INCOMPLETE");
+    for (const [version, table, columns] of REQUIRED_COLUMNS) {
+      if (schema < version) continue;
+      const present = new Set(
+        db
+          .prepare(`PRAGMA table_info(${table})`)
+          .all()
+          .map((row) => String(row.name)),
+      );
+      if (columns.some((column) => !present.has(column)))
+        throw Error("BACKUP_INCOMPLETE");
+    }
     const count = (table: string) =>
       tables.has(table)
         ? Number(db!.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()!.n)
@@ -67,13 +135,28 @@ export function inspectBackup(file: string): BackupSummary {
   }
 }
 
-/** Stage a validated copy; it replaces the database only at the next start. */
+/**
+ * Stage a validated copy; it replaces the database only at the next start.
+ * The copy goes through SQLite, so committed pages still in a WAL file are kept.
+ */
 export function stageRestore(dataDir: string, file: string): BackupSummary {
-  const summary = inspectBackup(file);
+  if (isLiveDatabase(file, join(dataDir, DATABASE)))
+    throw Error("BACKUP_SOURCE_IS_LIVE");
+  inspectBackup(file);
   const pending = join(dataDir, PENDING);
-  copyFileSync(file, pending);
-  inspectBackup(pending);
-  return summary;
+  rmSync(pending, { force: true });
+  const source = new DatabaseSync(file, { readOnly: true });
+  try {
+    source.prepare("VACUUM INTO ?").run(pending);
+  } finally {
+    source.close();
+  }
+  try {
+    return { ...inspectBackup(pending), file: basename(file) };
+  } catch (error) {
+    rmSync(pending, { force: true });
+    throw error;
+  }
 }
 
 /**
@@ -139,7 +222,8 @@ export function diagnostics(
     batchStates: facts.batchStates,
     providers: facts.providers.map((p) => ({
       ...p,
-      command: basename(p.command),
+      // Both separators: a restored backup may carry another platform's path.
+      command: p.command.split(/[\\/]/).pop() ?? "",
     })),
     capabilities: context.capabilities.map((c) => ({
       agent: c.agent,

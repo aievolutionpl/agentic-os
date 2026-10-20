@@ -53,7 +53,10 @@ export class Store {
   readonly chats: ChatStore;
   readonly batches: Batches;
   readonly capabilities: CapabilityChecks;
-  constructor(file: string, clock: () => number = Date.now) {
+  constructor(
+    readonly file: string,
+    clock: () => number = Date.now,
+  ) {
     this.db = new DatabaseSync(file);
     this.db.exec(
       "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",

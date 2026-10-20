@@ -519,6 +519,11 @@ app
         } catch (error) {
           const code = error instanceof Error ? error.message : "";
           if (
+            (name.startsWith("backup") || name === "diagnosticsExport") &&
+            code.startsWith("BACKUP_")
+          )
+            throw Error(code);
+          if (
             (name.startsWith("mission") || name.startsWith("chat")) &&
             [
               "PROVIDER_NOT_CONFIGURED",

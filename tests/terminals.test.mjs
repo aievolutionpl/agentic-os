@@ -37,7 +37,9 @@ async function until(terminals, id, predicate, initial = 0) {
   let cursor = initial,
     output = "",
     reset = false;
-  for (let n = 0; n < 200; n++) {
+  // A cold Windows runner can take well over 5 s before PowerShell reads
+  // its first input under ConPTY; give the real shell up to a minute.
+  for (let n = 0; n < 2400; n++) {
     const result = terminals.read({ id, cursor });
     cursor = result.cursor;
     output += result.data;

@@ -57,6 +57,7 @@ if (process.env.AGENTING_DATA_DIR)
 app.setName("Agenting OS");
 let store: Store;
 let restoreResult: ReturnType<typeof applyPendingRestore> = "none";
+let restarting = false;
 let supervisor: Supervisor;
 let orchestrator: Orchestrator | undefined;
 let masterAgent: MasterAgent | undefined;
@@ -480,6 +481,9 @@ app
       },
       restoreStatus: () => restoreResult,
       restartApp: () => {
+        // Repeated clicks must not issue a second quit that skips cleanup.
+        if (restarting || shuttingDown) return;
+        restarting = true;
         app.relaunch();
         app.quit();
       },
@@ -571,10 +575,13 @@ app.on("second-instance", () => {
   window?.show();
   window?.focus();
 });
-let shuttingDown = false;
+let shuttingDown = false,
+  cleanedUp = false;
 app.on("before-quit", (event) => {
-  if (shuttingDown) return;
+  if (cleanedUp) return;
+  // Any further quit while cleanup runs waits for it instead of exiting early.
   event.preventDefault();
+  if (shuttingDown) return;
   shuttingDown = true;
   orchestrator?.close();
   void Promise.all([
@@ -584,9 +591,13 @@ app.on("before-quit", (event) => {
     supervisor?.close(),
     mcp?.close(),
   ]).finally(() => {
-    browser?.close();
-    login?.close();
-    store?.close();
-    app.quit();
+    try {
+      browser?.close();
+      login?.close();
+      store?.close();
+    } finally {
+      cleanedUp = true;
+      app.quit();
+    }
   });
 });

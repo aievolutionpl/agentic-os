@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Store } from "../dist/main/store.js";
+import { Store, SCHEMA_VERSION } from "../dist/main/store.js";
 function fixture(t) {
   const dir = mkdtempSync(join(tmpdir(), "agenting-test-"));
   const s = new Store(join(dir, "test.db"));
@@ -276,7 +276,10 @@ test("approval v2 migration preserves data; SQLite rejects mutation and malforme
     db.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 14);
+  assert.equal(
+    db.prepare("PRAGMA user_version").get().user_version,
+    SCHEMA_VERSION,
+  );
   assert.equal(s.tasks(p.id)[0].title, "Keep task");
   assert.equal(s.memory(p.id)[0].content, "Keep memory");
   const input = {
@@ -515,7 +518,10 @@ test("v4 migration preserves unbound history and rolls back failed schema change
     db.close();
     rmSync(dir, { recursive: true, force: true });
   });
-  assert.equal(db.prepare("PRAGMA user_version").get().user_version, 14);
+  assert.equal(
+    db.prepare("PRAGMA user_version").get().user_version,
+    SCHEMA_VERSION,
+  );
   assert.deepEqual(Object.values(s.approvals.list(p.id, task.id)[0]), [
     ...legacy,
     null,

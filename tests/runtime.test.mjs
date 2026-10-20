@@ -646,3 +646,36 @@ test("provider crash fails closed; invalid project, dirty repository and unconse
     await f.close();
   }
 });
+test("a policy refusal stops a task run before any run, worktree or process exists", async () => {
+  const f = await setup();
+  try {
+    let gated = [];
+    f.supervisor.gate = async (agent) => {
+      gated.push(agent);
+      throw Error("POLICY_PAID_API_DISABLED");
+    };
+    await assert.rejects(
+      f.supervisor.start({
+        projectId: f.project.id,
+        taskId: f.task.id,
+        consent: true,
+      }),
+      /POLICY_PAID_API_DISABLED/,
+    );
+    assert.deepEqual(gated, ["codex"]);
+    assert.equal(f.inputs.length, 0);
+    assert.deepEqual(f.store.runs.list(f.project.id, f.task.id), []);
+    // The refusal is not sticky: once the rule allows it, the same task starts.
+    f.supervisor.gate = async () => {};
+    const run = await f.supervisor.start({
+      projectId: f.project.id,
+      taskId: f.task.id,
+      consent: true,
+    });
+    await wait(
+      () => f.store.runs.get(f.project.id, run.id)?.state === "awaiting_review",
+    );
+  } finally {
+    await f.close();
+  }
+});

@@ -1418,3 +1418,107 @@ summary:focus-visible {
 .workspace-source button {
   padding: 12px;
 }
+/* Workspace rules */
+.policy-panel {
+  border-top: 1px solid var(--border);
+  margin-top: 30px;
+  padding-top: 28px;
+  display: grid;
+  gap: 22px;
+}
+.policy-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.policy-panel h3 {
+  margin: 0 0 6px;
+}
+.policy-panel fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.policy-panel legend {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.policy-agents label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.policy-agents label.on {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.policy-agents .provider-glyph {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+.policy-agents .provider-glyph svg {
+  width: 15px;
+  height: 15px;
+}
+.policy-paid {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.policy-paid label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.policy-paid label span {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+.policy-paid small,
+.policy-budget small {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.policy-budget {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  max-width: 420px;
+}
+.policy-panel .panel-actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+.policy-refusal {
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+}
+.policy-refusal p {
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .policy-paid {
+    grid-template-columns: 1fr;
+  }
+}

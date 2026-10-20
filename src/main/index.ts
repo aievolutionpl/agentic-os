@@ -41,6 +41,7 @@ import {
 import { MasterAgent } from "./master-agent.js";
 import { LocalModelConnection } from "./local-model.js";
 import { Chats, githubRepositories } from "./chats.js";
+import { evaluatePolicy, PaidApprovals } from "./policy.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
 import { AGENTS, type Agent, type ProviderHealth } from "../shared.js";
@@ -183,6 +184,27 @@ app
       agent === "opencode" && router.settings().configured
         ? "openrouter"
         : agent;
+    // Policy gate: allowed agents, paid API mode and monthly budget, enforced
+    // here before any agent process starts. Approvals live in memory only.
+    const paidApprovals = new PaidApprovals();
+    const monthlySpend = async (): Promise<number | null> => {
+      try {
+        const used = (await router.quota())?.data?.usage_monthly;
+        return typeof used === "number" && Number.isFinite(used) ? used : null;
+      } catch {
+        return null;
+      }
+    };
+    supervisor.gate = async (agent) => {
+      const policy = store.policies.get(),
+        paid = quotaProvider(agent) === "openrouter";
+      const decision = evaluatePolicy(
+        { agent, paid, approved: paidApprovals.has(agent) },
+        policy,
+        paid && policy.monthlyBudgetUsd !== null ? await monthlySpend() : null,
+      );
+      if (decision.verdict !== "allow") throw Error(decision.reasons[0]);
+    };
     chats = new Chats(
       store,
       supervisor,
@@ -398,6 +420,26 @@ app
         });
       },
       githubRepositories: () => githubRepositories(),
+      policyGet: async () => {
+        const policy = store.policies.get();
+        return {
+          policy,
+          spentUsd: router.settings().configured ? await monthlySpend() : null,
+          paidAgents: AGENTS.filter((a) => quotaProvider(a) === "openrouter"),
+        };
+      },
+      policySet: (input) => {
+        const policy = store.policies.set(input);
+        // A changed rule set asks again before the next paid run.
+        paidApprovals.revokeAll();
+        return policy;
+      },
+      policyApprove: (input) => {
+        const p = exact(input, ["agent", "consent"]);
+        if (p.consent !== true || !AGENTS.includes(p.agent as Agent))
+          throw Error("EXPLICIT_CONSENT_REQUIRED");
+        paidApprovals.grant(p.agent as Agent);
+      },
       chooseExecutable: async () => {
         const result = await dialog.showOpenDialog(window!, {
           title: "Choose a trusted agent executable",
@@ -575,6 +617,8 @@ app
             code.startsWith("BACKUP_")
           )
             throw Error(code);
+          // Policy refusals are user-facing decisions on every channel.
+          if (code.startsWith("POLICY_")) throw Error(code);
           if (
             (name.startsWith("mission") || name.startsWith("chat")) &&
             [

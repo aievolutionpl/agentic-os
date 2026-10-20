@@ -14,7 +14,7 @@ import {
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { Store } from "../dist/main/store.js";
+import { Store, SCHEMA_VERSION } from "../dist/main/store.js";
 import {
   DATABASE,
   applyPendingRestore,
@@ -57,7 +57,7 @@ test("backup snapshots the live database and restore replaces it only at the nex
   source.close();
   assert.deepEqual(
     [summary.projects, summary.tasks, summary.memory, summary.schema],
-    [2, 2, 2, 14],
+    [2, 2, 2, SCHEMA_VERSION],
   );
   // Target machine: different data, open while the restore is staged.
   const target = join(root, "target");

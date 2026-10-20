@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { Task, Memory, RuntimeView, Run, Extension } from "../shared";
 import { Icon, Modal, SelectField } from "./ui";
+import { PaidApproval, policyMessage } from "./PolicyPanel";
 const copy = {
   en: {
     title: "Execution & review",
@@ -124,6 +125,7 @@ export function RunPanel({
   const [view, setView] = useState<RuntimeView | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false),
+    [policyCode, setPolicyCode] = useState(""),
     [consent, setConsent] = useState(false),
     [ids, setIds] = useState<string[]>([]),
     [instruction, setInstruction] = useState(""),
@@ -202,12 +204,15 @@ export function RunPanel({
   async function action(fn: () => Promise<unknown>) {
     setBusy(true);
     setError(false);
+    setPolicyCode("");
     try {
       await fn();
       await refresh();
       onChanged();
-    } catch {
-      setError(true);
+    } catch (e) {
+      const code = e instanceof Error ? e.message : "";
+      if (policyMessage(code, true)) setPolicyCode(code);
+      else setError(true);
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -255,6 +260,14 @@ export function RunPanel({
         <p className="inline-error" role="alert">
           {w.error}
         </p>
+      )}
+      {policyCode && (
+        <div className="inline-error policy-refusal" role="alert">
+          <p>{policyMessage(policyCode, language === "pl")}</p>
+          {policyCode.includes("POLICY_APPROVAL_REQUIRED") && (
+            <PaidApproval agent={task.implementer} pl={language === "pl"} />
+          )}
+        </div>
       )}
       {!run && <p className="helper">{w.empty}</p>}
       {(mayStart || mayResume) && (

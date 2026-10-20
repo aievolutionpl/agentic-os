@@ -16,6 +16,7 @@ import { words } from "./i18n";
 import { agentName, Icon, Modal, SelectField, useNarrow } from "./ui";
 import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
+import { PolicyPanel } from "./PolicyPanel";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
@@ -901,7 +902,10 @@ function App() {
                 onOpen={openAttention}
               />
             ) : view === "connections" ? (
-              <ProviderSetup language={prefs.language} />
+              <>
+                <ProviderSetup language={prefs.language} />
+                <PolicyPanel language={prefs.language} />
+              </>
             ) : view === "quota" ? (
               <OpenQuotaPanel
                 language={prefs.language}

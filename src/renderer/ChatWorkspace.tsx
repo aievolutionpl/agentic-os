@@ -11,6 +11,7 @@ import type {
 import { AGENTS, READ_ONLY_AGENTS } from "../shared";
 import { Icon, Modal, agentName, connectionLabel, connectionState } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
+import { PaidApproval, policyMessage } from "./PolicyPanel";
 import {
   AgentStrip,
   AttachButton,
@@ -163,6 +164,8 @@ export function ChatWorkspace({
     running = chat?.status === "running";
   current.current = selected;
   const explain = (value: string) => {
+    const policy = policyMessage(value, pl);
+    if (policy) return policy;
     const key = Object.keys(errors).find((k) => value.includes(k));
     return key
       ? errors[key][pl ? 0 : 1]
@@ -1054,6 +1057,9 @@ export function ChatWorkspace({
           {(error || chat?.error) && (
             <p className="error" role="alert">
               {explain(error || chat!.error!)}
+              {(error || chat?.error || "").includes(
+                "POLICY_APPROVAL_REQUIRED",
+              ) && <PaidApproval agent={chat?.agent ?? agent} pl={pl} />}
               <button onClick={onConfigure}>
                 {pl ? "Połączenia" : "Connections"}
               </button>

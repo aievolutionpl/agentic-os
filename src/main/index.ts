@@ -218,6 +218,19 @@ app
         paid && policy.monthlyBudgetUsd !== null ? await monthlySpend() : null,
       );
       if (decision.verdict !== "allow") throw Error(decision.reasons[0]);
+      // A fresh provider reading that says the limit is used up stops the run
+      // here too, so a routed task can't start into a 429 after the preview.
+      const cards = await quotas().catch(() => []);
+      if (
+        cards.some(
+          (q) =>
+            q.id === quotaProvider(agent) &&
+            q.source !== "manual" &&
+            q.status === "exhausted" &&
+            Math.abs(Date.now() - Date.parse(q.updatedAt)) < 300000,
+        )
+      )
+        throw Error("POLICY_QUOTA_EXHAUSTED");
     };
     chats = new Chats(
       store,
@@ -539,9 +552,19 @@ app
             configured:
               !!settings.find((s) => s.id === agent)?.configured &&
               (agent !== "local" || localModel.settings().configured) &&
+              // OpenCode's key lives in secure storage; without it, no start.
+              (agent !== "opencode" ||
+                !router.settings().configured ||
+                router.settings().encryptionAvailable) &&
               (agent !== "hermes" ||
                 !!settings.find((s) => s.id === "hermes")?.model),
-            check: checks.find((c) => c.agent === agent)?.state ?? null,
+            // Same 6 h age limit as Connections: an old check is unchecked.
+            check: (() => {
+              const c = checks.find((c) => c.agent === agent);
+              return c && Date.now() - Date.parse(c.observedAt) < 6 * 3600_000
+                ? c.state
+                : null;
+            })(),
             quota:
               fresh && ["active", "warning", "exhausted"].includes(card!.status)
                 ? (card!.status as "active" | "warning" | "exhausted")

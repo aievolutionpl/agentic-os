@@ -142,6 +142,8 @@ try {
   assert.equal(await page.locator(".skill-library article").count(), 8);
   report.checks.push("eight-complete-skills-search-and-licensed-source-preview");
   await nav("Czaty");
+  if (!(await page.locator(".chat-history").isVisible()))
+    await page.getByRole("button", { name: "Historia", exact: true }).click();
   await page.locator(".chat-history>button").first().click();
   await page
     .getByRole("textbox", { name: "Wiadomość do agenta" })
@@ -245,6 +247,8 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForFunction(() => !document.querySelector(".projects-toggle"));
   await nav("Czaty");
+  if (!(await page.locator(".chat-history").isVisible()))
+    await page.getByRole("button", { name: "Historia", exact: true }).click();
   await page.locator(".chat-history>button").first().click();
   for (const width of [1440, 900]) {
     await page.setViewportSize({ width, height: 900 });

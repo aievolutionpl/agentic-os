@@ -164,6 +164,18 @@ button.primary:hover:not(:disabled) {
 .chat-layout {
   gap: 28px;
 }
+/* Let the welcome composer breathe even after conversation history exists. */
+.chat-workspace:not(.has-conversation):not(.history-open) .chat-history {
+  display: none;
+}
+.chat-workspace:not(.has-conversation):not(.history-open) .chat-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 901px) {
+  .chat-workspace.has-conversation .history-toggle {
+    display: none;
+  }
+}
 .chat-stage {
   width: 100%;
 }

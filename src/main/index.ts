@@ -28,6 +28,7 @@ import { Applications } from "./applications.js";
 import { McpTools } from "./extensions.js";
 import { ProjectBrowser } from "./browser.js";
 import { OpenRouterConnection } from "./openrouter.js";
+import { BRIDGE_AGENTS, LimitBridge } from "./limit-bridge.js";
 import { detectExecutables } from "./provider-discovery.js";
 import { Orchestrator } from "./orchestrator.js";
 import { capabilityMatrix } from "./capabilities.js";
@@ -136,6 +137,9 @@ app
       decrypt: (value) => safeStorage.decryptString(value),
     });
     const localModel = new LocalModelConnection(app.getPath("userData"));
+    const limitBridge = new LimitBridge(app.getPath("userData"));
+    // An app update moves the runtime; a linked status line keeps working.
+    limitBridge.refresh();
     supervisor = new Supervisor(
       store,
       app.getPath("userData"),
@@ -191,13 +195,37 @@ app
             ? body.subscriptionType.slice(0, 40)
             : null;
         },
-        openrouter: async () =>
-          router.settings().configured
-            ? openRouterQuota(await router.quota())
-            : unavailable("openrouter", "OpenRouter", "CONFIGURE_OPENROUTER"),
+        openrouter: async () => {
+          if (!router.settings().configured)
+            return unavailable(
+              "openrouter",
+              "OpenRouter",
+              "CONFIGURE_OPENROUTER",
+            );
+          const [key, credits] = await Promise.all([
+            router.quota(),
+            router.credits(),
+          ]);
+          return openRouterQuota(key, credits);
+        },
+        statusLines: () => limitBridge.readings(),
+        viaOpenRouter: () =>
+          (["opencode", "hermes"] as Agent[]).filter(
+            (agent) => quotaProvider(agent) === "openrouter",
+          ),
+        // Hermes on an OpenRouter model runs with its own key: its card shows
+        // the connected account for reference only.
+        ownOpenRouterKey: () =>
+          /^openrouter[/:]/i.test(
+            supervisor.settings().find((s) => s.id === "hermes")?.model ?? "",
+          )
+            ? ["hermes"]
+            : [],
       });
     quotaMonitor = new QuotaMonitor(quotaSources);
     const quotas = () => quotaMonitor!.read();
+    // Only OpenCode is handed the connected OpenRouter key, so only its
+    // spend and limits are that account's.
     const quotaProvider = (agent: Agent) =>
       agent === "opencode" && router.settings().configured
         ? "openrouter"
@@ -209,6 +237,9 @@ app
       cards: Awaited<ReturnType<typeof quotas>>,
       agent: Agent,
     ): "active" | "warning" | "exhausted" | "unknown" => {
+      // A free model needs no credit: an empty balance must not stop it.
+      if (quotaProvider(agent) === "openrouter" && router.freeModel())
+        return "unknown";
       const card = cards.find(
         (c) => c.id === quotaProvider(agent) && c.source !== "manual",
       );
@@ -217,14 +248,16 @@ app
         Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
         card.metrics.some(
           (m) =>
+            m.id !== "balance" &&
             (m.format === "percent" || m.limitValue !== null) &&
             // Limits seen in a CLI stream age with their window: only one
             // that has not reset yet still describes the quota.
-            (card.source !== "cli-stream" ||
+            ((card.source !== "cli-stream" &&
+              card.source !== "cli-statusline") ||
               (!!m.resetsAt && Date.parse(m.resetsAt) > Date.now())),
         );
       if (!fresh) return "unknown";
-      if (card!.source === "cli-stream") {
+      if (card!.source === "cli-stream" || card!.source === "cli-statusline") {
         // Judge only the windows still in force; an old window with no reset
         // must not keep a usable provider exhausted.
         const current = card!.metrics.filter(
@@ -233,19 +266,24 @@ app
             !!m.resetsAt &&
             Date.parse(m.resetsAt) > Date.now(),
         );
-        return current.some(
-          (m) =>
-            m.state === "rejected" ||
-            (m.usedValue !== null &&
-              m.limitValue !== null &&
-              m.usedValue >= m.limitValue),
-        )
+        const spent = (m: (typeof current)[number]) =>
+          m.state === "rejected" ||
+          (m.usedValue !== null &&
+            m.limitValue !== null &&
+            m.usedValue >= m.limitValue);
+        // Antigravity reports one pool per model family and the app cannot
+        // tell which one the selected model draws on: an empty pool only
+        // warns, and the agent is stopped once every pool is empty.
+        const pools = current.filter((m) => m.id.startsWith("pool-"));
+        return (pools.length ? pools.every(spent) : current.some(spent))
           ? "exhausted"
-          : current.some(
-                (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
-              )
+          : pools.some(spent)
             ? "warning"
-            : "active";
+            : current.some(
+                  (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
+                )
+              ? "warning"
+              : "active";
       }
       return ["active", "warning", "exhausted"].includes(card!.status)
         ? (card!.status as "active" | "warning" | "exhausted")
@@ -486,10 +524,18 @@ app
       providerDetect: () => detectExecutables(),
       openRouterSettings: () => router.settings(),
       openRouterSave: (input) => {
+        const before = router.settings();
         const value = router.save(input);
         quotaMonitor!.invalidate();
-        // OpenCode runs with the router's environment; recheck it.
-        store.capabilities.clear("opencode");
+        // OpenCode runs with the router's inference key and model; recheck it
+        // only when those change. The balance key never reaches OpenCode.
+        const apiKey = (input as { apiKey?: unknown }).apiKey;
+        if (
+          !before.configured ||
+          before.model !== value.model ||
+          (typeof apiKey === "string" && apiKey !== "")
+        )
+          store.capabilities.clear("opencode");
         return value;
       },
       openRouterRemove: () => {
@@ -873,6 +919,18 @@ app
         quotaMonitor!.invalidate();
       },
       quotaRefresh: () => quotaMonitor!.read(true),
+      limitBridgeStatus: () =>
+        BRIDGE_AGENTS.map((agent) => limitBridge.status(agent)),
+      limitBridgeInstall: (input) => {
+        const status = limitBridge.install(input);
+        quotaMonitor!.invalidate();
+        return status;
+      },
+      limitBridgeRemove: (input) => {
+        const status = limitBridge.remove(input);
+        quotaMonitor!.invalidate();
+        return status;
+      },
     };
     for (const [name, handler] of Object.entries(handlers))
       ipcMain.handle(`app:${name}`, async (event, input: unknown) => {
@@ -898,6 +956,8 @@ app
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
           if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
+          if (name.startsWith("limitBridge") && code.startsWith("BRIDGE_"))
+            throw Error(code);
           if (name.startsWith("terminal") && code.startsWith("TERMINAL_"))
             throw Error(code);
           if (

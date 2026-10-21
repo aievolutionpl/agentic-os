@@ -131,7 +131,15 @@ export interface Memory {
   updatedAt?: string | null;
 }
 export interface MemoryGraph {
-  nodes: { id: string; label: string; kind: "project" | "memory"; projectId: string; memoryId?: string; content: string; source: string }[];
+  nodes: {
+    id: string;
+    label: string;
+    kind: "project" | "memory";
+    projectId: string;
+    memoryId?: string;
+    content: string;
+    source: string;
+  }[];
   edges: { from: string; to: string; relation: string }[];
   enabled: boolean;
   directory: string;
@@ -325,9 +333,28 @@ export interface ProviderQuotaCard {
     | "codex-app-server"
     | "openrouter-api"
     | "cli-stream"
+    | "cli-statusline"
     | "manual"
     | "unavailable";
   detail?: string;
+  /** Account balance in USD when the provider reports one (OpenRouter credits). */
+  balanceUsd?: number | null;
+  /** Card that shows another provider's account, e.g. OpenCode billed by OpenRouter. */
+  via?: string;
+}
+/** State of the optional status line link for a CLI's own quota. */
+export interface LimitBridgeStatus {
+  agent: "claude" | "antigravity";
+  /** The CLI settings file the link adds one statusLine entry to. */
+  settingsPath: string;
+  /** Exact command the entry runs. */
+  command: string;
+  installed: boolean;
+  /** False when the settings file is not valid JSON (it is then left alone). */
+  readable: boolean;
+  /** The user's own status line command, kept and chained. */
+  previous: string | null;
+  lastReadingAt: number | null;
 }
 export interface CustomSubscriptionInput {
   id?: string;
@@ -348,6 +375,8 @@ export interface OpenRouterSetting {
   configured: boolean;
   model: string;
   encryptionAvailable: boolean;
+  /** An optional management key is saved; it only reads the account balance. */
+  balanceKey?: boolean;
 }
 export interface OrchestrationState {
   id: string | null;
@@ -468,9 +497,25 @@ export interface AttentionItem {
 }
 export interface WorkBoard {
   observedAt: string;
-  cards: { id: string; projectId: string; projectName: string; title: string; agent: Agent;
-    stage: "queue" | "working" | "waiting" | "done"; state: string; activity: string; at: number; blockedBy: number }[];
-  conversations: { id: string; title: string; agent: Agent; projectId: string; activity: string }[];
+  cards: {
+    id: string;
+    projectId: string;
+    projectName: string;
+    title: string;
+    agent: Agent;
+    stage: "queue" | "working" | "waiting" | "done";
+    state: string;
+    activity: string;
+    at: number;
+    blockedBy: number;
+  }[];
+  conversations: {
+    id: string;
+    title: string;
+    agent: Agent;
+    projectId: string;
+    activity: string;
+  }[];
 }
 export interface Attention {
   observedAt: string;
@@ -655,6 +700,8 @@ export interface API {
   openRouterSettings?(): Promise<OpenRouterSetting>;
   openRouterSave?(input: {
     apiKey?: string;
+    /** Optional management key for the account balance; "" removes it. */
+    managementKey?: string;
     model: string;
     consent: true;
   }): Promise<OpenRouterSetting>;
@@ -778,6 +825,14 @@ export interface API {
   quotaSaveCustom?(input: CustomSubscriptionInput): Promise<ProviderQuotaCard>;
   quotaDeleteCustom?(id: string): Promise<void>;
   quotaRefresh?(): Promise<ProviderQuotaCard[]>;
+  limitBridgeStatus?(): Promise<LimitBridgeStatus[]>;
+  limitBridgeInstall?(input: {
+    agent: LimitBridgeStatus["agent"];
+    consent: true;
+  }): Promise<LimitBridgeStatus>;
+  limitBridgeRemove?(input: {
+    agent: LimitBridgeStatus["agent"];
+  }): Promise<LimitBridgeStatus>;
 }
 
 export interface TerminalSession {

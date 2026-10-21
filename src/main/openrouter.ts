@@ -18,13 +18,13 @@ export interface SecretStorage {
   decrypt(value: Buffer): string;
 }
 export type JsonRequest = (
-  path: "/key" | "/models",
+  path: "/key" | "/credits" | "/models",
   key?: string,
 ) => Promise<any>;
 /** Fixed origin, verified TLS, no redirects, bounded body and elapsed time. */
 export const openRouterRequest: JsonRequest = (path, key) =>
   new Promise((resolve, reject) => {
-    if (!["/key", "/models"].includes(path))
+    if (!["/key", "/credits", "/models"].includes(path))
       return reject(Error("INVALID_ENDPOINT"));
     const req = request(
       `https://openrouter.ai/api/v1${path}`,
@@ -86,13 +86,20 @@ export class OpenRouterConnection {
   ) {
     this.path = join(directory, "openrouter-connection.json");
   }
-  private read(): { encryptedKey: string; model: string } | null {
+  private read(): {
+    encryptedKey: string;
+    model: string;
+    encryptedManagementKey?: string;
+  } | null {
     if (!existsSync(this.path)) return null;
     const row = JSON.parse(readFileSync(this.path, "utf8"));
     if (
       typeof row.encryptedKey !== "string" ||
       row.encryptedKey.length > 20000 ||
-      typeof row.model !== "string"
+      typeof row.model !== "string" ||
+      (row.encryptedManagementKey !== undefined &&
+        (typeof row.encryptedManagementKey !== "string" ||
+          row.encryptedManagementKey.length > 20000))
     )
       throw Error("INVALID_CONNECTION");
     return row;
@@ -103,10 +110,11 @@ export class OpenRouterConnection {
       configured: !!row,
       model: row?.model ?? "",
       encryptionAvailable: this.secrets.available(),
+      balanceKey: !!row?.encryptedManagementKey,
     };
   }
   save(input: unknown): OpenRouterSetting {
-    const p = exact(input, ["apiKey", "model", "consent"]);
+    const p = exact(input, ["apiKey", "managementKey", "model", "consent"]);
     if (p.consent !== true) throw Error("EXPLICIT_CONSENT_REQUIRED");
     if (!this.secrets.available()) throw Error("SECURE_STORAGE_UNAVAILABLE");
     const model = text(p.model, 200);
@@ -116,15 +124,34 @@ export class OpenRouterConnection {
       p.apiKey === undefined || p.apiKey === "" ? null : text(p.apiKey, 4096);
     if (key && !/^[A-Za-z0-9_-]{20,4096}$/.test(key))
       throw Error("INVALID_API_KEY");
-    const previous = key ? null : this.read();
+    // A management key only reads account credits; it is never handed to
+    // OpenCode. Undefined keeps the saved one, "" removes it.
+    const management =
+      p.managementKey === undefined || p.managementKey === ""
+        ? null
+        : text(p.managementKey, 4096);
+    if (management && !/^[A-Za-z0-9_-]{20,4096}$/.test(management))
+      throw Error("INVALID_API_KEY");
+    const previous = this.read();
     const encryptedKey = key
       ? this.secrets.encrypt(key).toString("base64")
       : previous?.encryptedKey;
     if (!encryptedKey) throw Error("API_KEY_REQUIRED");
+    const encryptedManagementKey = management
+      ? this.secrets.encrypt(management).toString("base64")
+      : p.managementKey === ""
+        ? undefined
+        : previous?.encryptedManagementKey;
     mkdirSync(this.directory, { recursive: true });
-    writeFileSync(this.path + ".tmp", JSON.stringify({ encryptedKey, model }), {
-      mode: 0o600,
-    });
+    writeFileSync(
+      this.path + ".tmp",
+      JSON.stringify({
+        encryptedKey,
+        model,
+        ...(encryptedManagementKey && { encryptedManagementKey }),
+      }),
+      { mode: 0o600 },
+    );
     renameSync(this.path + ".tmp", this.path);
     return this.settings();
   }
@@ -155,6 +182,20 @@ export class OpenRouterConnection {
   }
   quota() {
     return this.requestJson("/key", this.key());
+  }
+  /** Account credits. OpenRouter serves them to a management key; without
+   * one the inference key is tried, and a refusal just leaves them out. */
+  credits() {
+    const row = this.read();
+    const key = row?.encryptedManagementKey
+      ? this.secrets.decrypt(Buffer.from(row.encryptedManagementKey, "base64"))
+      : this.key();
+    return this.requestJson("/credits", key).catch(() => null);
+  }
+  /** Whether the selected model is free, so no balance can stop it. */
+  freeModel() {
+    const model = this.read()?.model ?? "";
+    return /:free$/.test(model) || model === "openrouter/free";
   }
   /** Secret is passed directly to the trusted child, never returned over IPC. */
   environment(): NodeJS.ProcessEnv {

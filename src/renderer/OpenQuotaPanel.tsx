@@ -4,7 +4,9 @@ import type {
   CustomSubscriptionInput,
   QuotaMetric,
   ProviderSetting,
+  LimitBridgeStatus,
 } from "../shared";
+import { LimitLink } from "./LimitLink";
 import { Icon, Modal } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 
@@ -30,12 +32,12 @@ const details: Record<string, [string, string]> = {
     "The CLI did not return limits. Check sign-in and Codex version.",
   ],
   CLAUDE_USE_OFFICIAL_USAGE: [
-    "Sprawdź /usage w Claude Code. Automatyczny odczyt jest niedostępny. Możesz dodać ręczny budżet.",
-    "Check /usage in Claude Code. Automatic reading is unavailable. You can add a manual budget.",
+    "Połącz pasek statusu Claude Code, aby widzieć okna 5 h i 7 dni swojej subskrypcji. Bez tego: /usage w Claude Code.",
+    "Link Claude Code's status line to see your subscription's 5-hour and 7-day windows. Without it: /usage in Claude Code.",
   ],
   ANTIGRAVITY_USE_OFFICIAL_USAGE: [
-    "Sprawdź /usage w Antigravity. Brak zweryfikowanego odczytu limitów w tym adapterze.",
-    "Check /usage in Antigravity. This adapter has no verified quota reader.",
+    "Połącz pasek statusu Antigravity CLI, aby widzieć, ile zostało w pulach limitów. Bez tego: /usage w Antigravity.",
+    "Link Antigravity CLI's status line to see what is left in your quota pools. Without it: /usage in Antigravity.",
   ],
   CLAUDE_LIMITS_FROM_RUNS: [
     "Okna limitów i tokeny zgłoszone przez Claude Code podczas Twoich zadań w Agenting OS (zdarzenie rate_limit_event). Odświeżają się przy kolejnym użyciu Claude. Procent pojawia się tylko, gdy CLI go podaje.",
@@ -57,9 +59,29 @@ const details: Record<string, [string, string]> = {
     "Nie udało się odczytać API. Sprawdź klucz i połączenie, a potem odśwież.",
     "API read failed. Check the key and connection, then refresh.",
   ],
+  CLAUDE_LIMITS_FROM_STATUS_LINE: [
+    "Okna 5 h i 7 dni Twojej subskrypcji, przekazane przez pasek statusu Claude Code przy ostatnim użyciu (także poza Agenting OS). Procent obejmuje całe konto.",
+    "Your subscription's 5-hour and 7-day windows, handed over by Claude Code's status line the last time you used it (also outside Agenting OS). The percentage covers the whole account.",
+  ],
+  ANTIGRAVITY_LIMITS_FROM_STATUS_LINE: [
+    "Wspólne pule limitów Antigravity przekazane przez pasek statusu CLI przy ostatnim użyciu. Pokazujemy, ile procent zostało.",
+    "Antigravity's shared quota pools, handed over by the CLI status line the last time you used it. Shown as the share left.",
+  ],
+  OPENROUTER_ACCOUNT_BALANCE: [
+    "Saldo konta OpenRouter (zakupione kredyty minus zużycie) oraz wydatki klucza dziś, w tym tygodniu i miesiącu. Kwoty w USD.",
+    "OpenRouter account balance (credits bought minus usage) plus the key's spend today, this week and this month. Amounts in USD.",
+  ],
+  OWN_OPENROUTER_KEY: [
+    "Hermes używa modelu OpenRouter z własnym kluczem. Widzisz saldo konta połączonego w Agenting OS — to jego saldo, jeśli to samo konto. Nie liczy się do limitów i budżetu Hermesa.",
+    "Hermes uses an OpenRouter model with its own key. You see the balance of the account connected in Agenting OS — it is Hermes's balance if that is the same account. It does not count toward Hermes's limits or budget.",
+  ],
+  BILLED_VIA_OPENROUTER: [
+    "Wywołania modeli tego agenta są rozliczane z połączonego konta OpenRouter, więc widzisz jego saldo.",
+    "This agent's model calls are billed to the connected OpenRouter account, so you see its balance.",
+  ],
   API_KEY_BUDGET_NOT_ACCOUNT_BALANCE: [
-    "Budżet klucza API; nie jest saldem całego konta. Koszty w USD, nie w tokenach.",
-    "API key budget, not the entire account balance. Costs are in USD, not tokens.",
+    "Budżet i wydatki klucza API, nie saldo konta. Aby zobaczyć saldo, dodaj w Połączeniach klucz zarządzający OpenRouter. Kwoty w USD.",
+    "API key budget and spend, not the account balance. To see the balance, add an OpenRouter management key in Connections. Amounts in USD.",
   ],
 };
 const fresh = (): CustomSubscriptionInput => ({
@@ -116,6 +138,7 @@ export function OpenQuotaPanel({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(false);
   const [providers, setProviders] = useState<ProviderSetting[]>([]);
+  const [links, setLinks] = useState<LimitBridgeStatus[]>([]);
   const [form, setForm] = useState<CustomSubscriptionInput | null>(null),
     [deleting, setDeleting] = useState<ProviderQuotaCard | null>(null);
   const mounted = useRef(true),
@@ -126,10 +149,18 @@ export function OpenQuotaPanel({
     setBusy(true);
     setError(false);
     try {
-      const [data, connections] = await Promise.all([(force && api.quotaRefresh
-        ? api.quotaRefresh()
-        : api.quotaScan()), api.providerSettings()]);
-      if (mounted.current) { setCards(data.filter(c => c.id !== "gemini")); setProviders(connections); }
+      const [data, connections] = await Promise.all([
+        force && api.quotaRefresh ? api.quotaRefresh() : api.quotaScan(),
+        api.providerSettings(),
+      ]);
+      const bridges = api.limitBridgeStatus
+        ? await api.limitBridgeStatus().catch(() => [])
+        : [];
+      if (mounted.current) {
+        setCards(data.filter((c) => c.id !== "gemini"));
+        setProviders(connections);
+        setLinks(bridges);
+      }
     } catch {
       if (mounted.current) setError(true);
     } finally {
@@ -163,7 +194,24 @@ export function OpenQuotaPanel({
       : `${num(n)}${m.format === "usd" ? " USD" : m.format === "percent" ? "%" : ""}`;
   // Cards with nothing to show collapse into one line each below the grid.
   const idle = (card: ProviderQuotaCard) =>
-    card.source === "unavailable" && !card.isCustom && !providers.some(p => p.id === card.id && p.configured);
+    card.source === "unavailable" &&
+    !card.isCustom &&
+    !providers.some((p) => p.id === card.id && p.configured);
+  const link = (card: ProviderQuotaCard) => {
+    const status = links.find((l) => l.agent === card.id);
+    return status ? (
+      <LimitLink
+        status={status}
+        pl={pl}
+        onChanged={(next) => {
+          setLinks((all) =>
+            all.map((l) => (l.agent === next.agent ? next : l)),
+          );
+          void load(true);
+        }}
+      />
+    ) : null;
+  };
   const source = (card: ProviderQuotaCard) =>
     card.source === "manual"
       ? pl
@@ -177,9 +225,13 @@ export function OpenQuotaPanel({
           ? pl
             ? "Zgłoszone przez CLI"
             : "Reported by the CLI"
-          : pl
-            ? "Odczyt dostawcy"
-            : "Provider reading";
+          : card.source === "cli-statusline"
+            ? pl
+              ? "Pasek statusu CLI"
+              : "CLI status line"
+            : pl
+              ? "Odczyt dostawcy"
+              : "Provider reading";
   return (
     <section className="quota-workspace" aria-labelledby="quota-title">
       <header className="quota-page-head">
@@ -261,7 +313,11 @@ export function OpenQuotaPanel({
                 <ProviderIcon provider={card.icon} />
                 <div>
                   <h2>{card.name}</h2>
-                  {providers.some(p => p.id === card.id && p.configured) && <small className="connection-state connected">{pl ? "Połączenie zapisane" : "Connection saved"}</small>}
+                  {providers.some((p) => p.id === card.id && p.configured) && (
+                    <small className="connection-state connected">
+                      {pl ? "Połączenie zapisane" : "Connection saved"}
+                    </small>
+                  )}
                   <span>{card.plan}</span>
                 </div>
                 <span className={`source-chip source-${card.source}`}>
@@ -366,6 +422,7 @@ export function OpenQuotaPanel({
                       : "Provider data is unavailable.")}
                 </p>
               )}
+              {link(card)}
               {card.isCustom && (
                 <p className="quota-detail">
                   {pl
@@ -435,10 +492,13 @@ export function OpenQuotaPanel({
                       ? "Dane dostawcy są niedostępne."
                       : "Provider data is unavailable.")}
                 </span>
-                <button className="text-action" onClick={onConfigure}>
-                  {pl ? "Połączenia" : "Connections"}
-                  <Icon name="chevron" />
-                </button>
+                <div className="quota-idle-actions">
+                  {link(card)}
+                  <button className="text-action" onClick={onConfigure}>
+                    {pl ? "Połączenia" : "Connections"}
+                    <Icon name="chevron" />
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

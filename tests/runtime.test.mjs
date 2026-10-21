@@ -737,6 +737,13 @@ test("reviewer evidence drives a bounded, explicitly started revision of the sam
         f.store.runs.get(f.project.id, second.id)?.state === "awaiting_review",
     );
     const revised = f.store.runs.get(f.project.id, second.id);
+    const task = f.store.tasks(f.project.id).find((t) => t.id === f.task.id);
+    assert.equal(task.status, "completed");
+    assert.equal(
+      task.awaitingApproval,
+      true,
+      "a result waiting for approval does not let dependents run",
+    );
     assert.equal(revised.previousRunId, first.id);
     assert.equal(revised.worktree, first.worktree, "same isolated worktree");
     assert.equal(revised.base, first.base);

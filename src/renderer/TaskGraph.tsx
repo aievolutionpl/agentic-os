@@ -83,10 +83,13 @@ export function TaskGraph({
   // In the current batch only the batch's own progress counts: a task marked
   // completed with its result still awaiting review or approval does not yet
   // let its dependents run.
+  // Outside it, a completed task whose result still awaits review or
+  // approval does not satisfy its dependents either.
   const finished = (t: Task) =>
-    inBatch.has(t.id) ? done.has(t.id) : t.status === "completed";
-  const awaiting = (t: Task) =>
-    inBatch.has(t.id) && !done.has(t.id) && t.status === "completed";
+    inBatch.has(t.id)
+      ? done.has(t.id)
+      : t.status === "completed" && !t.awaitingApproval;
+  const awaiting = (t: Task) => t.status === "completed" && !finished(t);
   const label = (t: Task) =>
     awaiting(t)
       ? pl

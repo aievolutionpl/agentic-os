@@ -274,6 +274,7 @@ export class Store {
       dependencies: [],
       blockedBy: [],
       ready: false,
+      awaitingApproval: false,
       createdAt: new Date().toISOString(),
     };
     if (result.implementer === result.reviewer)
@@ -344,9 +345,7 @@ export class Store {
   }
   allMemory(): Memory[] {
     return this.db
-      .prepare(
-        "SELECT * FROM memory ORDER BY pinned DESC,createdAt DESC",
-      )
+      .prepare("SELECT * FROM memory ORDER BY pinned DESC,createdAt DESC")
       .all() as unknown as Memory[];
   }
   updateMemory(input: unknown) {

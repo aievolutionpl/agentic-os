@@ -832,6 +832,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
                     consent: true,
                   }),
                 );
+                setManagementKey("");
               })
             }
           >
@@ -888,6 +889,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
                   await api.openRouterRemove!();
                   setSetting(await api.openRouterSettings!());
                   setKey("");
+                  setManagementKey("");
                 })
               }
             >

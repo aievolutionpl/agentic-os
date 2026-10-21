@@ -8,6 +8,9 @@ import {
   existsSync,
   rmSync,
   statSync,
+  symlinkSync,
+  lstatSync,
+  readdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -328,4 +331,143 @@ test("Hermes with its own OpenRouter key shows the balance for reference only", 
     cards.find((c) => c.id === "opencode").detail,
     "BILLED_VIA_OPENROUTER",
   );
+});
+
+test("a symlinked settings file is updated at its target and stays a link", (t) => {
+  if (process.platform === "win32") return;
+  const { home, root, bridge } = setup(t);
+  const dotfiles = join(root, "dotfiles");
+  mkdirSync(dotfiles);
+  writeFileSync(
+    join(dotfiles, "claude.json"),
+    JSON.stringify({ model: "opus" }),
+  );
+  mkdirSync(join(home, ".claude"));
+  symlinkSync(join(dotfiles, "claude.json"), claudeSettings(home));
+  bridge.install({ agent: "claude", consent: true });
+  assert.ok(lstatSync(claudeSettings(home)).isSymbolicLink());
+  assert.ok(
+    JSON.parse(readFileSync(join(dotfiles, "claude.json"), "utf8")).statusLine,
+  );
+  bridge.remove({ agent: "claude" });
+  assert.ok(lstatSync(claudeSettings(home)).isSymbolicLink());
+  assert.deepEqual(
+    JSON.parse(readFileSync(join(dotfiles, "claude.json"), "utf8")),
+    { model: "opus" },
+  );
+});
+
+test("an empty account balance alone never marks OpenRouter exhausted", () => {
+  const card = openRouterQuota(
+    { data: { usage: 2, limit: 10, limit_remaining: 8 } },
+    { data: { total_credits: 5, total_usage: 5 } },
+  );
+  assert.equal(card.balanceUsd, 0);
+  assert.equal(card.status, "active", "the key itself still has budget");
+  const spent = openRouterQuota(
+    { data: { usage: 10, limit: 10, limit_remaining: 0 } },
+    { data: { total_credits: 50, total_usage: 1 } },
+  );
+  assert.equal(spent.status, "exhausted", "the key's own limit binds");
+});
+
+test("one empty Antigravity pool warns; all empty pools exhaust", async (t) => {
+  const { data } = setup(t);
+  const reset = Date.now() + 3600000;
+  const scan = (buckets) =>
+    scanAllQuotas(data, {
+      statusLines: () => ({
+        antigravity: { at: Date.now(), plan: null, buckets },
+      }),
+    }).then((cards) => cards.find((c) => c.id === "antigravity"));
+  const one = await scan({
+    "gemini-pro": { remainingFraction: 0, resetsAt: reset },
+    "claude-sonnet": { remainingFraction: 0.6, resetsAt: reset },
+  });
+  assert.equal(one.status, "warning", "another pool may still serve the run");
+  const all = await scan({
+    "gemini-pro": { remainingFraction: 0, resetsAt: reset },
+    "claude-sonnet": { remainingFraction: 0, resetsAt: reset },
+  });
+  assert.equal(all.status, "exhausted");
+});
+
+test("the Windows command runs the relay through PowerShell", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "agenting-bridge-win-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const bridge = new LimitBridge(
+    "C:\\Users\\Jo Doe\\AppData\\Agenting",
+    "C:\\Program Files\\Agenting\\Agenting.exe",
+    {},
+    root,
+    "win32",
+  );
+  assert.equal(
+    bridge.command("claude"),
+    'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:/Users/Jo Doe/AppData/Agenting/limit-bridge/relay.ps1" claude',
+  );
+});
+
+test("a previous command that leaves a process behind cannot hang the relay", (t) => {
+  if (process.platform === "win32") return;
+  const { home, data, bridge } = setup(t);
+  mkdirSync(join(home, ".claude"));
+  writeFileSync(
+    claudeSettings(home),
+    JSON.stringify({
+      statusLine: { type: "command", command: "echo early; sleep 30" },
+    }),
+  );
+  bridge.install({ agent: "claude", consent: true });
+  const started = Date.now();
+  const out = relay(data, "claude", { rate_limits: {} });
+  assert.ok(Date.now() - started < 8000, "the three-second cap holds");
+  assert.equal(out.stdout.trim(), "early");
+});
+
+test("credentials elsewhere in the settings file are never copied", (t) => {
+  const { home, data, bridge } = setup(t);
+  mkdirSync(join(home, ".claude"));
+  const secret = "sk-ant-" + "x".repeat(40);
+  writeFileSync(
+    claudeSettings(home),
+    JSON.stringify({ env: { ANTHROPIC_API_KEY: secret } }),
+  );
+  bridge.install({ agent: "claude", consent: true });
+  const dir = join(data, "limit-bridge");
+  for (const name of readdirSync(dir))
+    assert.ok(
+      !readFileSync(join(dir, name), "utf8").includes(secret),
+      `${name} holds no credential`,
+    );
+  assert.equal(
+    JSON.parse(readFileSync(claudeSettings(home), "utf8")).env
+      .ANTHROPIC_API_KEY,
+    secret,
+    "the user's own file keeps it",
+  );
+});
+
+test("paths with shell metacharacters are passed literally", (t) => {
+  if (process.platform === "win32") return;
+  const root = mkdtempSync(join(tmpdir(), "agenting-bridge-meta-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const odd = join(root, `a$HOME \`x\` "q" 'b'`);
+  mkdirSync(odd);
+  const runtime = join(odd, "node");
+  symlinkSync(process.execPath, runtime);
+  const home = join(root, "home");
+  mkdirSync(home);
+  const bridge = new LimitBridge(join(odd, "data"), runtime, {}, home);
+  bridge.install({ agent: "claude", consent: true });
+  const reset = Math.floor(Date.now() / 1000) + 3600;
+  const out = spawnSync("/bin/sh", ["-c", bridge.command("claude")], {
+    input: JSON.stringify({
+      rate_limits: { five_hour: { used_percentage: 12, resets_at: reset } },
+    }),
+    encoding: "utf8",
+    timeout: 10000,
+  });
+  assert.equal(out.status, 0, out.stderr);
+  assert.match(out.stdout, /5h 12%/);
 });

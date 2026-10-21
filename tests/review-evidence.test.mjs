@@ -148,3 +148,66 @@ test("a long review keeps its closing verdict and findings", async () => {
   assert.equal(parsed.findings[0].path, "src/app.ts");
   assert.equal(redactEnds("short sk-abcdefghijklmnop"), "short [REDACTED]");
 });
+
+test("a long findings block keeps its verdict line", async () => {
+  const { redactEnds } = await import("../dist/main/validate.js");
+  const findings = Array.from(
+    { length: 15 },
+    (_, i) => `- src/f${i}.ts:${i + 1} — ${"x".repeat(480)}`,
+  ).join("\n");
+  const review = `${"Body. ".repeat(700)}\nVERDICT: CHANGES_REQUESTED\nFINDINGS:\n${findings}`;
+  const kept = redactEnds(review, 8000);
+  assert.ok(kept.length <= 8000);
+  assert.equal(parseReview(kept, new Set()).verdict, "changes_requested");
+});
+
+test("root files a change touched are cited without a separator", () => {
+  const { findings } = parseReview(
+    "VERDICT: CHANGES_REQUESTED\n- Makefile:3 — wrong target\n- general — be careful",
+    new Set(["Makefile"]),
+  );
+  assert.deepEqual(
+    findings.map((f) => [f.path, f.inDiff]),
+    [["Makefile", true]],
+  );
+});
+
+test("evidence of an older review is not reused after a re-review fails", async (t) => {
+  const { mkdtempSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { Store } = await import("../dist/main/store.js");
+  const dir = mkdtempSync(join(tmpdir(), "agenting-evidence-"));
+  const store = new Store(join(dir, "db.sqlite"));
+  t.after(() => {
+    store.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const project = store.createProject({ name: "E", root: "", master: "codex" });
+  const task = store.createTask({
+    projectId: project.id,
+    title: "T",
+    implementer: "codex",
+    reviewer: "claude",
+  });
+  const run = store.runs.create(
+    project.id,
+    task.id,
+    1,
+    "codex",
+    "claude",
+    { repository: "/r", path: "/r/w", base: "a", head: "a" },
+    "",
+  );
+  store.runs.update(project.id, run.id, { reviewState: "completed" });
+  store.runs.event(run.id, "review_outcome", "completed");
+  store.runs.event(
+    run.id,
+    "review_evidence",
+    JSON.stringify({ verdict: "approve", findings: [] }),
+  );
+  assert.equal(store.runs.reviewEvidence(run.id).verdict, "approve");
+  store.runs.update(project.id, run.id, { reviewState: "failed" });
+  store.runs.event(run.id, "review_outcome", "failed");
+  assert.equal(store.runs.reviewEvidence(run.id), null);
+});

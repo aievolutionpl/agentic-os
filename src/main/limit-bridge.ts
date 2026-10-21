@@ -1,9 +1,9 @@
 import {
   chmodSync,
-  copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
@@ -50,7 +50,7 @@ export interface BridgeReadings {
  * previous command when there was one, otherwise a short summary.
  */
 const RELAY = String.raw`// Agenting OS limit relay. Generated; safe to delete with "Disconnect".
-import { readFileSync, writeFileSync, renameSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, renameSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -117,18 +117,49 @@ if (reading) {
     renameSync(file + ".tmp", file);
   } catch {}
 }
+// The previous command was written for the shell the CLI uses: on Windows
+// that is Git Bash when installed and PowerShell otherwise, never cmd.exe.
+function shellFor(command) {
+  if (process.platform !== "win32") return ["/bin/sh", ["-c", command]];
+  const bash = [
+    process.env.CLAUDE_CODE_GIT_BASH_PATH,
+    process.env.ProgramFiles && join(process.env.ProgramFiles, "Git", "bin", "bash.exe"),
+    process.env.LOCALAPPDATA && join(process.env.LOCALAPPDATA, "Programs", "Git", "bin", "bash.exe"),
+  ].find((p) => p && existsSync(p));
+  return bash
+    ? [bash, ["-c", command]]
+    : ["powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command]];
+}
 const chained = previous();
 if (typeof chained === "string" && chained) {
-  const child = spawn(chained, { shell: true, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
-  let out = "";
-  const stop = setTimeout(() => child.kill(), 3000);
+  // The shell may start further processes that keep the pipe open, so the
+  // cap kills the whole tree and finishes the relay itself.
+  const win = process.platform === "win32";
+  const child = spawn(...shellFor(chained), { detached: !win, stdio: ["pipe", "pipe", "ignore"], windowsHide: true });
+  let out = "", finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(stop);
+    process.stdout.write(out, () => process.exit(0));
+  };
+  const stop = setTimeout(() => {
+    try {
+      if (win) spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+      else process.kill(-child.pid, "SIGKILL");
+    } catch { child.kill(); }
+    finish();
+  }, 3000);
   child.stdout.on("data", (c) => { out += c; });
-  child.on("error", () => {});
-  child.on("close", () => { clearTimeout(stop); process.stdout.write(out); });
+  child.on("error", finish);
+  child.on("close", finish);
   child.stdin.on("error", () => {});
   child.stdin.end(raw);
 } else process.stdout.write(summary(reading));
 `;
+
+/** A POSIX shell literal: nothing inside is expanded. */
+const shellQuote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
 
 type StatusLine = { command?: unknown; [key: string]: unknown };
 type Settings = { statusLine?: StatusLine; [key: string]: unknown };
@@ -136,7 +167,8 @@ type Settings = { statusLine?: StatusLine; [key: string]: unknown };
 /**
  * Optional, explicitly consented link to a CLI's documented status line.
  * Installing adds one `statusLine` entry to that CLI's own settings file
- * (after a backup), chaining any command already there; removing restores it.
+ * (keeping only the previous entry), chaining any command already there;
+ * removing restores it.
  * Nothing reads credentials, and the CLI keeps its own authentication.
  */
 export class LimitBridge {
@@ -159,15 +191,16 @@ export class LimitBridge {
       : join(this.home, ".gemini", "antigravity-cli", "settings.json");
   }
   private wrapper() {
-    return join(this.dir, this.platform === "win32" ? "relay.cmd" : "relay.sh");
+    return join(this.dir, this.platform === "win32" ? "relay.ps1" : "relay.sh");
   }
-  /** The exact command written into the CLI's settings. */
+  /** The exact command written into the CLI's settings. On Windows the CLI
+   * may run it through Git Bash or PowerShell; invoking `powershell -File`
+   * with forward slashes works in both, a bare quoted path only in Bash. */
   command(agent: BridgeAgent) {
-    const path =
-      this.platform === "win32"
-        ? this.wrapper().replace(/\\/g, "/")
-        : this.wrapper();
-    return `"${path}" ${agent}`;
+    if (this.platform !== "win32")
+      return `${shellQuote(this.wrapper())} ${agent}`;
+    const path = this.wrapper().replace(/\\/g, "/");
+    return `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${path}" ${agent}`;
   }
   private read(agent: BridgeAgent): Settings {
     const path = this.settingsPath(agent);
@@ -184,7 +217,10 @@ export class LimitBridge {
     return parsed as Settings;
   }
   private write(agent: BridgeAgent, settings: Settings) {
-    const path = this.settingsPath(agent);
+    // A dotfile-managed (symlinked) settings file is updated at its target,
+    // so the link itself survives.
+    const link = this.settingsPath(agent);
+    const path = existsSync(link) ? realpathSync(link) : link;
     mkdirSync(dirname(path), { recursive: true });
     // The file keeps its own permissions (it may hold secrets); a new one is
     // private to the user.
@@ -243,15 +279,23 @@ export class LimitBridge {
   private files() {
     mkdirSync(this.dir, { recursive: true });
     writeFileSync(join(this.dir, "relay.mjs"), RELAY);
-    if (this.platform === "win32")
+    if (this.platform === "win32") {
+      const quote = (v: string) => `'${v.replace(/'/g, "''")}'`;
       writeFileSync(
         this.wrapper(),
-        `@echo off\r\nset ELECTRON_RUN_AS_NODE=1\r\n"${this.runtime}" "${join(this.dir, "relay.mjs")}" %*\r\n`,
+        [
+          "$ErrorActionPreference = 'SilentlyContinue'",
+          "$env:ELECTRON_RUN_AS_NODE = '1'",
+          "$OutputEncoding = [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false",
+          "$raw = [Console]::In.ReadToEnd()",
+          `$raw | & ${quote(this.runtime)} ${quote(join(this.dir, "relay.mjs"))} @args`,
+          "",
+        ].join("\r\n"),
       );
-    else {
+    } else {
       writeFileSync(
         this.wrapper(),
-        `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec "${this.runtime}" "${join(this.dir, "relay.mjs")}" "$@"\n`,
+        `#!/bin/sh\nELECTRON_RUN_AS_NODE=1 exec ${shellQuote(this.runtime)} ${shellQuote(join(this.dir, "relay.mjs"))} "$@"\n`,
       );
       chmodSync(this.wrapper(), 0o755);
     }
@@ -270,9 +314,8 @@ export class LimitBridge {
     const settings = this.read(agent);
     this.files();
     if (!this.ours(settings, agent)) {
-      const path = this.settingsPath(agent);
-      if (existsSync(path))
-        copyFileSync(path, join(this.dir, `${agent}-settings.backup.json`));
+      // Only the statusLine entry is kept for restore: the rest of the file
+      // may hold credentials (env), which are never copied.
       const previous =
         settings.statusLine && typeof settings.statusLine.command === "string"
           ? settings.statusLine

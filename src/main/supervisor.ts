@@ -698,6 +698,8 @@ export class Supervisor {
       if (
         task.blockedBy.length ||
         task.dependencies.some((id) => {
+          // A prerequisite being revised right now is not ready either.
+          if (this.starting.has(id)) return true;
           const run = this.store.runs.list(projectId, id)[0];
           return run && !["applied", "completed"].includes(run.state);
         })
@@ -829,7 +831,11 @@ export class Supervisor {
         active,
         previous?.threadId ?? null,
         context.readOnly,
-        revising ? this.revisionNote(revising) : "",
+        revising
+          ? this.revisionNote(revising)
+          : previous
+            ? this.inheritedNote(previous)
+            : "",
       );
       return run;
     } catch (error) {
@@ -873,6 +879,25 @@ export class Supervisor {
     };
   }
   /** Reviewer findings handed to a revision, as untrusted data. */
+  /** A resumed revision keeps the findings it was started to address: the
+   * superseded, reviewed run is found through the previousRunId chain. */
+  private inheritedNote(run: Run) {
+    let current: Run | null = run;
+    for (let i = 0; i < 5 && current?.previousRunId; i++) {
+      current = this.store.runs.get(run.projectId, current.previousRunId);
+      if (
+        current?.state === "rejected" &&
+        this.store.runs.reviewEvidence(current.id)?.verdict ===
+          "changes_requested"
+      )
+        return this.revisionNote(current);
+    }
+    return "";
+  }
+  /** Whether a run of this task is being started (e.g. a revision). */
+  starts(taskId: string) {
+    return this.starting.has(taskId);
+  }
   private revisionNote(run: Run) {
     const evidence = this.store.runs.reviewEvidence(run.id);
     const findings = (evidence?.findings ?? [])

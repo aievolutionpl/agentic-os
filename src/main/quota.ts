@@ -217,7 +217,10 @@ export function openRouterQuota(
     icon: "openrouter",
     plan: "API",
     account: null,
-    status: status(metrics),
+    // The balance is display-only: a management key may belong to another
+    // account than the inference key, and /credits names no account. Only
+    // the inference key's own limits judge whether OpenCode can run.
+    status: status(metrics.filter((m) => m.id !== "balance")),
     metrics,
     usageTrend: [],
     source: "openrouter-api",
@@ -313,6 +316,18 @@ export function antigravityLimitMetrics(
     });
 }
 
+/** Antigravity pools belong to model families; which one a run draws on is
+ * not known, so one empty pool warns and only all of them exhaust the card. */
+function poolStatus(metrics: QuotaMetric[]): ProviderQuotaCard["status"] {
+  const pools = metrics.filter((m) => m.id.startsWith("pool-"));
+  if (!pools.length) return status(metrics);
+  const empty = pools.filter((m) => m.usedValue! >= m.limitValue!).length;
+  return empty === pools.length
+    ? "exhausted"
+    : empty || pools.some((m) => m.usedPercent >= 90)
+      ? "warning"
+      : "active";
+}
 /** A CLI card whose limits came from its own status line. */
 function statusLineCard(
   base: ProviderQuotaCard,
@@ -329,7 +344,7 @@ function statusLineCard(
     ...base,
     plan: plan ?? base.plan,
     metrics,
-    status: status(limits),
+    status: poolStatus(limits),
     source: "cli-statusline",
     detail: `${base.id.toUpperCase()}_LIMITS_FROM_STATUS_LINE`,
     updatedAt: new Date(at).toISOString(),

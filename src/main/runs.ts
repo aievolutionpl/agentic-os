@@ -142,10 +142,15 @@ export class Runs {
       .run(runId, kind, redact(value, limit), this.clock());
   }
   /** Latest structured review evidence recorded for a run, if any. */
+  /** Evidence of the latest review attempt only: none while a re-review
+   * runs or after one fails, so an older verdict is never reused. */
   reviewEvidence(runId: string): ReviewEvidence | null {
     const row = this.db
       .prepare(
-        "SELECT text FROM run_events WHERE runId=? AND kind='review_evidence' ORDER BY seq DESC LIMIT 1",
+        `SELECT e.text FROM run_events e WHERE e.runId=? AND e.kind='review_evidence'
+         AND NOT EXISTS (SELECT 1 FROM run_events o WHERE o.runId=e.runId AND o.kind='review_outcome' AND o.seq>e.seq)
+         AND NOT EXISTS (SELECT 1 FROM runs r WHERE r.id=e.runId AND r.reviewState<>'completed')
+         ORDER BY e.seq DESC LIMIT 1`,
       )
       .get(runId);
     try {

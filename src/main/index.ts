@@ -248,6 +248,7 @@ app
         Math.abs(Date.now() - Date.parse(card.updatedAt)) < 300000 &&
         card.metrics.some(
           (m) =>
+            m.id !== "balance" &&
             (m.format === "percent" || m.limitValue !== null) &&
             // Limits seen in a CLI stream age with their window: only one
             // that has not reset yet still describes the quota.
@@ -265,19 +266,24 @@ app
             !!m.resetsAt &&
             Date.parse(m.resetsAt) > Date.now(),
         );
-        return current.some(
-          (m) =>
-            m.state === "rejected" ||
-            (m.usedValue !== null &&
-              m.limitValue !== null &&
-              m.usedValue >= m.limitValue),
-        )
+        const spent = (m: (typeof current)[number]) =>
+          m.state === "rejected" ||
+          (m.usedValue !== null &&
+            m.limitValue !== null &&
+            m.usedValue >= m.limitValue);
+        // Antigravity reports one pool per model family and the app cannot
+        // tell which one the selected model draws on: an empty pool only
+        // warns, and the agent is stopped once every pool is empty.
+        const pools = current.filter((m) => m.id.startsWith("pool-"));
+        return (pools.length ? pools.every(spent) : current.some(spent))
           ? "exhausted"
-          : current.some(
-                (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
-              )
+          : pools.some(spent)
             ? "warning"
-            : "active";
+            : current.some(
+                  (m) => m.state === "allowed_warning" || m.usedPercent >= 90,
+                )
+              ? "warning"
+              : "active";
       }
       return ["active", "warning", "exhausted"].includes(card!.status)
         ? (card!.status as "active" | "warning" | "exhausted")
@@ -331,7 +337,12 @@ app
     );
     mcp = new McpTools(store.extensions, app.getPath("userData"));
     browser = new ProjectBrowser(store, () => window);
-    const applications = new Applications(store, supervisor.worktrees);
+    const applications = new Applications(
+      store,
+      supervisor.worktrees,
+      Date.now,
+      (taskId) => supervisor.starts(taskId),
+    );
     await applications.reconcile();
     session.defaultSession.setPermissionRequestHandler(
       (_wc, _permission, callback) => callback(false),
@@ -513,10 +524,18 @@ app
       providerDetect: () => detectExecutables(),
       openRouterSettings: () => router.settings(),
       openRouterSave: (input) => {
+        const before = router.settings();
         const value = router.save(input);
         quotaMonitor!.invalidate();
-        // OpenCode runs with the router's environment; recheck it.
-        store.capabilities.clear("opencode");
+        // OpenCode runs with the router's inference key and model; recheck it
+        // only when those change. The balance key never reaches OpenCode.
+        const apiKey = (input as { apiKey?: unknown }).apiKey;
+        if (
+          !before.configured ||
+          before.model !== value.model ||
+          (typeof apiKey === "string" && apiKey !== "")
+        )
+          store.capabilities.clear("opencode");
         return value;
       },
       openRouterRemove: () => {

@@ -7,6 +7,9 @@ const NAMES: Record<LimitBridgeStatus["agent"], string> = {
   antigravity: "Antigravity CLI",
 };
 
+export const formatUsd = (n: number, pl: boolean) =>
+  `$${new Intl.NumberFormat(pl ? "pl" : "en", { maximumFractionDigits: 2 }).format(n)}`;
+
 /** What one card says about the quota left, for compact places like the dashboard. */
 export function quotaSummary(
   card: ProviderQuotaCard | undefined,
@@ -14,9 +17,9 @@ export function quotaSummary(
 ): { value: string; note: string } | null {
   if (!card || card.source === "unavailable" || card.source === "manual")
     return null;
-  const money = (n: number) =>
-    `$${new Intl.NumberFormat(pl ? "pl" : "en", { maximumFractionDigits: 2 }).format(n)}`;
-  if (typeof card.balanceUsd === "number")
+  const money = (n: number) => formatUsd(n, pl);
+  // An exhausted key limit binds before any account balance.
+  if (typeof card.balanceUsd === "number" && card.status !== "exhausted")
     return {
       value: pl
         ? `${money(card.balanceUsd)} salda`
@@ -32,7 +35,10 @@ export function quotaSummary(
     };
   // The tightest window with a known limit says how much is really left.
   const limited = card.metrics
-    .filter((m) => m.limitValue !== null && m.usedValue !== null)
+    .filter(
+      (m) =>
+        m.id !== "balance" && m.limitValue !== null && m.usedValue !== null,
+    )
     .sort((a, b) => a.remainingPercent - b.remainingPercent)[0];
   if (!limited) return null;
   const reset = limited.resetsAt
@@ -153,7 +159,9 @@ export function LimitLink({
           <li>
             {pl ? "Zmieniany plik:" : "File changed:"}{" "}
             <code>{status.settingsPath}</code>{" "}
-            {pl ? "(kopia zapasowa przed zmianą)" : "(backed up first)"}
+            {pl
+              ? "(zmienia się tylko statusLine; poprzedni wpis jest zapisany do przywrócenia)"
+              : "(only statusLine changes; the previous entry is kept for restore)"}
           </li>
           <li>
             {pl ? "Wpis statusLine:" : "statusLine entry:"}{" "}

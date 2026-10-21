@@ -60,7 +60,10 @@ export function parseReview(
       m[1]!.trim().replace(/^`(.*)`$/, "$1"),
     )!;
     const path = cite[1]!.replace(/^`|`$/g, "").replace(/^\.\//, "");
-    if (!/[./]/.test(path) || findings.length === 50) continue;
+    // A path has a separator or an extension, or is a file this change
+    // touched (Makefile, LICENSE); bare words like "general" are not cited.
+    if ((!/[./]/.test(path) && !changed.has(path)) || findings.length === 50)
+      continue;
     findings.push({
       path,
       line: cite[2] ? Number(cite[2]) : null,

@@ -7,7 +7,7 @@ import type {
   ProviderQuotaCard,
   ProviderSetting,
 } from "../shared";
-import { quotaSummary } from "./LimitLink";
+import { formatUsd, quotaSummary } from "./LimitLink";
 import { attentionWords } from "./Inbox";
 import { ccWords } from "./cc-i18n";
 import { Icon, connectionState, relativeTime } from "./ui";
@@ -115,6 +115,12 @@ export function ControlCenter({
   const balance = quota.find(
     (c) => c.id === "openrouter" && typeof c.balanceUsd === "number",
   );
+  // Agents whose cards show this account: billed (OpenCode) or for
+  // reference (Hermes on its own OpenRouter key).
+  const balanceFor = quota
+    .filter((c) => c.via === "openrouter")
+    .map((c) => c.name)
+    .join(", ");
   const connectors = (scan?.connectors ?? []).filter((c) => c.id !== "gemini");
   const runnable = connectors.filter((c) => c.adapter === "available");
   const ready = runnable.filter((c) => c.state === "ready").length;
@@ -358,12 +364,11 @@ export function ControlCenter({
             <button className="quota-stat-button" onClick={onOpenQuota}>
               <span className="stat-value">
                 <Icon name="tokens" />
-                {quotaSummary(balance, pl)!.value}
+                {formatUsd(balance.balanceUsd!, pl)}
               </span>
               <span className="stat-label">
-                {pl
-                  ? "Saldo OpenRouter · OpenCode, Hermes"
-                  : "OpenRouter balance · OpenCode, Hermes"}
+                {pl ? "Saldo OpenRouter" : "OpenRouter balance"}
+                {balanceFor && ` · ${balanceFor}`}
               </span>
             </button>
           </li>

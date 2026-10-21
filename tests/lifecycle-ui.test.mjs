@@ -32,6 +32,13 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     child = make("Child");
   // Unrelated to any dependency: stays on the board, out of the graph.
   make("Loose");
+  // Starts as a batch that stopped on unmet dependencies and cannot go on.
+  let queue = {
+    id: "dead",
+    status: "blocked",
+    reason: "DEPENDENCIES_OR_APPROVAL",
+    taskIds: [parent.id, child.id],
+  };
   function boot() {
     dom = new JSDOM('<div id="root"></div>', {
       url: "file:///app/index.html",
@@ -66,6 +73,7 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
         reason: null,
         createdAt: null,
         updatedAt: null,
+        ...queue,
       }),
       orchestrationStart: async () => {
         throw Error("NOT_IN_THIS_TEST");
@@ -115,6 +123,23 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     );
     const graph = dom.window.document.querySelector(".task-graph");
     assert.ok(graph.textContent.includes("Child czeka na Parent"));
+    assert.equal(
+      graph.querySelectorAll(".in-batch").length,
+      0,
+      "a batch stopped on unmet dependencies can never continue",
+    );
+    // A batch waiting on the operator is current and outlines its tasks.
+    queue = {
+      id: "held",
+      status: "blocked",
+      reason: "HUMAN_APPROVAL_REQUIRED",
+      taskIds: [parent.id, child.id],
+      updatedAt: new Date().toISOString(),
+    };
+    for (let i = 0; i < 400 && !graph.querySelector(".in-batch"); i++)
+      await new Promise((r) => setTimeout(r, 10));
+    assert.equal(graph.querySelectorAll(".in-batch").length, 2);
+    queue = {};
     assert.ok(
       Number.parseFloat(
         graph.querySelector(`[data-task-node="${child.id}"]`).style.left,

@@ -71,9 +71,12 @@ export function TaskGraph({
   );
   const width = (columns.length - 1) * COL + NODE_W,
     height = Math.max(...columns.map((c) => c.length)) * ROW - (ROW - NODE_H);
-  // Only a batch that is working or waiting on the operator is current.
+  // Only a batch that is working or waiting on the operator is current. A
+  // batch stopped on unmet dependencies can never continue, so it is not.
   const current =
-    !!batch && ["running", "blocked", "interrupted"].includes(batch.status);
+    !!batch &&
+    ["running", "blocked", "interrupted"].includes(batch.status) &&
+    batch.reason !== "DEPENDENCIES_OR_APPROVAL";
   const inBatch = new Set(current ? batch!.taskIds : []);
   // The batch reports progress before the task list is reloaded.
   const done = new Set(current ? batch!.completedTaskIds : []);

@@ -86,6 +86,9 @@ export interface Task {
   dependencies: string[];
   blockedBy: string[];
   ready: boolean;
+  /** Completed, but its latest run's result still waits for review or
+   * approval, so dependents cannot run yet. */
+  awaitingApproval: boolean;
   createdAt: string;
 }
 export type FailureCode =

@@ -30,6 +30,17 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     });
   const parent = make("Parent"),
     child = make("Child");
+  // Unrelated to any dependency: stays on the board, out of the graph.
+  make("Loose");
+  // Task statuses the stubbed projectData reports instead of the store's.
+  let status = {};
+  // Starts as a batch that stopped on unmet dependencies and cannot go on.
+  let queue = {
+    id: "dead",
+    status: "blocked",
+    reason: "DEPENDENCIES_OR_APPROVAL",
+    taskIds: [parent.id, child.id],
+  };
   function boot() {
     dom = new JSDOM('<div id="root"></div>', {
       url: "file:///app/index.html",
@@ -49,9 +60,34 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
         preferences: s.preferences(),
         integrations: s.integrations(),
       }),
-      projectData: async (id) => s.projectData(id),
+      projectData: async (id) => {
+        const data = s.projectData(id);
+        return {
+          ...data,
+          tasks: data.tasks.map((t) =>
+            status[t.id] ? { ...t, ...status[t.id] } : t,
+          ),
+        };
+      },
       taskAction: async (x) => s.taskAction(x),
       setPreferences: async (x) => s.setPreferences(x),
+      // Team queue read-only: the dependency graph renders, nothing starts.
+      orchestrationState: async ({ projectId }) => ({
+        id: null,
+        projectId,
+        status: "idle",
+        taskIds: [],
+        completedTaskIds: [],
+        finished: 0,
+        runId: null,
+        reason: null,
+        createdAt: null,
+        updatedAt: null,
+        ...queue,
+      }),
+      orchestrationStart: async () => {
+        throw Error("NOT_IN_THIS_TEST");
+      },
     };
     dom.window.eval(bundle);
   }
@@ -91,6 +127,111 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     dom.window.document
       .querySelector('.task-panel button[aria-label="Zamknij"]')
       .click();
+    // The dependency is drawn: Parent in the first column, Child after it.
+    await wait(
+      () => dom.window.document.querySelectorAll(".task-node").length === 2,
+    );
+    const graph = dom.window.document.querySelector(".task-graph");
+    assert.ok(graph.textContent.includes("Child czeka na Parent"));
+    assert.equal(
+      graph.querySelectorAll(".in-batch").length,
+      0,
+      "a batch stopped on unmet dependencies can never continue",
+    );
+    // A batch waiting on the operator is current and outlines its tasks.
+    queue = {
+      id: "held",
+      status: "blocked",
+      reason: "HUMAN_APPROVAL_REQUIRED",
+      taskIds: [parent.id, child.id],
+      updatedAt: new Date().toISOString(),
+    };
+    for (let i = 0; i < 400 && !graph.querySelector(".in-batch"); i++)
+      await new Promise((r) => setTimeout(r, 10));
+    assert.equal(graph.querySelectorAll(".in-batch").length, 2);
+    // A prerequisite marked completed whose result still awaits approval is
+    // not finished for the batch: its dependent keeps waiting.
+    status = { [parent.id]: { status: "completed", awaitingApproval: true } };
+    queue = {
+      id: "live",
+      status: "running",
+      taskIds: [parent.id, child.id],
+      completedTaskIds: [],
+      updatedAt: new Date(Date.now() + 1000).toISOString(),
+    };
+    const node = (id) => graph.querySelector(`[data-task-node="${id}"]`);
+    for (
+      let i = 0;
+      i < 400 &&
+      !node(parent.id)?.textContent.includes("Czeka na zatwierdzenie");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
+    assert.match(node(parent.id).textContent, /Czeka na zatwierdzenie/);
+    assert.equal(
+      graph.querySelectorAll(".task-graph-edge.satisfied").length,
+      0,
+    );
+    assert.ok(graph.textContent.includes("Child czeka na Parent"));
+    // Once applied, the result counts as finished although the batch that
+    // held for it has not recorded it.
+    status = { [parent.id]: { status: "completed", awaitingApproval: false } };
+    queue = { ...queue, updatedAt: new Date(Date.now() + 1500).toISOString() };
+    for (
+      let i = 0;
+      i < 400 && !graph.querySelector(".task-graph-edge.satisfied");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
+    assert.equal(
+      graph.querySelectorAll(".task-graph-edge.satisfied").length,
+      1,
+    );
+    assert.doesNotMatch(node(parent.id).textContent, /Czeka na zatwierdzenie/);
+    // Outside any batch, an unapproved result keeps the edge open.
+    status = { [parent.id]: { status: "completed", awaitingApproval: true } };
+    queue = {};
+    for (
+      let i = 0;
+      i < 400 && node(parent.id)?.classList.contains("in-batch");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
+    assert.match(node(parent.id).textContent, /Czeka na zatwierdzenie/);
+    assert.equal(
+      graph.querySelectorAll(".task-graph-edge.satisfied").length,
+      0,
+    );
+    // A running poll reloads the tasks without the stubbed statuses.
+    status = {};
+    queue = {
+      id: "again",
+      status: "running",
+      updatedAt: new Date(Date.now() + 2000).toISOString(),
+    };
+    for (
+      let i = 0;
+      i < 400 &&
+      node(parent.id)?.textContent.includes("Czeka na zatwierdzenie");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
+    assert.doesNotMatch(node(parent.id).textContent, /Czeka na zatwierdzenie/);
+    queue = {};
+    for (
+      let i = 0;
+      i < 400 && node(parent.id)?.classList.contains("in-batch");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
+    assert.ok(
+      Number.parseFloat(
+        graph.querySelector(`[data-task-node="${child.id}"]`).style.left,
+      ) >
+        Number.parseFloat(
+          graph.querySelector(`[data-task-node="${parent.id}"]`).style.left,
+        ),
+    );
     await wait(
       () => !row("Child").querySelector(".task-quick-action").disabled,
     );

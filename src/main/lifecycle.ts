@@ -114,8 +114,24 @@ export class Lifecycle {
           dependencies,
           blockedBy,
           ready: row.status === "queued" && blockedBy.length === 0,
+          awaitingApproval:
+            row.status === "completed" && this.unapproved(String(row.id)),
         } as unknown as Task;
       });
+  }
+  /** A dependent may start only once the latest run is completed or applied
+   * (see the supervisor's dependency check); a task without runs is ready. */
+  private unapproved(taskId: string) {
+    try {
+      const run = this.db
+        .prepare(
+          "SELECT state FROM runs WHERE taskId=? ORDER BY createdAt DESC,rowid DESC LIMIT 1",
+        )
+        .get(taskId);
+      return !!run && !["applied", "completed"].includes(String(run.state));
+    } catch {
+      return false;
+    }
   }
   events(projectId: unknown): TaskEvent[] {
     return this.db

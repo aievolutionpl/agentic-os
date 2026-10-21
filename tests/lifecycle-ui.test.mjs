@@ -32,6 +32,8 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     child = make("Child");
   // Unrelated to any dependency: stays on the board, out of the graph.
   make("Loose");
+  // Task statuses the stubbed projectData reports instead of the store's.
+  let status = {};
   // Starts as a batch that stopped on unmet dependencies and cannot go on.
   let queue = {
     id: "dead",
@@ -58,7 +60,15 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
         preferences: s.preferences(),
         integrations: s.integrations(),
       }),
-      projectData: async (id) => s.projectData(id),
+      projectData: async (id) => {
+        const data = s.projectData(id);
+        return {
+          ...data,
+          tasks: data.tasks.map((t) =>
+            status[t.id] ? { ...t, status: status[t.id] } : t,
+          ),
+        };
+      },
       taskAction: async (x) => s.taskAction(x),
       setPreferences: async (x) => s.setPreferences(x),
       // Team queue read-only: the dependency graph renders, nothing starts.
@@ -139,7 +149,39 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     for (let i = 0; i < 400 && !graph.querySelector(".in-batch"); i++)
       await new Promise((r) => setTimeout(r, 10));
     assert.equal(graph.querySelectorAll(".in-batch").length, 2);
+    // A prerequisite marked completed whose result still awaits approval is
+    // not finished for the batch: its dependent keeps waiting.
+    status = { [parent.id]: "completed" };
+    queue = {
+      id: "live",
+      status: "running",
+      taskIds: [parent.id, child.id],
+      completedTaskIds: [],
+      updatedAt: new Date(Date.now() + 1000).toISOString(),
+    };
+    const node = (id) => graph.querySelector(`[data-task-node="${id}"]`);
+    for (
+      let i = 0;
+      i < 400 &&
+      !node(parent.id)?.textContent.includes("Czeka na zatwierdzenie");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
+    assert.match(node(parent.id).textContent, /Czeka na zatwierdzenie/);
+    assert.equal(
+      graph.querySelectorAll(".task-graph-edge.satisfied").length,
+      0,
+    );
+    assert.ok(graph.textContent.includes("Child czeka na Parent"));
+    status = {};
     queue = {};
+    for (
+      let i = 0;
+      i < 400 &&
+      node(parent.id)?.textContent.includes("Czeka na zatwierdzenie");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
     assert.ok(
       Number.parseFloat(
         graph.querySelector(`[data-task-node="${child.id}"]`).style.left,

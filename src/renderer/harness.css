@@ -1985,7 +1985,8 @@ summary:focus-visible {
 .task-node.status-failed {
   border-left-color: var(--danger);
 }
-.task-node.status-queued {
+.task-node.status-queued,
+.task-node.status-awaiting {
   border-left-color: var(--warning);
 }
 .task-node.in-batch {

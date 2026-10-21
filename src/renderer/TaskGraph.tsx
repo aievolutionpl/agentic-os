@@ -80,7 +80,19 @@ export function TaskGraph({
   const inBatch = new Set(current ? batch!.taskIds : []);
   // The batch reports progress before the task list is reloaded.
   const done = new Set(current ? batch!.completedTaskIds : []);
-  const finished = (t: Task) => t.status === "completed" || done.has(t.id);
+  // In the current batch only the batch's own progress counts: a task marked
+  // completed with its result still awaiting review or approval does not yet
+  // let its dependents run.
+  const finished = (t: Task) =>
+    inBatch.has(t.id) ? done.has(t.id) : t.status === "completed";
+  const awaiting = (t: Task) =>
+    inBatch.has(t.id) && !done.has(t.id) && t.status === "completed";
+  const label = (t: Task) =>
+    awaiting(t)
+      ? pl
+        ? "Czeka na zatwierdzenie"
+        : "Awaiting approval"
+      : STATUS[finished(t) ? "completed" : t.status][pl ? 0 : 1];
   return (
     <section
       className="task-graph"
@@ -129,7 +141,11 @@ export function TaskGraph({
                 <li
                   key={t.id}
                   className={`task-node status-${
-                    finished(t) ? "completed" : t.status
+                    awaiting(t)
+                      ? "awaiting"
+                      : finished(t)
+                        ? "completed"
+                        : t.status
                   } ${inBatch.has(t.id) ? "in-batch" : ""}`}
                   style={{ left: p.x, top: p.y, width: NODE_W, height: NODE_H }}
                   data-task-node={t.id}
@@ -139,7 +155,7 @@ export function TaskGraph({
                     {agentName(t.implementer)} → {agentName(t.reviewer)}
                   </span>
                   <small>
-                    {STATUS[finished(t) ? "completed" : t.status][pl ? 0 : 1]}
+                    {label(t)}
                     {inBatch.has(t.id) &&
                       (done.has(t.id)
                         ? pl

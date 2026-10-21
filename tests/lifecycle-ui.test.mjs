@@ -151,7 +151,7 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     assert.equal(graph.querySelectorAll(".in-batch").length, 2);
     // A prerequisite marked completed whose result still awaits approval is
     // not finished for the batch: its dependent keeps waiting.
-    status = { [parent.id]: { status: "completed" } };
+    status = { [parent.id]: { status: "completed", awaitingApproval: true } };
     queue = {
       id: "live",
       status: "running",
@@ -173,7 +173,22 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
       0,
     );
     assert.ok(graph.textContent.includes("Child czeka na Parent"));
-    // Outside any batch, the same unapproved result keeps the edge open.
+    // Once applied, the result counts as finished although the batch that
+    // held for it has not recorded it.
+    status = { [parent.id]: { status: "completed", awaitingApproval: false } };
+    queue = { ...queue, updatedAt: new Date(Date.now() + 1500).toISOString() };
+    for (
+      let i = 0;
+      i < 400 && !graph.querySelector(".task-graph-edge.satisfied");
+      i++
+    )
+      await new Promise((r) => setTimeout(r, 10));
+    assert.equal(
+      graph.querySelectorAll(".task-graph-edge.satisfied").length,
+      1,
+    );
+    assert.doesNotMatch(node(parent.id).textContent, /Czeka na zatwierdzenie/);
+    // Outside any batch, an unapproved result keeps the edge open.
     status = { [parent.id]: { status: "completed", awaitingApproval: true } };
     queue = {};
     for (

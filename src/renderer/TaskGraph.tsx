@@ -80,15 +80,11 @@ export function TaskGraph({
   const inBatch = new Set(current ? batch!.taskIds : []);
   // The batch reports progress before the task list is reloaded.
   const done = new Set(current ? batch!.completedTaskIds : []);
-  // In the current batch only the batch's own progress counts: a task marked
-  // completed with its result still awaiting review or approval does not yet
-  // let its dependents run.
-  // Outside it, a completed task whose result still awaits review or
-  // approval does not satisfy its dependents either.
+  // Finished means its dependents may run: the batch finished it, or it is
+  // completed and its result is not waiting for review or approval (the same
+  // rule the scheduler applies). An applied result counts in a held batch too.
   const finished = (t: Task) =>
-    inBatch.has(t.id)
-      ? done.has(t.id)
-      : t.status === "completed" && !t.awaitingApproval;
+    done.has(t.id) || (t.status === "completed" && !t.awaitingApproval);
   const awaiting = (t: Task) => t.status === "completed" && !finished(t);
   const label = (t: Task) =>
     awaiting(t)

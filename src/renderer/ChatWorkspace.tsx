@@ -8,7 +8,7 @@ import type {
   Project,
   ProviderSetting,
 } from "../shared";
-import {
+import { explainError,
   AVAILABLE_AGENTS as AGENTS,
   READ_ONLY_AGENTS,
   chatMarkdown,
@@ -17,6 +17,7 @@ import { ModelPicker } from "./ModelPicker";
 import { Icon, Modal, agentName, connectionLabel, connectionState } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
+import { ErrorNote } from "./ErrorNote";
 import { MessageText } from "./MessageText";
 import { copyText } from "./clipboard";
 import {
@@ -200,11 +201,8 @@ export function ChatWorkspace({
     const policy = policyMessage(value, pl);
     if (policy) return policy;
     const key = Object.keys(errors).find((k) => value.includes(k));
-    return key
-      ? errors[key][pl ? 0 : 1]
-      : pl
-        ? "Operacja nie powiodła się. Sprawdź połączenie agenta i spróbuj ponownie."
-        : "Operation failed. Check the agent connection and try again.";
+    if (key) return errors[key][pl ? 0 : 1];
+    return explainError(value, pl).hint;
   };
   async function refresh() {
     const rows = await api.chatList!();
@@ -1389,15 +1387,20 @@ export function ChatWorkspace({
             </>
           )}
           {(error || chat?.error) && (
-            <p className="error" role="alert">
-              {explain(error || chat!.error!)}
-              {(error || chat?.error || "").includes(
-                "POLICY_APPROVAL_REQUIRED",
-              ) && <PaidApproval agent={chat?.agent ?? agent} pl={pl} />}
-              <button onClick={onConfigure}>
-                {pl ? "Połączenia" : "Connections"}
-              </button>
-            </p>
+            <ErrorNote
+              value={error || chat!.error!}
+              pl={pl}
+              action={
+                <>
+                  {(error || chat?.error || "").includes(
+                    "POLICY_APPROVAL_REQUIRED",
+                  ) && <PaidApproval agent={chat?.agent ?? agent} pl={pl} />}
+                  <button onClick={onConfigure}>
+                    {pl ? "Połączenia" : "Connections"}
+                  </button>
+                </>
+              }
+            />
           )}
           {notice && (
             <p className="success" role="status">

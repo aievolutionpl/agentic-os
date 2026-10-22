@@ -4,6 +4,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import type { Project, TerminalSession } from "../shared";
 import { Icon, Modal } from "./ui";
+import { ErrorNote } from "./ErrorNote";
 
 function TerminalView({
   session,
@@ -278,21 +279,7 @@ export function TerminalPanel({
           ? "Otwierając terminal, uruchamiasz lokalną powłokę. Polecenia mogą zmieniać pliki i korzystać z kont CLI. Działają bez zatwierdzeń i limitów ustawionych dla agentów."
           : "Opening a terminal starts a local shell. Commands can change files and use CLI accounts. Agent approval rules and budgets do not apply to manual commands."}
       </p>
-      {error && (
-        <p className="error" role="alert">
-          {error.includes("TERMINAL_FOLDER_REQUIRED")
-            ? pl
-              ? "Folder projektu nie istnieje. Wybierz inny katalog lub osobny folder terminala."
-              : "Project folder is unavailable. Choose another directory."
-            : error.includes("TERMINAL_LIMIT")
-              ? pl
-                ? "Zamknij jedną z sześciu sesji, aby otworzyć kolejną."
-                : "Close one of the six sessions before opening another."
-              : pl
-                ? "Nie udało się obsłużyć terminala. Sprawdź instalację i spróbuj ponownie."
-                : "Could not access the terminal. Check the installation and try again."}
-        </p>
-      )}
+      {error && <ErrorNote value={error} pl={pl} />}
       <div className="terminal-shell">
         <div
           className="terminal-tabs"

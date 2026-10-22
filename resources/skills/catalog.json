@@ -78,5 +78,125 @@
     "version": "bb92a77741419a4ab5f06e711a283343f1ada0c3",
     "source": "https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3/skills/writing-plans",
     "files": 2
+  },
+  {
+    "id": "builtin:marketingskills",
+    "slug": "marketingskills",
+    "name": "marketing & growth skills",
+    "author": "Corey Haines / coreyhaines31",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "files": 2
+  },
+  {
+    "id": "builtin:taste-skill",
+    "slug": "taste-skill",
+    "name": "taste skill · anti-slop design",
+    "author": "Leonxlnx",
+    "license": "MIT",
+    "version": "6010f91a9935f1c167dfc500fb1a475681892e6b",
+    "source": "https://github.com/Leonxlnx/taste-skill/tree/6010f91a9935f1c167dfc500fb1a475681892e6b/skills/taste-skill",
+    "files": 2
+  },
+  {
+    "id": "builtin:archify",
+    "slug": "archify",
+    "name": "archify · interactive diagrams",
+    "author": "tt-a1i",
+    "license": "MIT",
+    "version": "25cf37080fc8b1dbe758a4efc3935b55f3327083",
+    "source": "https://github.com/tt-a1i/archify/tree/25cf37080fc8b1dbe758a4efc3935b55f3327083/archify",
+    "files": 2
+  },
+  {
+    "id": "builtin:awesome-claude-skills",
+    "slug": "awesome-claude-skills",
+    "name": "awesome claude skills · workflow & changelog",
+    "author": "ComposioHQ",
+    "license": "Apache-2.0",
+    "version": "be2a406907dbc61b73e6827ded415c96139d13a2",
+    "source": "https://github.com/ComposioHQ/awesome-claude-skills/tree/be2a406907dbc61b73e6827ded415c96139d13a2",
+    "files": 2
+  },
+  {
+    "id": "builtin:humanizer",
+    "slug": "humanizer",
+    "name": "humanizer · clear human writing",
+    "author": "blader",
+    "license": "MIT",
+    "version": "8c307f367c91bd974002f10f2be2965d642c13df",
+    "source": "https://github.com/blader/humanizer/tree/8c307f367c91bd974002f10f2be2965d642c13df",
+    "files": 2
+  },
+  {
+    "id": "builtin:addyosmani-agent-skills",
+    "slug": "addyosmani-agent-skills",
+    "name": "senior engineering & code quality",
+    "author": "Addy Osmani",
+    "license": "MIT",
+    "version": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+    "source": "https://github.com/addyosmani/agent-skills/tree/aeac41d4d005999432bb7312f7ff06383a91d59d",
+    "files": 2
+  },
+  {
+    "id": "builtin:agentskills-spec",
+    "slug": "agentskills-spec",
+    "name": "agentskills standard specification",
+    "author": "Agent Skills / agentskills.io",
+    "license": "Apache-2.0",
+    "version": "69ef37e9424c0a7ea9dd2293b559e43ec8176379",
+    "source": "https://github.com/agentskills/agentskills/tree/69ef37e9424c0a7ea9dd2293b559e43ec8176379",
+    "files": 2
+  },
+  {
+    "id": "builtin:gws-calendar",
+    "slug": "gws-calendar",
+    "name": "google workspace · calendar",
+    "author": "Google Workspace / officialskills.sh",
+    "license": "Apache-2.0",
+    "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
+    "source": "https://officialskills.sh/googleworkspace/skills/gws-calendar",
+    "files": 2
+  },
+  {
+    "id": "builtin:gws-docs",
+    "slug": "gws-docs",
+    "name": "google workspace · docs",
+    "author": "Google Workspace / officialskills.sh",
+    "license": "Apache-2.0",
+    "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
+    "source": "https://officialskills.sh/googleworkspace/skills/gws-docs",
+    "files": 2
+  },
+  {
+    "id": "builtin:gws-shared",
+    "slug": "gws-shared",
+    "name": "google workspace · shared core & auth",
+    "author": "Google Workspace / officialskills.sh",
+    "license": "Apache-2.0",
+    "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
+    "source": "https://officialskills.sh/googleworkspace/skills/gws-shared",
+    "files": 2
+  },
+  {
+    "id": "builtin:gws-sheets",
+    "slug": "gws-sheets",
+    "name": "google workspace · sheets",
+    "author": "Google Workspace / officialskills.sh",
+    "license": "Apache-2.0",
+    "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
+    "source": "https://officialskills.sh/googleworkspace/skills/gws-sheets",
+    "files": 2
+  },
+  {
+    "id": "builtin:browserbase-skills",
+    "slug": "browserbase-skills",
+    "name": "browserbase · cloud browser & web automation",
+    "author": "Browserbase / officialskills.sh",
+    "license": "MIT",
+    "version": "6811ca31163332d9d60309cff48e77f09de37a17",
+    "source": "https://officialskills.sh/browserbase/skills",
+    "files": 2
   }
 ]

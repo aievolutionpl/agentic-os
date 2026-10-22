@@ -1,0 +1,4 @@
+MIT License
+Copyright (c) Addy Osmani
+Source: https://github.com/addyosmani/agent-skills/tree/aeac41d4d005999432bb7312f7ff06383a91d59d
+Pinned Revision: aeac41d4d005999432bb7312f7ff06383a91d59d

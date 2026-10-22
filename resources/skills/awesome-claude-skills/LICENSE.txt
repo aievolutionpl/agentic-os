@@ -1,0 +1,4 @@
+Apache-2.0 License
+Copyright (c) ComposioHQ
+Source: https://github.com/ComposioHQ/awesome-claude-skills/tree/be2a406907dbc61b73e6827ded415c96139d13a2
+Pinned Revision: be2a406907dbc61b73e6827ded415c96139d13a2

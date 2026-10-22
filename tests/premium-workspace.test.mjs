@@ -214,7 +214,7 @@ test("skill installation copies the full pinned package, stays local to a projec
   const { dir, store, project, other } = setup(t);
   execFileSync("git", ["init", "-q"], { cwd: dir });
   const catalog = store.extensions.catalog();
-  assert.equal(catalog.length, 8);
+  assert.equal(catalog.length, 20);
   const skill = catalog.find((s) => s.slug === "webapp-testing");
   const result = await store.extensions.install(project.id, skill.id);
   const path = result.installPath;

@@ -1145,6 +1145,7 @@ function App() {
                 work={attention}
                 onOpenInbox={() => setView("inbox")}
                 onOpenAttention={openAttention}
+                onOpenSkills={() => setView("skills")}
                 agents={agents}
               />
             ) : !snapshot && !error ? (

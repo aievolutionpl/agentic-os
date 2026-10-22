@@ -1,0 +1,4 @@
+Apache-2.0 License
+Copyright (c) Google Workspace / officialskills.sh
+Source: https://officialskills.sh/googleworkspace/skills/gws-calendar
+Pinned Revision: a3768d0e82ad83cca2da97724e46bea4ff0e6dbd

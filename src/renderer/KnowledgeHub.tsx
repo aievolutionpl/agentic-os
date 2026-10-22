@@ -17,6 +17,7 @@ export function SkillsHub({
   const [items, setItems] = useState<Extension[]>([]),
     [project, setProject] = useState(projects[0]?.id ?? ""),
     [query, setQuery] = useState(""),
+    [category, setCategory] = useState("all"),
     [selected, setSelected] = useState<Extension | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -39,13 +40,66 @@ export function SkillsHub({
       ),
     );
   }, [project]);
+  function matchCategory(s: Extension, cat: string) {
+    if (cat === "all") return true;
+    const slug = s.slug ?? s.name;
+    if (cat === "gws") return slug.startsWith("gws-");
+    if (cat === "growth")
+      return slug === "marketingskills" || slug === "humanizer";
+    if (cat === "design")
+      return (
+        slug === "taste-skill" ||
+        slug === "archify" ||
+        slug === "frontend-design"
+      );
+    if (cat === "browser")
+      return (
+        slug === "browserbase-skills" ||
+        slug === "mcp-builder" ||
+        slug === "webapp-testing"
+      );
+    if (cat === "engineering")
+      return (
+        slug === "addyosmani-agent-skills" ||
+        slug === "awesome-claude-skills" ||
+        slug === "agentskills-spec" ||
+        slug === "systematic-debugging" ||
+        slug === "test-driven-development" ||
+        slug === "verification-before-completion" ||
+        slug === "requesting-code-review" ||
+        slug === "skill-creator"
+      );
+    return true;
+  }
   const visible = items.filter(
     (s) =>
       s.kind === "skill" &&
+      matchCategory(s, category) &&
       `${s.name} ${s.author} ${s.instructions}`
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
+  async function installBatch(targets: Extension[]) {
+    if (!project || !targets.length) return;
+    setBusy(true);
+    setError("");
+    try {
+      for (const s of targets) {
+        if (!s.installed && s.slug) {
+          await api.skillInstall!({ projectId: project, id: s.id });
+        }
+      }
+      await load();
+    } catch {
+      setError(
+        pl
+          ? "Nie udało się zainstalować wszystkich skilli z pakietu."
+          : "Could not install all skills in the batch.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <section className="knowledge-hub">
       <header className="evolution-banner library-banner">
@@ -119,6 +173,48 @@ export function SkillsHub({
           <Icon name="download" />
           {pl ? "Importuj SKILL.md" : "Import SKILL.md"}
         </button>
+        {project && visible.some((s) => !s.installed && s.slug) && (
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={() =>
+              void installBatch(visible.filter((s) => !s.installed && s.slug))
+            }
+          >
+            <Icon name="plus" />
+            {pl
+              ? `Dodaj widoczne (${visible.filter((s) => !s.installed && s.slug).length})`
+              : `Add visible (${visible.filter((s) => !s.installed && s.slug).length})`}
+          </button>
+        )}
+      </div>
+      <div
+        className="skill-categories"
+        style={{
+          display: "flex",
+          gap: "0.45rem",
+          flexWrap: "wrap",
+          marginBottom: "0.75rem",
+        }}
+      >
+        {[
+          { id: "all", label: pl ? "Wszystkie (20)" : "All (20)" },
+          { id: "engineering", label: pl ? "Inżynieria & SDLC" : "Engineering & SDLC" },
+          { id: "design", label: pl ? "UI, Taste & Archify" : "UI, Taste & Archify" },
+          { id: "gws", label: "Google Workspace (GWS)" },
+          { id: "growth", label: pl ? "Marketing & Humanizer" : "Marketing & Humanizer" },
+          { id: "browser", label: "Browserbase & MCP" },
+        ].map((cat) => (
+          <button
+            key={cat.id}
+            type="button"
+            className={category === cat.id ? "primary" : "secondary"}
+            style={{ fontSize: "0.78rem", padding: "0.3rem 0.7rem" }}
+            onClick={() => setCategory(cat.id)}
+          >
+            {cat.label}
+          </button>
+        ))}
       </div>
       <p className="helper">
         {pl
@@ -136,9 +232,11 @@ export function SkillsHub({
             <span className={`skill-art skill-art-${i % 3}`}>
               <Icon
                 name={
-                  /design|UI/.test(skill.name)
+                  /design|UI|taste|archify/i.test(skill.name)
                     ? "palette"
-                    : /test|verification|review/.test(skill.name)
+                    : /test|verification|review|agent-skills|spec/i.test(
+                          skill.name,
+                        )
                       ? "shield"
                       : "code"
                 }
@@ -146,9 +244,13 @@ export function SkillsHub({
             </span>
             <div>
               <span className="skill-origin">
-                {skill.source.includes("github.com")
-                  ? "OPEN SOURCE · GITHUB"
-                  : "AI EVOLUTION POLSKA"}
+                {skill.source.includes("officialskills.sh/googleworkspace")
+                  ? "OFFICIALSKILLS.SH · GOOGLE WORKSPACE"
+                  : skill.source.includes("officialskills.sh/browserbase")
+                    ? "OFFICIALSKILLS.SH · BROWSERBASE"
+                    : skill.source.includes("github.com")
+                      ? "OPEN SOURCE · GITHUB"
+                      : "AI EVOLUTION POLSKA"}
               </span>
               <h2>{skill.name}</h2>
               <p>

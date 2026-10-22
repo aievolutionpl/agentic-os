@@ -1,0 +1,4 @@
+MIT License
+Copyright (c) tt-a1i
+Source: https://github.com/tt-a1i/archify/tree/25cf37080fc8b1dbe758a4efc3935b55f3327083/archify
+Pinned Revision: 25cf37080fc8b1dbe758a4efc3935b55f3327083

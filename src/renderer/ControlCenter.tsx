@@ -4,6 +4,7 @@ import type {
   AttentionItem,
   ConnectorScan,
   ConnectorStatus,
+  Extension,
   ProviderQuotaCard,
   ProviderSetting,
 } from "../shared";
@@ -71,6 +72,7 @@ export function ControlCenter({
   work = null,
   onOpenInbox,
   onOpenAttention,
+  onOpenSkills,
   agents = [],
 }: {
   language: "pl" | "en";
@@ -86,6 +88,7 @@ export function ControlCenter({
   work?: Attention | null;
   onOpenInbox?: () => void;
   onOpenAttention?: (item: AttentionItem) => void;
+  onOpenSkills?: () => void;
   /** Saved settings with their last recorded check: the map's evidence. */
   agents?: ProviderSetting[];
 }) {
@@ -93,6 +96,8 @@ export function ControlCenter({
   const pl = language === "pl";
   // Shared, cached quota reading: real limits and balances per provider.
   const [quota, setQuota] = useState<ProviderQuotaCard[]>([]);
+  const [skills, setSkills] = useState<Extension[]>([]);
+  const [skillFilter, setSkillFilter] = useState<string>("all");
   useEffect(() => {
     let alive = true;
     const load = () =>
@@ -100,6 +105,10 @@ export function ControlCenter({
         ?.quotaScan?.()
         .then((cards) => alive && setQuota(cards))
         .catch(() => {});
+    void window.agenting
+      ?.skillCatalog?.()
+      .then((items) => alive && setSkills(items))
+      .catch(() => {});
     load();
     const timer = setInterval(() => {
       if (!document.hidden) load();
@@ -516,6 +525,135 @@ export function ControlCenter({
             );
           })}
         </div>
+      )}
+      {skills.length > 0 && (
+        <section className="cc-skills-dock" aria-labelledby="cc-skills-title" style={{ marginTop: "2rem" }}>
+          <div className="cc-head" style={{ marginBottom: "0.75rem" }}>
+            <div>
+              <h2 id="cc-skills-title" className="cc-section" style={{ margin: 0 }}>
+                {pl
+                  ? `Wbudowane Skille w Dashboardzie (${skills.length})`
+                  : `Built-in Dashboard Skills (${skills.length})`}
+              </h2>
+              <p className="cc-subtitle" style={{ margin: "0.25rem 0 0" }}>
+                {pl
+                  ? "Zintegrowane pakiety z GitHub, OfficialSkills.sh, Google Workspace, Browserbase i AI Evolution."
+                  : "Integrated skill packages from GitHub, OfficialSkills.sh, Google Workspace, Browserbase, and AI Evolution."}
+              </p>
+            </div>
+            {onOpenSkills && (
+              <button className="secondary" onClick={onOpenSkills}>
+                <Icon name="code" />
+                {pl ? "Otwórz Bibliotekę Skilli →" : "Open Skill Library →"}
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
+            {[
+              { id: "all", label: pl ? "Wszystkie" : "All" },
+              { id: "engineering", label: pl ? "Inżynieria & QA" : "Engineering & QA" },
+              { id: "design", label: pl ? "UI, Taste & Architektura" : "UI, Taste & Architecture" },
+              { id: "gws", label: "Google Workspace (GWS)" },
+              { id: "growth", label: pl ? "Marketing & Humanizer" : "Marketing & Humanizer" },
+              { id: "browser", label: "Browserbase & MCP" },
+            ].map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                className={skillFilter === cat.id ? "primary" : "secondary"}
+                style={{ fontSize: "0.76rem", padding: "0.28rem 0.65rem" }}
+                onClick={() => setSkillFilter(cat.id)}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <div
+            className="fleet"
+            style={{
+              gridTemplateColumns: "repeat(auto-fill, minmax(245px, 1fr))",
+              gap: "0.75rem",
+            }}
+          >
+            {skills
+              .filter((s) => {
+                if (skillFilter === "all") return true;
+                const slug = s.slug ?? s.name;
+                if (skillFilter === "gws") return slug.startsWith("gws-");
+                if (skillFilter === "growth")
+                  return slug === "marketingskills" || slug === "humanizer";
+                if (skillFilter === "design")
+                  return (
+                    slug === "taste-skill" ||
+                    slug === "archify" ||
+                    slug === "frontend-design"
+                  );
+                if (skillFilter === "browser")
+                  return (
+                    slug === "browserbase-skills" ||
+                    slug === "mcp-builder" ||
+                    slug === "webapp-testing"
+                  );
+                return (
+                  slug === "addyosmani-agent-skills" ||
+                  slug === "awesome-claude-skills" ||
+                  slug === "agentskills-spec" ||
+                  slug === "systematic-debugging" ||
+                  slug === "test-driven-development" ||
+                  slug === "verification-before-completion" ||
+                  slug === "requesting-code-review" ||
+                  slug === "skill-creator"
+                );
+              })
+              .map((s) => (
+                <article
+                  key={s.id}
+                  className="connector-card tone-info"
+                  data-skill-slug={s.slug ?? s.name}
+                  style={{ padding: "0.85rem 1rem" }}
+                >
+                  <header style={{ marginBottom: "0.35rem" }}>
+                    <div className="connector-title">
+                      <span
+                        style={{
+                          fontSize: "0.66rem",
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                          opacity: 0.72,
+                        }}
+                      >
+                        {s.source.includes("officialskills.sh/googleworkspace")
+                          ? "OFFICIALSKILLS.SH · GWS"
+                          : s.source.includes("officialskills.sh/browserbase")
+                            ? "OFFICIALSKILLS.SH · BROWSERBASE"
+                            : "OPEN SOURCE · GITHUB"}
+                      </span>
+                      <h3 style={{ fontSize: "0.95rem", margin: "0.1rem 0" }}>
+                        {s.name}
+                      </h3>
+                    </div>
+                  </header>
+                  <p
+                    className="connector-reason"
+                    style={{ fontSize: "0.78rem", margin: "0.2rem 0 0.5rem" }}
+                  >
+                    {s.author} · {s.license} · {s.version.slice(0, 8)}
+                  </p>
+                  {onOpenSkills && (
+                    <button
+                      type="button"
+                      className="connector-configure"
+                      onClick={onOpenSkills}
+                    >
+                      <Icon name="plus" />
+                      {pl ? "Zarządzaj w Bibliotece Skilli" : "Manage in Skill Library"}
+                      <Icon name="chevron" />
+                    </button>
+                  )}
+                </article>
+              ))}
+          </div>
+        </section>
       )}
       {scan?.capabilities && (
         <CapabilityMatrix

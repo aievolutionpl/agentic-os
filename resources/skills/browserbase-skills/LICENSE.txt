@@ -1,0 +1,4 @@
+MIT License
+Copyright (c) Browserbase / officialskills.sh
+Source: https://officialskills.sh/browserbase/skills
+Pinned Revision: 6811ca31163332d9d60309cff48e77f09de37a17

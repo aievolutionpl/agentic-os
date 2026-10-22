@@ -1,0 +1,53 @@
+name: Release (unsigned Windows build)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag do wydania (np. v0.5.0-rc.1)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run release:audit
+      - run: npm run notices
+      - run: npm run package:win
+      - run: npm run smoke:package
+      - name: Checksums
+        run: |
+          Get-ChildItem release\*-setup.exe | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)" | Out-File -Append -Encoding ascii SHA256SUMS.txt
+          }
+          Get-Content SHA256SUMS.txt
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          $notes = "Niepodpisany instalator Windows x64. SHA-256 w SHA256SUMS.txt."
+          gh release view $env:TAG 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $env:TAG release\*-setup.exe SHA256SUMS.txt --clobber
+          } else {
+            gh release create $env:TAG release\*-setup.exe SHA256SUMS.txt `
+              --title "Agenting OS $env:TAG" `
+              --notes $notes `
+              --prerelease
+          }

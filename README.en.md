@@ -24,9 +24,13 @@ Agenting OS is an open-source, local-first agent workbench by **AI Evolution Pol
 
 Polish and English UI, Graphite, Light and Classic · Terra themes, keyboard access and reduced-motion support. `Ctrl+K` / `⌘K` opens the command palette; focused terminals keep their own keyboard shortcuts.
 
-## Get started
+## Download
 
-Install **Node.js 26**, npm, Git and a graphical desktop. The terminal uses native `node-pty`. If your platform needs compilation, install Python 3 and C++ build tools: `make`/`g++` on Linux, Visual Studio C++ Build Tools on Windows, or Xcode Command Line Tools on macOS.
+The unsigned Windows x64 installer is published in [Releases](https://github.com/aievolutionpl/agentic-os/releases/latest) together with SHA-256 sums. Windows SmartScreen will warn about an unknown publisher — expected without a code-signing certificate.
+
+## Build from source
+
+Install **Node.js 24 or 26** (`.nvmrc` pins 26), npm, Git and a graphical desktop. The terminal uses native `node-pty`. If your platform needs compilation, install Python 3 and C++ build tools: `make`/`g++` on Linux, Visual Studio C++ Build Tools on Windows, or Xcode Command Line Tools on macOS.
 
 ```sh
 git clone https://github.com/aievolutionpl/agentic-os.git

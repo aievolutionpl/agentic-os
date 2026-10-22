@@ -17,11 +17,14 @@ files:
   - src/renderer/fonts/*OFL.txt
   - docs/research/harness-assets-2026-10-19.md
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64]
   signAndEditExecutable: false
 nsis:
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
   oneClick: false
   perMachine: false
   allowElevation: false

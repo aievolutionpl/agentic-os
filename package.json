@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.main.json && vite build",
     "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.json --noEmit",
-    "test": "node --test --experimental-test-isolation=none tests/security.test.mjs tests/store.test.mjs tests/ui.test.mjs tests/lifecycle.test.mjs tests/lifecycle-ui.test.mjs tests/contrast.test.mjs tests/adapters.test.mjs tests/runtime.test.mjs tests/extensions.test.mjs tests/connectors.test.mjs tests/workspace.test.mjs tests/master.test.mjs tests/chats.test.mjs tests/orchestration-journal.test.mjs tests/capabilities.test.mjs tests/attention.test.mjs tests/backup.test.mjs tests/policy.test.mjs tests/router.test.mjs tests/usage-ledger.test.mjs tests/observations.test.mjs tests/limit-bridge.test.mjs tests/terminals.test.mjs tests/premium-workspace.test.mjs tests/orchestration-parallel.test.mjs tests/review-evidence.test.mjs",
+    "test": "node --test --experimental-test-isolation=none tests/*.test.mjs",
     "start": "npm run build && npm run runtime:install && electron .",
     "runtime:install": "node node_modules/electron/install.js",
     "smoke": "node scripts/smoke.mjs",
@@ -29,7 +29,8 @@
     "qa:harness": "node scripts/harness-qa.mjs",
     "qa:workbench": "node scripts/workbench-qa.mjs",
     "release:audit": "node scripts/release-audit.mjs",
-    "qa:premium": "node scripts/premium-qa.mjs"
+    "qa:premium": "node scripts/premium-qa.mjs",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@lobehub/icons-static-svg": "1.95.1",
@@ -50,9 +51,12 @@
     "electron": "https://registry.npmjs.org/electron/-/electron-43.8.0.tgz",
     "electron-builder": "26.17.0",
     "esbuild": "https://registry.npmjs.org/esbuild/-/esbuild-0.25.12.tgz",
+    "eslint": "^9.39.5",
+    "globals": "^15.15.0",
     "jsdom": "https://registry.npmjs.org/jsdom/-/jsdom-20.0.3.tgz",
     "playwright": "https://registry.npmjs.org/playwright/-/playwright-1.64.0.tgz",
     "typescript": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
+    "typescript-eslint": "^8.72.0",
     "vite": "https://registry.npmjs.org/vite/-/vite-7.3.7.tgz"
   },
   "overrides": {

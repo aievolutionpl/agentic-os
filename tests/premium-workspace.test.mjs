@@ -287,7 +287,7 @@ test("Kanban derives stages from real runs, selects the reviewer when reviewing 
   );
   store.runs.update(project.id, run.id, { state: "reviewing" });
   store.runs.event(run.id, "activity", "Reviewing result");
-  let card = workBoard(store).cards[0];
+  const card = workBoard(store).cards[0];
   assert.equal(card.stage, "working");
   assert.equal(card.agent, "claude");
   assert.equal(card.activity, "Reviewing result");

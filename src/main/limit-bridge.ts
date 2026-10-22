@@ -109,13 +109,13 @@ function previous() {
 }
 const raw = await readStdin();
 let reading = null;
-try { reading = pick(JSON.parse(raw)); } catch {}
+try { reading = pick(JSON.parse(raw)); } catch { /* best effort: failure here must not mask the primary result */ }
 if (reading) {
   try {
     const file = join(here, agent + "-limits.json");
     writeFileSync(file + ".tmp", JSON.stringify(reading), { mode: 0o600 });
     renameSync(file + ".tmp", file);
-  } catch {}
+  } catch { /* best effort: failure here must not mask the primary result */ }
 }
 // The previous command was written for the shell the CLI uses: on Windows
 // that is Git Bash when installed and PowerShell otherwise, never cmd.exe.
@@ -305,7 +305,7 @@ export class LimitBridge {
     try {
       if (BRIDGE_AGENTS.some((agent) => this.status(agent).installed))
         this.files();
-    } catch {}
+    } catch { /* best effort: failure here must not mask the primary result */ }
   }
   install(input: unknown): LimitBridgeStatus {
     const p = exact(input, ["agent", "consent"]);
@@ -350,7 +350,7 @@ export class LimitBridge {
         previous = JSON.parse(
           readFileSync(join(this.dir, `${agent}.json`), "utf8"),
         ).previous;
-      } catch {}
+      } catch { /* best effort: failure here must not mask the primary result */ }
       if (previous && typeof previous.command === "string")
         settings.statusLine = previous;
       else delete settings.statusLine;

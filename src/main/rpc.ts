@@ -179,7 +179,7 @@ export class RpcProcess extends EventEmitter {
       const escalation = setTimeout(() => {
         try {
           process.kill(-pid, "SIGKILL");
-        } catch {}
+        } catch { /* best effort: failure here must not mask the primary result */ }
       }, 1000);
       escalation.unref();
     }

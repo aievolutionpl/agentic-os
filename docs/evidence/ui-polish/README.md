@@ -23,7 +23,7 @@ Native Windows (`win32`), Node 26.10.0, npm 11.19.1, Electron 43.1.0. No depende
 | `npm run build` | PASS |
 | `npm test` | PASS, 30/30, includes production build |
 | `npm run smoke` | PASS, real sandboxed Electron; [result](smoke/smoke-result.json) |
-| `npm run qa:contrast` | PASS, 2533 text measurements over 75 screens, zero failures/overflow; [result](contrast/result.json) |
+| `npm run qa:contrast` | PASS, 2533 text measurements over 75 screens, zero failures/overflow; [result](contrast/result.json.gz) |
 | `node scripts/ui-capture.mjs after` | PASS, six final screens; [result](after/result.json) |
 
 The smoke preserves CRUD, project isolation, inert script text, persisted settings, restart and security checks. It additionally verifies custom-listbox keyboard movement/cancellation, focus return, `/` search, `Ctrl+Enter` save, actual system clipboard content, abandoned and confirmed cancellation, callout dismissal across reload, empty-state focus and long-name reflow. Reflow also covers 320/768/1280px; dialogs and dropdowns are measured at 320/390/768/1024/1440 in both themes.

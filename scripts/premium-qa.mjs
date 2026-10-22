@@ -49,7 +49,7 @@ try {
   await page.getByRole("textbox",{name:"Pierwsza wiadomość",exact:true}).fill("Sprawdź kierunek interfejsu.");
   await page.getByRole("button",{name:"Otwórz rozmowę",exact:true}).click();
   await page.locator(".message-actions").first().waitFor();
-  let chat=(await page.evaluate(()=>window.agenting.chatList()))[0];assert.equal(chat.model,"fixture-model");
+  const chat=(await page.evaluate(()=>window.agenting.chatList()))[0];assert.equal(chat.model,"fixture-model");
   await page.getByLabel("Model rozmowy",{exact:true}).selectOption("__custom__");
   await page.getByRole("textbox",{name:"Model rozmowy",exact:true}).fill("fixture-next");
   await page.getByRole("textbox",{name:"Wiadomość do agenta",exact:true}).fill("Doprecyzuj plan.");

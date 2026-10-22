@@ -33,7 +33,7 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
       try {
         hermesLaunch(path, ["acp"], homedir());
         result.hermes = path;
-      } catch {}
+      } catch { /* best effort: failure here must not mask the primary result */ }
     }
     if (id === "codex" && path && process.platform === "win32") {
       const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
@@ -109,7 +109,7 @@ export function detectExecutables(): Partial<Record<Agent, string>> {
       try {
         hermesLaunch(found, ["acp"], homedir());
         result.hermes = found;
-      } catch {}
+      } catch { /* best effort: failure here must not mask the primary result */ }
     }
   }
   return result;

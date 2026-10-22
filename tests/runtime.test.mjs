@@ -671,7 +671,7 @@ test("provider crash fails closed; invalid project, dirty repository and unconse
 test("a policy refusal stops a task run before any run, worktree or process exists", async () => {
   const f = await setup();
   try {
-    let gated = [];
+    const gated = [];
     f.supervisor.gate = async (agent) => {
       gated.push(agent);
       throw Error("POLICY_PAID_API_DISABLED");

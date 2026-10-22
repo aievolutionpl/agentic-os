@@ -104,7 +104,7 @@ try {
     0,
   );
   await page.getByRole("button", { name: "Dodaj budżet", exact: true }).click();
-  let dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog");
   await dialog
     .getByRole("textbox", { name: "Nazwa budżetu" })
     .fill("Budżet demonstracyjny QA");

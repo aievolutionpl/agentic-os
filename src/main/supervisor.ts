@@ -854,7 +854,7 @@ export class Supervisor {
             outcome: "failed",
             failure: "worker_error",
           });
-        } catch {}
+        } catch { /* best effort: failure here must not mask the primary result */ }
       }
       throw error;
     } finally {

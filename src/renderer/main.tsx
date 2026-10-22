@@ -641,6 +641,42 @@ function App() {
         run: () => void preferences({ theme: "classic" }),
       },
       {
+        id: "action-claude-theme",
+        label: pl
+          ? "Motyw Claude Code · Warm Carbon"
+          : "Claude Code theme · Warm Carbon",
+        group: act,
+        icon: "palette",
+        run: () => void preferences({ theme: "claude" }),
+      },
+      {
+        id: "action-codex-theme",
+        label: pl
+          ? "Motyw Codex CLI · Matrix Obsidian"
+          : "Codex CLI theme · Matrix Obsidian",
+        group: act,
+        icon: "palette",
+        run: () => void preferences({ theme: "codex" }),
+      },
+      {
+        id: "action-tokyo-theme",
+        label: pl
+          ? "Motyw Tokyo Night · Cyber Harness"
+          : "Tokyo Night theme · Cyber Harness",
+        group: act,
+        icon: "palette",
+        run: () => void preferences({ theme: "tokyo" }),
+      },
+      {
+        id: "action-nord-theme",
+        label: pl
+          ? "Motyw Nord · Arctic Studio"
+          : "Nord theme · Arctic Studio",
+        group: act,
+        icon: "palette",
+        run: () => void preferences({ theme: "nord" }),
+      },
+      {
         id: "action-language",
         label: pl ? "Switch to English" : "Przełącz na polski",
         group: act,
@@ -696,115 +732,193 @@ function App() {
           )}
         </div>
         {api?.connectorScan && (
-          <nav className="primary-nav" aria-label="Agenting OS">
-            {api.chatList &&
-              (
-                [
-                  { id: "chat", icon: "message", pl: "Czaty", en: "Chats" },
-                  ...(api.terminalList
-                    ? [
-                        {
-                          id: "terminal" as const,
-                          icon: "terminal",
-                          pl: "Terminal",
-                          en: "Terminal",
-                        },
-                      ]
-                    : []),
-                  {
-                    id: "shared-memory",
-                    icon: "memory",
-                    pl: "Wspólna pamięć",
-                    en: "Shared memory",
-                  },
-                  {
-                    id: "skills",
-                    icon: "skill",
-                    pl: "Biblioteka skilli",
-                    en: "Skill library",
-                  },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.id}
-                  className={`nav-item ${view === item.id ? "selected" : ""}`}
-                  aria-current={view === item.id ? "page" : undefined}
-                  onClick={() => {
-                    setProjectsExpanded(false);
-                    setView(item.id);
-                  }}
-                >
-                  <Icon name={item.icon} />
-                  <span>{prefs.language === "pl" ? item.pl : item.en}</span>
-                </button>
-              ))}
-            {api.attention && (
-              <button
-                className={`nav-item ${view === "inbox" ? "selected" : ""}`}
-                aria-current={view === "inbox" ? "page" : undefined}
-                onClick={() => {
-                  setProjectsExpanded(false);
-                  setView("inbox");
+          <>
+            <div className="sidebar-harness-pill">
+              <span>
+                <strong>HARNESS</strong> ·{" "}
+                {agents.filter((a) => a.configured && a.id !== "gemini").length}{" "}
+                {prefs.language === "pl" ? "SILNIKÓW" : "ENGINES"}
+              </span>
+              <kbd
+                role="button"
+                tabIndex={0}
+                title="Command Palette (Ctrl+K)"
+                onClick={() => setPalette(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setPalette(true);
+                  }
                 }}
               >
-                <Icon name="inbox" />
-                <span>{attentionWords[prefs.language].title}</span>
-                {!!attention?.decisions.length && (
-                  <span
-                    className="nav-count"
-                    aria-label={
-                      prefs.language === "pl"
-                        ? `${attention.decisions.length} oczekuje`
-                        : `${attention.decisions.length} waiting`
-                    }
-                  >
-                    {attention.decisions.length > 99
-                      ? "99+"
-                      : attention.decisions.length}
-                  </span>
-                )}
+                Ctrl K
+              </kbd>
+            </div>
+            <nav className="primary-nav" aria-label="Agenting OS">
+              <div className="nav-group-label" aria-hidden="true">
+                <span>
+                  {prefs.language === "pl"
+                    ? "HARNESS & SESJE"
+                    : "HARNESS & SESSIONS"}
+                </span>
+              </div>
+              <button
+                className={`nav-item ${view === "center" ? "selected" : ""}`}
+                aria-current={view === "center" ? "page" : undefined}
+                data-badge="HUB"
+                onClick={() => {
+                  setProjectsExpanded(false);
+                  setView("center");
+                }}
+              >
+                <Icon name="grid" />
+                <span>{ccWords[prefs.language].nav}</span>
               </button>
-            )}
-            <button
-              className={`nav-item ${view === "connections" ? "selected" : ""}`}
-              aria-current={view === "connections" ? "page" : undefined}
-              onClick={() => {
-                setProjectsExpanded(false);
-                setView("connections");
-              }}
-            >
-              <Icon name="connections" />
-              <span>
-                {prefs.language === "pl"
-                  ? "Połączenia i modele"
-                  : "Connections & models"}
-              </span>
-            </button>
-            <button
-              className={`nav-item ${view === "quota" ? "selected" : ""}`}
-              aria-current={view === "quota" ? "page" : undefined}
-              onClick={() => {
-                setProjectsExpanded(false);
-                setView("quota");
-              }}
-            >
-              <Icon name="layers" />
-              <span>
-                {prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota"}
-              </span>
-            </button>
-            <button
-              className={`nav-item ${view === "center" ? "selected" : ""}`}
-              aria-current={view === "center" ? "page" : undefined}
-              onClick={() => {
-                setProjectsExpanded(false);
-                setView("center");
-              }}
-            >
-              <Icon name="grid" />
-              <span>{ccWords[prefs.language].nav}</span>
-            </button>
-          </nav>
+              {api.chatList &&
+                (
+                  [
+                    {
+                      id: "chat" as const,
+                      icon: "message",
+                      pl: "Czaty",
+                      en: "Chats",
+                      badge: "CLI",
+                    },
+                    ...(api.terminalList
+                      ? [
+                          {
+                            id: "terminal" as const,
+                            icon: "terminal",
+                            pl: "Terminal",
+                            en: "Terminal",
+                            badge: "PTY",
+                          },
+                        ]
+                      : []),
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.id}
+                    className={`nav-item ${view === item.id ? "selected" : ""}`}
+                    aria-current={view === item.id ? "page" : undefined}
+                    data-badge={item.badge}
+                    onClick={() => {
+                      setProjectsExpanded(false);
+                      setView(item.id);
+                    }}
+                  >
+                    <Icon name={item.icon} />
+                    <span>{prefs.language === "pl" ? item.pl : item.en}</span>
+                  </button>
+                ))}
+              {api.attention && (
+                <button
+                  className={`nav-item ${view === "inbox" ? "selected" : ""}`}
+                  aria-current={view === "inbox" ? "page" : undefined}
+                  onClick={() => {
+                    setProjectsExpanded(false);
+                    setView("inbox");
+                  }}
+                >
+                  <Icon name="inbox" />
+                  <span>{attentionWords[prefs.language].title}</span>
+                  {!!attention?.decisions.length && (
+                    <span
+                      className="nav-count"
+                      aria-label={
+                        prefs.language === "pl"
+                          ? `${attention.decisions.length} oczekuje`
+                          : `${attention.decisions.length} waiting`
+                      }
+                    >
+                      {attention.decisions.length > 99
+                        ? "99+"
+                        : attention.decisions.length}
+                    </span>
+                  )}
+                </button>
+              )}
+              {api.chatList && (
+                <>
+                  <div className="nav-group-label" aria-hidden="true">
+                    <span>
+                      {prefs.language === "pl"
+                        ? "WIEDZA & SKILLE"
+                        : "KNOWLEDGE & SKILLS"}
+                    </span>
+                  </div>
+                  {(
+                    [
+                      {
+                        id: "skills" as const,
+                        icon: "skill",
+                        pl: "Biblioteka skilli",
+                        en: "Skill library",
+                        badge: "20",
+                      },
+                      {
+                        id: "shared-memory" as const,
+                        icon: "memory",
+                        pl: "Wspólna pamięć",
+                        en: "Shared memory",
+                        badge: "VAULT",
+                      },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      className={`nav-item ${view === item.id ? "selected" : ""}`}
+                      aria-current={view === item.id ? "page" : undefined}
+                      data-badge={item.badge}
+                      onClick={() => {
+                        setProjectsExpanded(false);
+                        setView(item.id);
+                      }}
+                    >
+                      <Icon name={item.icon} />
+                      <span>{prefs.language === "pl" ? item.pl : item.en}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+              <div className="nav-group-label" aria-hidden="true">
+                <span>
+                  {prefs.language === "pl"
+                    ? "INFRASTRUKTURA"
+                    : "RUNTIME & INFRA"}
+                </span>
+              </div>
+              <button
+                className={`nav-item ${view === "connections" ? "selected" : ""}`}
+                aria-current={view === "connections" ? "page" : undefined}
+                data-badge="MCP"
+                onClick={() => {
+                  setProjectsExpanded(false);
+                  setView("connections");
+                }}
+              >
+                <Icon name="connections" />
+                <span>
+                  {prefs.language === "pl"
+                    ? "Połączenia i modele"
+                    : "Connections & models"}
+                </span>
+              </button>
+              <button
+                className={`nav-item ${view === "quota" ? "selected" : ""}`}
+                aria-current={view === "quota" ? "page" : undefined}
+                onClick={() => {
+                  setProjectsExpanded(false);
+                  setView("quota");
+                }}
+              >
+                <Icon name="layers" />
+                <span>
+                  {prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota"}
+                </span>
+              </button>
+            </nav>
+          </>
         )}
         <div className="project-heading">
           <h2 id="projects-title">{w.projects}</h2>
@@ -1022,6 +1136,22 @@ function App() {
                 {
                   value: "dark",
                   label: prefs.language === "pl" ? "Grafit" : "Graphite",
+                },
+                {
+                  value: "claude",
+                  label: "Claude Code · Carbon",
+                },
+                {
+                  value: "codex",
+                  label: "Codex CLI · Matrix",
+                },
+                {
+                  value: "tokyo",
+                  label: "Tokyo Night · Cyber",
+                },
+                {
+                  value: "nord",
+                  label: "Nord · Arctic",
                 },
                 {
                   value: "light",
@@ -1628,6 +1758,84 @@ function App() {
             )}
           </div>
         </main>
+        {api?.connectorScan && (
+          <footer
+            className="harness-statusbar"
+            role="contentinfo"
+            aria-label={
+              prefs.language === "pl"
+                ? "Pasek statusu harnessu"
+                : "Harness status bar"
+            }
+          >
+            <div className="harness-statusbar-left">
+              <span className="status-pill tone-live">
+                <i className="pulse-dot" aria-hidden="true" />
+                {busy || loading
+                  ? prefs.language === "pl"
+                    ? "HARNESS · PRACA W TOKU"
+                    : "HARNESS · ACTIVE"
+                  : "HARNESS · READY"}
+              </span>
+              <span className="status-pill">
+                <Icon name="shield" />
+                SANDBOX: WORKTREE · GATE: HUMAN
+              </span>
+              {project && (
+                <span className="status-pill" title={project.root || project.name}>
+                  <Icon name="folder" />
+                  {project.name} · MASTER: {project.master.toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="harness-statusbar-right">
+              <button
+                type="button"
+                className="status-pill"
+                onClick={() => setView("skills")}
+              >
+                <Icon name="skill" />
+                SKILLS: 20
+              </button>
+              {api.terminalList && (
+                <button
+                  type="button"
+                  className="status-pill"
+                  onClick={() => setView("terminal")}
+                >
+                  <Icon name="terminal" />
+                  PTY
+                </button>
+              )}
+              <button
+                type="button"
+                className="status-pill"
+                title={
+                  prefs.language === "pl"
+                    ? "Przełącz kolejny motyw kolorystyczny"
+                    : "Cycle to next color theme"
+                }
+                onClick={() => {
+                  const order: Preferences["theme"][] = [
+                    "dark",
+                    "claude",
+                    "codex",
+                    "tokyo",
+                    "nord",
+                    "light",
+                    "classic",
+                  ];
+                  const idx = order.indexOf(prefs.theme);
+                  const next = order[(idx + 1) % order.length]!;
+                  void preferences({ theme: next });
+                }}
+              >
+                <Icon name="palette" />
+                THEME: {prefs.theme.toUpperCase()}
+              </button>
+            </div>
+          </footer>
+        )}
       </div>
       <Modal
         open={projectOpen}

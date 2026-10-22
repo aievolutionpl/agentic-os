@@ -2,9 +2,62 @@ import React, { useEffect, useRef, useState } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
-import type { Project, TerminalSession } from "../shared";
+import type { Project, TerminalSession, ThemeMode } from "../shared";
 import { Icon, Modal } from "./ui";
 import { ErrorNote } from "./ErrorNote";
+
+const TERMINAL_THEMES: Record<
+  ThemeMode,
+  {
+    background: string;
+    foreground: string;
+    cursor: string;
+    selectionBackground: string;
+  }
+> = {
+  dark: {
+    background: "#0d1117",
+    foreground: "#e8eef8",
+    cursor: "#e5b195",
+    selectionBackground: "#355471",
+  },
+  claude: {
+    background: "#121110",
+    foreground: "#f4f0e8",
+    cursor: "#d97757",
+    selectionBackground: "#4c3228",
+  },
+  codex: {
+    background: "#070b0d",
+    foreground: "#e4f5ef",
+    cursor: "#10a37f",
+    selectionBackground: "#134e3f",
+  },
+  tokyo: {
+    background: "#0f111a",
+    foreground: "#c0caf5",
+    cursor: "#7aa2f7",
+    selectionBackground: "#283457",
+  },
+  nord: {
+    background: "#1c2128",
+    foreground: "#eceff4",
+    cursor: "#88c0d0",
+    selectionBackground: "#3b4252",
+  },
+  light: {
+    background: "#0f141c",
+    foreground: "#e8eef8",
+    cursor: "#65d5ff",
+    selectionBackground: "#355471",
+  },
+  classic: {
+    background: "#181512",
+    foreground: "#f5efe8",
+    cursor: "#d97757",
+    selectionBackground: "#4e3529",
+  },
+};
 
 function TerminalView({
   session,
@@ -14,7 +67,7 @@ function TerminalView({
 }: {
   session: TerminalSession;
   pl: boolean;
-  theme: "dark" | "light" | "classic";
+  theme: ThemeMode;
   onExit: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -33,12 +86,7 @@ function TerminalView({
       screenReaderMode: true,
       allowProposedApi: false,
       minimumContrastRatio: 4.5,
-      theme: {
-        background: "#0d1320",
-        foreground: "#e8eef8",
-        cursor: "#65d5ff",
-        selectionBackground: "#355471",
-      },
+      theme: TERMINAL_THEMES[theme] ?? TERMINAL_THEMES.dark,
     });
     const fit = new FitAddon();
     terminal.loadAddon(fit);
@@ -164,7 +212,7 @@ export function TerminalPanel({
 }: {
   language: "pl" | "en";
   projects: Project[];
-  theme: "dark" | "light" | "classic";
+  theme: ThemeMode;
 }) {
   const pl = language === "pl",
     api = window.agenting!;

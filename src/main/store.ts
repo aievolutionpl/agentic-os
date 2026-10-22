@@ -11,7 +11,7 @@ import { Batches } from "./batches.js";
 import { CapabilityChecks } from "./capabilities.js";
 import { Policies } from "./policy.js";
 import { UsageLedger } from "./usage-ledger.js";
-import { AGENTS } from "../shared.js";
+import { AGENTS, THEMES } from "../shared.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import type {
@@ -384,7 +384,7 @@ export class Store {
       typeof p.language !== "string" ||
       typeof p.theme !== "string" ||
       !["pl", "en"].includes(p.language) ||
-      !["light", "dark", "classic"].includes(p.theme)
+      !(THEMES as readonly string[]).includes(p.theme)
     )
       throw Error("INVALID_INPUT");
     this.db

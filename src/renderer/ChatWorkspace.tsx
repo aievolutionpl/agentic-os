@@ -524,10 +524,106 @@ export function ChatWorkspace({
                 </div>
               </header>
               <div className="chat-start-form">
+                <div className="harness-telemetry-strip">
+                  <span>
+                    HARNESS // ENGINE: <code>{agentName(agent)}</code>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    MODE:{" "}
+                    <code>
+                      {mode === "plan" ? "PLAN (READ-ONLY)" : "EXECUTION / CHAT"}
+                    </code>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    WORKSPACE: <code>{source.toUpperCase()}</code>
+                  </span>
+                </div>
                 <div
                   className={`chat-composer start-composer${drop.over ? " drop-over" : ""}`}
                   {...drop.props}
                 >
+                  <div className="harness-slash-bar">
+                    <span className="harness-slash-label">
+                      {pl ? "Komendy:" : "Commands:"}
+                    </span>
+                    {[
+                      {
+                        cmd: "/plan",
+                        label: pl ? "Architektura" : "Architecture",
+                        action: () => {
+                          if (READ_ONLY_AGENTS.includes(agent)) setMode("plan");
+                          setMessage(
+                            pl
+                              ? "Przeanalizuj architekturę i przygotuj szczegółowy plan implementacji krok po kroku przed zmianą plików."
+                              : "Analyze the architecture and prepare a step-by-step implementation plan before modifying files.",
+                          );
+                        },
+                      },
+                      {
+                        cmd: "/review",
+                        label: "Code Review",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Przeprowadź rygorystyczny code review: wskaż błędy logiczne, luki bezpieczeństwa, regresje i brakujące testy."
+                              : "Run a rigorous code review: identify logic bugs, security issues, regressions, and missing tests.",
+                          ),
+                      },
+                      {
+                        cmd: "/test",
+                        label: "TDD & QA",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Napisz testy weryfikujące obecną funkcjonalność i krawędziowe przypadki zgodnie z TDD."
+                              : "Write tests verifying current functionality and edge cases following TDD.",
+                          ),
+                      },
+                      {
+                        cmd: "/archify",
+                        label: "C4 Docs",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Użyj skilla Archify: wygeneruj przegląd architektury systemu, granic modułów i diagramy Mermaid."
+                              : "Use Archify skill: generate system architecture overview, module boundaries, and Mermaid diagrams.",
+                          ),
+                      },
+                      {
+                        cmd: "/taste-ui",
+                        label: "Taste UI",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Zastosuj Taste-Skill: zaprojektuj i dopracuj UI o wysokim kunszcie (typografia, hierarchia, brak generycznych wzorców AI)."
+                              : "Apply Taste-Skill: design and refine high-craft UI (typography, hierarchy, zero generic AI slop).",
+                          ),
+                      },
+                      {
+                        cmd: "/humanize",
+                        label: "Humanizer",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Zastosuj Humanizer: usuń sztuczne sformułowania AI i nadaj tekstowi naturalny, precyzyjny ton."
+                              : "Apply Humanizer: strip AI writing tropes and rewrite with natural, precise human voice.",
+                          ),
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.cmd}
+                        type="button"
+                        className="slash-chip"
+                        disabled={busy}
+                        onClick={item.action}
+                      >
+                        <strong>{item.cmd}</strong>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
                   <textarea
                     aria-label={pl ? "Pierwsza wiadomość" : "First message"}
                     value={message}
@@ -1263,6 +1359,52 @@ export function ChatWorkspace({
                   <span>
                     {message.length.toLocaleString(language)} / 12 000
                   </span>
+                </div>
+                <div className="harness-slash-bar">
+                  <span className="harness-slash-label">
+                    {pl ? "Komendy:" : "Commands:"}
+                  </span>
+                  {[
+                    {
+                      cmd: "/verify",
+                      label: pl ? "Weryfikacja" : "Verify",
+                      prompt: pl
+                        ? "Zweryfikuj ostatnie zmiany: uruchom testy, sprawdź typy i potwierdź brak regresji."
+                        : "Verify recent changes: run tests, check types, and confirm zero regressions.",
+                    },
+                    {
+                      cmd: "/diff-audit",
+                      label: "Diff Audit",
+                      prompt: pl
+                        ? "Przeanalizuj bieżący diff pod kątem bezpieczeństwa, czytelności i przypadków brzegowych."
+                        : "Audit the current diff for security, readability, and edge cases.",
+                    },
+                    {
+                      cmd: "/archify",
+                      label: "Archify",
+                      prompt: pl
+                        ? "Zaktualizuj dokumentację architektury i diagramy przepływu danych dla bieżących zmian."
+                        : "Update architecture documentation and data flow diagrams for current changes.",
+                    },
+                    {
+                      cmd: "/taste-ui",
+                      label: "Taste UI",
+                      prompt: pl
+                        ? "Dopracuj warstwę wizualną i interakcje zgodnie z zasadami Taste-Skill."
+                        : "Refine visual craft and interactions following Taste-Skill guidelines.",
+                    },
+                  ].map((item) => (
+                    <button
+                      key={item.cmd}
+                      type="button"
+                      className="slash-chip"
+                      disabled={busy || running}
+                      onClick={() => setMessage(item.prompt)}
+                    >
+                      <strong>{item.cmd}</strong>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
                 </div>
                 <textarea
                   aria-label={pl ? "Wiadomość do agenta" : "Message to agent"}

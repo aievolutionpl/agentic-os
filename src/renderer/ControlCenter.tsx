@@ -267,6 +267,74 @@ export function ControlCenter({
           </div>
         </div>
       </div>
+      <div
+        className="harness-pipeline-strip"
+        role="region"
+        aria-label={
+          pl ? "Architektura Harnessu Agentowego" : "Agent Harness Pipeline"
+        }
+      >
+        <button
+          type="button"
+          className="pipeline-step"
+          onClick={onOpenSkills}
+        >
+          <span className="pipeline-step-index">01 // CONTEXT & SKILLS</span>
+          <strong>
+            {pl ? "20 Wbudowanych Skilli + Vault" : "20 Built-in Skills + Vault"}
+          </strong>
+          <small>
+            {pl
+              ? "Taste-UI, Archify, GWS, Browserbase, Addy Osmani, Superpowers"
+              : "Taste-UI, Archify, GWS, Browserbase, Addy Osmani, Superpowers"}
+          </small>
+        </button>
+        <button
+          type="button"
+          className="pipeline-step"
+          onClick={onConfigure}
+        >
+          <span className="pipeline-step-index">02 // MULTI-AGENT HARNESS</span>
+          <strong>
+            {pl ? "Codex · Claude Code · OpenCode" : "Codex · Claude Code · OpenCode"}
+          </strong>
+          <small>
+            {pl
+              ? "Natywne adaptery CLI, ACP, Hermes oraz lokalne modele Ollama/LM Studio"
+              : "Native CLI, ACP, Hermes adapters and local Ollama/LM Studio models"}
+          </small>
+        </button>
+        <button
+          type="button"
+          className="pipeline-step"
+          onClick={onNewProject}
+        >
+          <span className="pipeline-step-index">03 // SANDBOX ISOLATION</span>
+          <strong>
+            {pl ? "Izolowane Git Worktree" : "Isolated Git Worktrees"}
+          </strong>
+          <small>
+            {pl
+              ? "Każde zadanie działa w osobnej gałęzi roboczej bez ryzyka dla repozytorium"
+              : "Every run executes in an isolated worktree without touching your main branch"}
+          </small>
+        </button>
+        <button
+          type="button"
+          className="pipeline-step"
+          onClick={onOpenInbox ?? onOpenQuota}
+        >
+          <span className="pipeline-step-index">04 // VERIFICATION & GATE</span>
+          <strong>
+            {pl ? "Diff Studio, Testy & Rollback" : "Diff Studio, Tests & Rollback"}
+          </strong>
+          <small>
+            {pl
+              ? "Automatyczna bramka weryfikacyjna i bezpieczne zatwierdzanie 1-klikiem"
+              : "Automated verification gate and 1-click safe human approval & rollback"}
+          </small>
+        </button>
+      </div>
       {work && (
         <section className="now-strip" aria-labelledby="now-title">
           <h2 id="now-title" className="cc-section">

@@ -363,10 +363,12 @@ test("a per-conversation model survives a turn and reaches the Codex thread and 
       "chosen-model",
     );
 });
-test("Classic theme persists and active selectors retain Antigravity without Gemini CLI", (t) => {
+test("Classic and Harness themes persist and active selectors retain Antigravity without Gemini CLI", (t) => {
   const { store } = setup(t);
-  store.setPreferences({ language: "pl", theme: "classic" });
-  assert.equal(store.preferences().theme, "classic");
+  for (const theme of ["claude", "codex", "tokyo", "nord", "classic"]) {
+    store.setPreferences({ language: "pl", theme });
+    assert.equal(store.preferences().theme, theme);
+  }
   assert.ok(AVAILABLE_AGENTS.includes("antigravity"));
   assert.ok(!AVAILABLE_AGENTS.includes("gemini"));
 });

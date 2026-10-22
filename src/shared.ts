@@ -244,9 +244,19 @@ export function chatMarkdown(chat: ChatSession): string {
     ].join("\n\n") + "\n"
   );
 }
+export const THEMES = [
+  "dark",
+  "claude",
+  "codex",
+  "tokyo",
+  "nord",
+  "light",
+  "classic",
+] as const;
+export type ThemeMode = (typeof THEMES)[number];
 export interface Preferences {
   language: "pl" | "en";
-  theme: "dark" | "light" | "classic";
+  theme: ThemeMode;
 }
 export interface Integration {
   id: string;

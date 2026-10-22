@@ -992,3 +992,182 @@ export interface RuntimeView {
   events: RunEvent[];
   providers: ProviderSetting[];
 }
+
+/**
+ * One place that turns an error code into something an operator can act on.
+ * Codes come from the main process as either "CODE" or "Error: CODE ...", so the
+ * lookup is a substring match on the longest known code.
+ */
+export interface ErrorExplanation {
+  /** Matched code, or "UNKNOWN" when nothing matched. */
+  code: string;
+  /** Short headline; never the raw code. */
+  title: string;
+  /** What to do next. */
+  hint: string;
+  /** Original value, kept for the details disclosure. */
+  raw: string;
+}
+interface ErrorCopy {
+  pl: [title: string, hint: string];
+  en: [title: string, hint: string];
+}
+const ERRORS: Record<string, ErrorCopy> = {
+  PROVIDER_NOT_CONFIGURED: {
+    pl: ["Agent nie jest podłączony", "Otwórz Połączenia, sprawdź wykrywanie CLI, zapisz ustawienia i spróbuj ponownie."],
+    en: ["This agent is not connected", "Open Connections, re-run detection, save the settings and try again."],
+  },
+  PROVIDER_MODEL_REQUIRED: {
+    pl: ["Brak wybranego modelu", "W Połączeniach wybierz i zapisz model, np. z subskrypcji ChatGPT/Codex."],
+    en: ["No model selected", "Pick and save a model in Connections, for example a ChatGPT/Codex subscription model."],
+  },
+  PROVIDER_AUTH_REQUIRED: {
+    pl: ["Agent wymaga logowania", "Zaloguj konto dostawcy, potem wróć tutaj i wyślij wiadomość ponownie."],
+    en: ["The agent needs a sign-in", "Sign in to the provider, then come back and send the message again."],
+  },
+  PROVIDER_MODEL_UNAVAILABLE: {
+    pl: ["Model jest niedostępny", "Odśwież listę modeli w Połączeniach i wybierz dostępny model."],
+    en: ["The model is unavailable", "Refresh the model list in Connections and pick an available model."],
+  },
+  READ_ONLY_PROVIDER_REQUIRED: {
+    pl: ["Ten agent nie ma trybu planowania", "Wybierz tryb rozmowy albo agenta ze zweryfikowanym trybem tylko do odczytu."],
+    en: ["This agent has no planning mode", "Switch to chat or pick an agent with a verified read-only mode."],
+  },
+  POLICY_APPROVAL_REQUIRED: {
+    pl: ["Zadanie wymaga zgody na płatne API", "Sprawdź koszt i zatwierdź jednorazowo albo zmień politykę projektu."],
+    en: ["This task needs paid-API approval", "Review the cost and approve once, or change the project policy."],
+  },
+  BUDGET_EXCEEDED: {
+    pl: ["Wyczerpany budżet projektu", "Podnieś limit miesięczny w Polityce albo przełącz na dostawcę subskrypcyjnego."],
+    en: ["Project budget exhausted", "Raise the monthly cap in Policy or switch to a subscription provider."],
+  },
+  RUN_CANCELLED: {
+    pl: ["Zadanie zatrzymane", "Nic nie zostało zastosowane. Możesz uruchomić je ponownie, gdy będziesz gotowy."],
+    en: ["The run was cancelled", "Nothing was applied. You can start it again when you are ready."],
+  },
+  RUN_ALREADY_ACTIVE: {
+    pl: ["Ten projekt już pracuje", "Poczekaj na zakończenie aktywnego zadania lub je zatrzymaj."],
+    en: ["This project is already running", "Wait for the active run to finish, or stop it first."],
+  },
+  STOP_UNCONFIRMED: {
+    pl: ["Nie potwierdzono zatrzymania procesu", "Sprawdź Menedżer zadań: proces agenta może nadal działać. Nie uruchamiaj kolejnego zadania."],
+    en: ["Process stop was not confirmed", "Check the task manager: the agent process may still be running. Do not start another task."],
+  },
+  STOP_NOT_CONFIRMED: {
+    pl: ["Nie potwierdzono zatrzymania procesu", "Sprawdź, czy proces agenta nie działa w tle, i dopiero wtedy spróbuj ponownie."],
+    en: ["Process stop was not confirmed", "Check that no agent process is still running, then try again."],
+  },
+  MISSION_ALREADY_ACTIVE: {
+    pl: ["Misja już trwa", "Zakończ lub zatrzymaj bieżącą misję przed uruchomieniem nowej."],
+    en: ["A mission is already active", "Finish or stop the current mission before starting another."],
+  },
+  REVISION_LIMIT_REACHED: {
+    pl: ["Wyczerpany limit poprawek", "Przejrzyj dyskusję, popraw zadanie lub zaakceptuj wynik świadomie."],
+    en: ["Revision limit reached", "Review the thread, refine the task or accept the result deliberately."],
+  },
+  INDEPENDENT_REVIEW_REQUIRED: {
+    pl: ["Recenzent musi być inny niż wykonawca", "Wybierz innego agenta do recenzji — to warunek niezależnej oceny."],
+    en: ["Reviewer must differ from implementer", "Pick a different agent for review; independence is required."],
+  },
+  READ_ONLY_WORKSPACE_CHANGED: {
+    pl: ["Pliki zmieniły się podczas badania", "Projekt był tylko do odczytu, ale zawartość się zmieniła. Zrób nowy przebieg."],
+    en: ["Files changed during a read-only step", "The workspace was read-only but its content changed. Run this step again."],
+  },
+  WORKTREE_CHANGED: {
+    pl: ["Worktree zmienił się poza aplikacją", "Ktoś lub coś zmieniło pliki w worktree. Odrzuć ten przebieg i uruchom nowy."],
+    en: ["The worktree changed outside the app", "Something modified the worktree files. Reject this run and start a new one."],
+  },
+  BASE_CHANGED: {
+    pl: ["Baza repozytorium się przesunęła", "Główna gałąź ma nowe zmiany. Zsynchronizuj projekt i powtórz zadanie."],
+    en: ["The base branch moved", "The main branch has new commits. Sync the project and run the task again."],
+  },
+  INVALID_WORKTREE: {
+    pl: ["Nieprawidłowy katalog roboczy", "Sprawdź, czy projekt ma własny worktree i czy ścieżka istnieje."],
+    en: ["Invalid worktree", "Check that the project has its own worktree and that the path exists."],
+  },
+  INVALID_MASTER_PLAN: {
+    pl: ["Plan misji jest niepoprawny", "Master zwrócił plan, którego nie da się wykonać. Uruchom planowanie ponownie lub doprecyzuj cel."],
+    en: ["The mission plan is invalid", "The master returned a plan that cannot run. Re-plan or make the goal more specific."],
+  },
+  INVALID_INPUT: {
+    pl: ["Niepełne dane", "Uzupełnij wymagane pola i spróbuj ponownie."],
+    en: ["Incomplete input", "Fill in the required fields and try again."],
+  },
+  INVALID_TRANSITION: {
+    pl: ["Ta zmiana stanu jest niedozwolona", "Odśwież widok — stan zadania zmienił się w międzyczasie."],
+    en: ["That state change is not allowed", "Refresh the view; the task state changed in the meantime."],
+  },
+  NOT_FOUND: {
+    pl: ["Nie znaleziono obiektu", "Odśwież listę — element mógł zostać usunięty."],
+    en: ["Item not found", "Refresh the list; the item may have been deleted."],
+  },
+  TASK_HELD_BY_QUEUE: {
+    pl: ["Zadanie przejęła kolejka", "Poczekaj na zakończenie przebiegu kolejki lub zatrzymaj go."],
+    en: ["The queue holds this task", "Wait for the queue run to finish, or stop it."],
+  },
+  TOOL_NOT_READY: {
+    pl: ["Narzędzie nie jest gotowe", "Poczekaj, aż agent zakończy start, i ponów akcję."],
+    en: ["The tool is not ready", "Wait for the agent to finish starting, then retry."],
+  },
+  TOOL_LIMIT: {
+    pl: ["Przekroczony limit narzędzi", "Zwiększ limit w ustawieniach projektu albo podziel zadanie na mniejsze."],
+    en: ["Tool limit exceeded", "Raise the project limit or split the task into smaller ones."],
+  },
+  TERMINAL_FOLDER_REQUIRED: {
+    pl: ["Terminal wymaga folderu", "Otwórz projekt z katalogiem roboczym i uruchom terminal ponownie."],
+    en: ["The terminal needs a folder", "Open a project with a working directory, then start the terminal again."],
+  },
+  TERMINAL_LIMIT: {
+    pl: ["Limit sesji terminala", "Zamknij nieużywane sesje i spróbuj ponownie."],
+    en: ["Terminal session limit", "Close unused sessions and try again."],
+  },
+  SKILL_FOLDER_EXISTS: {
+    pl: ["Taki skill już istnieje", "Wybierz inną nazwę albo usuń istniejący wpis."],
+    en: ["That skill already exists", "Pick another name or remove the existing entry."],
+  },
+  SKILL_PATH_UNSAFE: {
+    pl: ["Niebezpieczna ścieżka skilla", "Nazwa wykracza poza katalog skilli. Wybierz prostą nazwę bez ../."],
+    en: ["Unsafe skill path", "The name escapes the skills folder. Use a plain name without ../."],
+  },
+  MEMORY_PATH_UNSAFE: {
+    pl: ["Niebezpieczna ścieżka pamięci", "Wpis wskazuje poza magazyn pamięci. Popraw źródło."],
+    en: ["Unsafe memory path", "The entry points outside the memory store. Fix the source."],
+  },
+  EXTENSION_NOT_FOUND: {
+    pl: ["Nie znaleziono rozszerzenia", "Odśwież katalog rozszerzeń i zainstaluj je ponownie."],
+    en: ["Extension not found", "Refresh the extensions catalog and install it again."],
+  },
+  EXPLICIT_CONSENT_REQUIRED: {
+    pl: ["Potrzebna wyraźna zgoda", "Ta operacja zmienia pliki poza projektem — zaznacz zgodę świadomie."],
+    en: ["Explicit consent required", "This operation writes outside the project; confirm it deliberately."],
+  },
+  GITHUB_CLONE_FAILED: {
+    pl: ["Nie udało się pobrać repozytorium", "Sprawdź nazwę repozytorium i zaloguj się przez gh auth login."],
+    en: ["Could not clone the repository", "Check the repository name and sign in with gh auth login."],
+  },
+  LOAD_FAILED: {
+    pl: ["Nie udało się wczytać danych", "Sprawdź, czy baza projektu jest dostępna, i odśwież widok."],
+    en: ["Could not load data", "Check that the project database is reachable, then refresh."],
+  },
+  COPY_FAILED: {
+    pl: ["Nie udało się skopiować", "Zaznacz tekst i skopiuj ręcznie (Ctrl+C)."],
+    en: ["Copy failed", "Select the text and copy it manually (Ctrl+C)."],
+  },
+  UNSUPPORTED_SCHEMA: {
+    pl: ["Baza ma nowszy format", "Ta wersja aplikacji nie odczyta tej bazy. Zaktualizuj aplikację."],
+    en: ["The database uses a newer schema", "This app version cannot read it. Update the application."],
+  },
+};
+const UNKNOWN: ErrorCopy = {
+  pl: ["Operacja nie powiodła się", "Sprawdź połączenie agenta i szczegóły techniczne poniżej, potem spróbuj ponownie."],
+  en: ["The operation failed", "Check the agent connection and the technical details below, then try again."],
+};
+/** Longest code first, so TERMINAL_LIMIT never wins over a longer match. */
+const CODES = Object.keys(ERRORS).sort((a, b) => b.length - a.length);
+export function explainError(value: string, pl: boolean): ErrorExplanation {
+  const raw = value ?? "";
+  const code = CODES.find((candidate) => raw.includes(candidate)) ?? "UNKNOWN";
+  const copy = code === "UNKNOWN" ? UNKNOWN : ERRORS[code];
+  const [title, hint] = pl ? copy.pl : copy.en;
+  return { code, title, hint, raw };
+}

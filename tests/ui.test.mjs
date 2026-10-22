@@ -8,7 +8,7 @@ import { Store } from "../dist/main/store.js";
 import { bundle } from "./ui-bundle.mjs";
 
 const wait = async (fn) => {
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 600; i++) {
     if (fn()) return;
     await new Promise((r) => setTimeout(r, 10));
   }

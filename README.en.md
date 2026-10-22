@@ -1,32 +1,46 @@
+<div align="center">
+
 # Agenting OS
 
 **One desktop workspace for agent conversations, a real terminal and reviewed code changes.**
 
-Agenting OS is an open-source, local-first agent workbench by **AI Evolution Polska**. Keep conversations, projects, shared memory, skills and execution in one place. Choose an implementer and an independent reviewer, inspect the result and decide which changes to apply.
+[![CI](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/aievolutionpl/agentic-os?include_prereleases&color=4F46E5)](https://github.com/aievolutionpl/agentic-os/releases/latest)
+[![License](https://img.shields.io/badge/license-Apache--2.0-4F46E5)](LICENSE)
+[![Node](https://img.shields.io/badge/Node.js-24%20%7C%2026-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
+[![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)](#download)
 
-[Polski](README.md) · [Get started](#get-started) · [Workflow](#how-it-works) · [Providers](docs/PROVIDERS.md) · [Release status](docs/RELEASE_STATUS.md) · [Contribute](CONTRIBUTING.md)
+[Download](#download) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Providers](docs/PROVIDERS.md) · [Release status](docs/RELEASE_STATUS.md) · [Contributing](CONTRIBUTING.md) · [Polski](README.md)
+
+</div>
+
+Agenting OS is an open-source, local-first agent workbench by **AI Evolution Polska**. Keep conversations, projects, shared memory, skills and execution in one place. Choose an implementer and an independent reviewer, inspect the result and decide which changes to apply.
 
 ![Classic Terra conversation workspace](docs/images/classic-start.png)
 
-**Workspace update:** Classic · Terra and Graphite palettes, per-conversation models, automatic MCP memory with editable Markdown, eight complete GitHub skill packages and live Kanban. [Details and sources](docs/PREMIUM_WORKSPACE.md).
+## Why it exists
+
+- **One context instead of five terminals.** Chat, terminal, projects and memory in one window — the same workspace, the same skills.
+- **Every change passes a reviewer.** The implementer works in a separate worktree and leaves a diff with its SHA-256; an independent agent reviews it. Nothing reaches your repository without your approval.
+- **Everything stays local.** SQLite, memory and diffs live in Electron `userData`. No account, no cloud, no telemetry.
 
 **0.5.0-rc.1 — public preview candidate.** Screenshots show the actual desktop application with labeled example data. [Release status](docs/RELEASE_STATUS.md) separates local verification from publication gates. Windows packaging is unsigned; there is no automatic updater.
 
-## Features
+**Workspace update:** Classic · Terra and Graphite palettes, per-conversation models, automatic MCP memory with editable Markdown, eight complete GitHub skill packages and live Kanban. [Details and sources](docs/PREMIUM_WORKSPACE.md).
 
-- **Conversations:** streaming, stop, searchable history, rename, separate in-session drafts and attachments, Markdown tables/lists/code, code copying and full-conversation Markdown copying.
-- **Embedded terminal:** up to six local shell sessions, project directory selection, resize, Ctrl+C and persistence while navigating between screens. PowerShell on Windows; Bash or sh on Linux/macOS.
-- **Projects and tasks:** dependencies, separate implementer/reviewer roles, frozen context and an execution journal. The queue preview exposes saved models, connection-check dates and missing reviewers before launch.
-- **Master Agent:** a selected lead proposes up to six steps, delegates the plan after launch and evaluates the outcome. File changes pause for your decision.
-- **Memory and skills:** automatic local MCP graph, editable Markdown, scoped retrieval, pinned notes and eight complete Anthropic/Superpowers packages installed with one click. Local SKILL.md imports remain available.
-- **Connections and usage:** CLI discovery, model selection, explicit connection checks, evidence distinguishing configuration from real execution. Official Codex limits and OpenRouter key budgets; unsupported quotas stay unknown.
-- **Tools and data:** explicitly invoked trusted MCP tools, project browser sessions, backups, reversible staged restores and redacted diagnostics.
+## Download
 
-Polish and English UI, Graphite, Light and Classic · Terra themes, keyboard access and reduced-motion support. `Ctrl+K` / `⌘K` opens the command palette; focused terminals keep their own keyboard shortcuts.
+The unsigned Windows x64 installer is published in [Releases](https://github.com/aievolutionpl/agentic-os/releases/latest) together with SHA-256 sums.
 
-## Get started
+1. Download `Agenting-OS-<version>-windows-x64-setup.exe`.
+2. Verify it: `certutil -hashfile <file> SHA256` and compare with `SHA256SUMS.txt`.
+3. Run the installer. Windows SmartScreen will warn about an unknown publisher — expected without a code-signing certificate.
 
-Install **Node.js 26**, npm, Git and a graphical desktop. The terminal uses native `node-pty`. If your platform needs compilation, install Python 3 and C++ build tools: `make`/`g++` on Linux, Visual Studio C++ Build Tools on Windows, or Xcode Command Line Tools on macOS.
+Linux and macOS installers are not currently provided — build from source as described below.
+
+## Build from source
+
+Install **Node.js 24 or 26** (`.nvmrc` pins 26), npm, Git and a graphical desktop. The terminal uses native `node-pty`. If your platform needs compilation, install Python 3 and C++ build tools: `make`/`g++` on Linux, Visual Studio C++ Build Tools on Windows, or Xcode Command Line Tools on macOS.
 
 ```sh
 git clone https://github.com/aievolutionpl/agentic-os.git
@@ -44,7 +58,21 @@ npm run package:win
 npm run smoke:package
 ```
 
-Output: `release/Agenting-OS-0.5.0-rc.1-windows-x64-setup.exe`. Package smoke checks the unpacked application, including its native terminal. Install/upgrade/uninstall validation is a separate release gate. Linux/macOS installers are not currently provided.
+Output: `release/Agenting-OS-0.5.0-rc.1-windows-x64-setup.exe`. Package smoke checks the unpacked application, including its native terminal. Install/upgrade/uninstall validation is a separate release gate.
+
+## Features
+
+| Area | What it is for |
+| --- | --- |
+| **Conversations** | Streaming, stop, searchable history, rename, separate in-session drafts and attachments, Markdown tables/lists/code, code copying and full-conversation Markdown copying. |
+| **Embedded terminal** | Up to six local shell sessions, project directory selection, resize, Ctrl+C and persistence while navigating between screens. PowerShell on Windows; Bash or sh on Linux/macOS. |
+| **Projects and tasks** | Dependencies, separate implementer/reviewer roles, frozen context and an execution journal. The queue preview exposes saved models, connection-check dates and missing reviewers before launch. |
+| **Master Agent** | A selected lead proposes up to six steps, delegates the plan after launch and evaluates the outcome. File changes pause for your decision. |
+| **Memory and skills** | Automatic local MCP graph, editable Markdown, scoped retrieval, pinned notes and eight complete Anthropic/Superpowers packages installed with one click. Local SKILL.md imports remain available. |
+| **Connections and usage** | CLI discovery, model selection, explicit connection checks, evidence distinguishing configuration from real execution. Official Codex limits and OpenRouter key budgets; unsupported quotas stay unknown. |
+| **Tools and data** | Explicitly invoked trusted MCP tools, project browser sessions, backups, reversible staged restores and redacted diagnostics. |
+
+Polish and English UI, Graphite, Light and Classic · Terra themes, keyboard access and reduced-motion support. `Ctrl+K` / `⌘K` opens the command palette; focused terminals keep their own keyboard shortcuts.
 
 ## How it works
 
@@ -115,7 +143,27 @@ Data lives in Electron's `userData` directory: SQLite, worktrees, provider profi
 
 There is no hosted telemetry or account synchronization. Providers receive the selected task/context; local programs and websites may use the network. ACP/MCP executables are trusted local processes, not OS-sandboxed plugins. Markdown cannot execute raw HTML or fetch remote images; HTTP(S) links open in the external browser only when clicked. Read [SECURITY.md](SECURITY.md).
 
-## Verification and contribution
+Renderer isolation: `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`, a CSP in `index.html`, and navigation/new-window blocking. IPC calls go through a channel allowlist and a sender check.
+
+## How it is built
+
+| Layer | Technology |
+| --- | --- |
+| Desktop shell | Electron 43 + TypeScript 5.9 |
+| Interface | React 19 + Vite 7 |
+| Data | SQLite (bundled driver, schema migrations) |
+| Terminal | `node-pty` 1.1 |
+| Tests | `node:test` + jsdom + Playwright |
+
+```text
+src/renderer   React interface
+src/main       Electron main process, process supervision, providers, storage
+src/shared.ts  IPC contract
+tests/         26 files, 194 tests, 1,106 assertions
+docs/          architecture, ADRs, providers, verification evidence
+```
+
+## Verification and development
 
 ```sh
 npm run typecheck
@@ -129,8 +177,32 @@ npm audit --audit-level=moderate
 npm run release:audit
 ```
 
-Use `xvfb-run -a` for headless Linux Electron checks. `AGENTING_TEST_NO_SANDBOX=1` is only for isolated test runners requiring Chromium sandbox disabling, not everyday use. `AGENTING_QA_OUTPUT` selects the evidence directory.
+CI (GitHub Actions) runs typecheck, the full test suite, a dependency audit and native Electron verification on Ubuntu and Windows. Use `xvfb-run -a` for headless Linux Electron checks. `AGENTING_TEST_NO_SANDBOX=1` is only for isolated test runners requiring Chromium sandbox disabling, not everyday use. `AGENTING_QA_OUTPUT` selects the evidence directory.
 
 The [0.5 audit](docs/WORKBENCH_AUDIT.md) records changes and checks. The [Claudex Loop / CC Switch comparison](docs/research/claudex-cc-switch.md) explains selected ideas and deferred features. See [CHANGELOG.md](CHANGELOG.md), [CONTRIBUTING.md](CONTRIBUTING.md) and [release status](docs/RELEASE_STATUS.md).
+
+## FAQ
+
+**Do I need an API key?**
+Not to explore the UI or run the tests. Talking to a model requires your own CLI (for example Codex or Claude Code) or an API connection — the app does not resell tokens and does not handle billing.
+
+**Does the app send my data anywhere?**
+Not by itself. Task content goes only to the provider you choose. There is no telemetry, account or sync.
+
+**Does it run on macOS and Linux?**
+The code builds and passes tests on both (CI verifies it), but ready-made installers are published for Windows x64 only. On macOS/Linux, build from source.
+
+**Can an agent change my repository on its own?**
+No. The implementer works in a separate worktree, the change needs your approval, and approvals expire after 15 minutes.
+
+**Why is the installer unsigned?**
+The project has no code-signing certificate. SmartScreen will warn; the SHA-256 sums let you verify the file.
+
+**Is there auto-update?**
+No. Deliberately — during the preview you update manually from Releases.
+
+## Contributing
+
+Reports and ideas: [Issues](https://github.com/aievolutionpl/agentic-os/issues). Rules and environment: [CONTRIBUTING.md](CONTRIBUTING.md). Behaviour in the project: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Report security issues per [SECURITY.md](SECURITY.md), not through a public issue.
 
 **Apache-2.0** · [License](LICENSE) · [Notice](NOTICE) · [Third-party licenses](licenses/THIRD_PARTY_NOTICES.md) · Built by AI Evolution Polska

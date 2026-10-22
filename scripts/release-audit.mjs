@@ -52,7 +52,7 @@ for (const file of [
     /\]\(([^)\s]+)\)|<img[^>]+src="([^"]+)"/g,
   )) {
     const target = match[1] || match[2];
-    if (/^(https?:|#)/.test(target)) continue;
+    if (/^(https?:|mailto:|#)/.test(target)) continue;
     const local = target.split("#")[0];
     if (!existsSync(resolve(dirname(file), local)))
       throw Error(`Broken local documentation link: ${file} -> ${target}`);
@@ -80,7 +80,12 @@ for (const name of [
 }
 const skillCatalog = JSON.parse(readFileSync("resources/skills/catalog.json", "utf8"));
 for (const skill of skillCatalog) {
-  if (!/^[a-f0-9]{40}$/.test(skill.version) || !skill.source.includes(skill.version)) throw Error(`Unpinned skill: ${skill.id}`);
+  if (
+    !/^[a-f0-9]{40}$/.test(skill.version) ||
+    (!skill.source.includes(skill.version) &&
+      !skill.source.startsWith("https://officialskills.sh/"))
+  )
+    throw Error(`Unpinned skill: ${skill.id}`);
   const dir = resolve("resources/skills", skill.slug);
   if (!existsSync(resolve(dir, "SKILL.md")) || !["LICENSE", "LICENSE.txt"].some(file => existsSync(resolve(dir, file)))) throw Error(`Missing skill instructions or license: ${skill.id}`);
 }

@@ -66,6 +66,7 @@ export function ControlCenter({
   onOpenQuota,
   onConfigure,
   onNewProject,
+  onDemoProject,
   projectCount = 0,
   work = null,
   onOpenInbox,
@@ -80,6 +81,7 @@ export function ControlCenter({
   onOpenQuota?: () => void;
   onConfigure?: () => void;
   onNewProject?: () => void;
+  onDemoProject?: () => void;
   projectCount?: number;
   work?: Attention | null;
   onOpenInbox?: () => void;
@@ -185,6 +187,12 @@ export function ControlCenter({
               <Icon name="plus" />
               {language === "pl" ? "Nowy projekt" : "New project"}
             </button>
+            {onDemoProject && (
+              <button className="secondary" onClick={onDemoProject}>
+                <Icon name="plan" />
+                {language === "pl" ? "Projekt demo (1 klik)" : "Demo project (1 click)"}
+              </button>
+            )}
           </div>
           <div className="hero-meta">
             <span>

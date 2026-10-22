@@ -1,15 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import type {
-  Agent,
-  Task,
-  Memory,
-  RuntimeView,
-  Run,
-  Extension,
+import {
+  explainError,
+  type Agent,
+  type Task,
+  type Memory,
+  type RuntimeView,
+  type Run,
+  type Extension,
 } from "../shared";
 import { Icon, Modal, SelectField } from "./ui";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
 import { ReviewEvidence, reviewEvidence } from "./ReviewEvidence";
+import { DiffViewer } from "./DiffViewer";
 
 const MAX_ATTEMPTS = 3;
 const copy = {
@@ -50,6 +52,9 @@ const copy = {
     approve: "Approve artifact",
     reject: "Reject changes",
     apply: "Apply approved changes",
+    rollback: "Roll back applied changes",
+    rollbackHint:
+      "Restores the repository to the base commit from before this change was applied. Requires a clean working tree and no newer commits.",
     decisionAsk: "Confirm your decision",
     decisionHint:
       "This decision is bound to the captured artifact and current attempt. Applying requires a clean, unchanged base repository.",
@@ -94,6 +99,9 @@ const copy = {
     approve: "Zatwierdź artefakt",
     reject: "Odrzuć zmiany",
     apply: "Zastosuj zatwierdzone zmiany",
+    rollback: "Cofnij zastosowane zmiany",
+    rollbackHint:
+      "Przywróci repozytorium do commita bazowego sprzed zastosowania zmian. Wymaga czystego katalogu roboczego i braku nowszych commitów.",
     decisionAsk: "Potwierdź decyzję",
     decisionHint:
       "Decyzja dotyczy konkretnego artefaktu i próby. Zastosowanie wymaga czystego repozytorium z niezmienioną bazą.",
@@ -149,9 +157,10 @@ export function RunPanel({
       diff: string;
       diffHash: string;
     } | null>(null),
-    [decision, setDecision] = useState<"approve" | "reject" | "apply" | null>(
-      null,
-    );
+    [decision, setDecision] = useState<
+      "approve" | "reject" | "apply" | "rollback" | null
+    >(null),
+    [errorCode, setErrorCode] = useState("");
   const alive = useRef(true);
   const [skills, setSkills] = useState<Extension[]>([]),
     [skillIds, setSkillIds] = useState<string[]>([]);
@@ -214,13 +223,25 @@ export function RunPanel({
   }, [run?.state]);
   useEffect(() => {
     setArtifact(null);
-  }, [run?.id, run?.artifactId]);
+    if (!run?.id || !run.artifactId || !api.runArtifact) return;
+    let valid = true;
+    void api
+      .runArtifact({ projectId: task.projectId, runId: run.id })
+      .then((res) => {
+        if (valid && res) setArtifact(res);
+      })
+      .catch(() => {});
+    return () => {
+      valid = false;
+    };
+  }, [run?.id, run?.artifactId, task.projectId]);
   async function action(
     fn: () => Promise<unknown>,
     agent: Agent = task.implementer,
   ) {
     setBusy(true);
     setError(false);
+    setErrorCode("");
     setPolicyCode("");
     setHeldByQueue(false);
     setReadOnlyRefused(false);
@@ -235,7 +256,10 @@ export function RunPanel({
       else if (policyMessage(code, true)) {
         setPolicyAgent(agent);
         setPolicyCode(code);
-      } else setError(true);
+      } else {
+        setErrorCode(code);
+        setError(true);
+      }
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -292,7 +316,9 @@ export function RunPanel({
       </div>
       {error && (
         <p className="inline-error" role="alert">
-          {w.error}
+          {errorCode && explainError(errorCode, language === "pl").code !== "UNKNOWN"
+            ? `${explainError(errorCode, language === "pl").title} — ${explainError(errorCode, language === "pl").hint}`
+            : w.error}
         </p>
       )}
       {heldByQueue && (
@@ -460,6 +486,60 @@ export function RunPanel({
       )}
       {run && (
         <>
+          <ol
+            className="run-stepper"
+            aria-label={language === "pl" ? "Etapy przebiegu" : "Run pipeline"}
+          >
+            {[
+              {
+                key: "exec",
+                label: language === "pl" ? "1. Wykonanie" : "1. Execution",
+                done: !["preparing", "running", "failed", "cancelled", "interrupted"].includes(
+                  run.state,
+                ),
+                current: ["preparing", "running"].includes(run.state),
+              },
+              {
+                key: "diff",
+                label: language === "pl" ? "2. Artefakt diff" : "2. Diff artifact",
+                done: !!run.artifactId,
+                current: false,
+              },
+              {
+                key: "review",
+                label: language === "pl" ? "3. Recenzja" : "3. Review",
+                done: run.reviewState === "completed",
+                current: run.state === "reviewing" || run.reviewState === "running",
+              },
+              {
+                key: "approve",
+                label: language === "pl" ? "4. Zatwierdzenie" : "4. Approval",
+                done: !!run.approvalId || run.state === "applied",
+                current:
+                  run.state === "awaiting_review" &&
+                  run.reviewState === "completed" &&
+                  !run.approvalId,
+              },
+              {
+                key: "apply",
+                label: language === "pl" ? "5. Zastosowano" : "5. Applied",
+                done: run.state === "applied",
+                current:
+                  run.state === "applying" ||
+                  (run.state === "awaiting_review" && !!run.approvalId),
+              },
+            ].map((step) => (
+              <li
+                key={step.key}
+                className={`run-step ${step.done ? "is-done" : ""} ${
+                  step.current ? "is-current" : ""
+                }`}
+              >
+                <span className="run-step-dot" aria-hidden="true" />
+                <span>{step.label}</span>
+              </li>
+            ))}
+          </ol>
           <p className="helper">
             {w.worktree}
             <code className="run-path">{run.worktree}</code>
@@ -514,6 +594,7 @@ export function RunPanel({
           {run.artifactId && (
             <details
               className="artifact-preview"
+              open
               onToggle={(event) => {
                 if (event.currentTarget.open && !artifact)
                   void action(async () =>
@@ -533,7 +614,11 @@ export function RunPanel({
                     {w.hash}
                     <code className="run-path">{artifact.diffHash}</code>
                   </p>
-                  <pre tabIndex={0}>{artifact.diff}</pre>
+                  <DiffViewer
+                    diff={artifact.diff}
+                    diffHash={artifact.diffHash}
+                    language={language}
+                  />
                 </>
               ) : (
                 <p className="helper">{w.loading}</p>
@@ -623,6 +708,18 @@ export function RunPanel({
               )}
             </div>
           )}
+          {run.state === "applied" && api.runDecision && (
+            <div className="panel-actions">
+              <button
+                className="cancel-action"
+                disabled={busy}
+                onClick={() => setDecision("rollback")}
+              >
+                <Icon name="history" />
+                {w.rollback}
+              </button>
+            </div>
+          )}
           {!!activity.length && (
             <details className="run-events">
               <summary>
@@ -691,14 +788,16 @@ export function RunPanel({
         titleId="run-decision-title"
         className="confirm-dialog"
       >
-        <h2 id="run-decision-title">{w.decisionAsk}</h2>
-        <p>{w.decisionHint}</p>
+        <h2 id="run-decision-title">
+          {decision === "rollback" ? w.rollback : w.decisionAsk}
+        </h2>
+        <p>{decision === "rollback" ? w.rollbackHint : w.decisionHint}</p>
         <div className="dialog-actions">
           <button autoFocus onClick={() => setDecision(null)} disabled={busy}>
             {w.close}
           </button>
           <button
-            className="primary"
+            className={decision === "rollback" || decision === "reject" ? "danger" : "primary"}
             disabled={busy}
             onClick={() =>
               void action(async () => {

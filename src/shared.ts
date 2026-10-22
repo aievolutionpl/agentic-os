@@ -747,8 +747,9 @@ export interface API {
   runDecision?(input: {
     projectId: string;
     runId: string;
-    action: "approve" | "reject" | "apply";
+    action: "approve" | "reject" | "apply" | "rollback";
   }): Promise<void>;
+  createDemoProject?(input?: { language?: "pl" | "en" }): Promise<Project>;
   memorySearch(input: { projectId: string; query: string }): Promise<Memory[]>;
   contextPreview(input: {
     projectId: string;
@@ -1080,6 +1081,10 @@ const ERRORS: Record<string, ErrorCopy> = {
   BASE_CHANGED: {
     pl: ["Baza repozytorium się przesunęła", "Główna gałąź ma nowe zmiany. Zsynchronizuj projekt i powtórz zadanie."],
     en: ["The base branch moved", "The main branch has new commits. Sync the project and run the task again."],
+  },
+  HEAD_MOVED_SINCE_APPLY: {
+    pl: ["Repozytorium ma nowsze commity po zastosowaniu", "Nie można automatycznie cofnąć zmiany, gdy po niej pojawiły się nowe commity."],
+    en: ["Repository has newer commits since apply", "Cannot automatically roll back when newer commits were added on top."],
   },
   INVALID_WORKTREE: {
     pl: ["Nieprawidłowy katalog roboczy", "Sprawdź, czy projekt ma własny worktree i czy ścieżka istnieje."],

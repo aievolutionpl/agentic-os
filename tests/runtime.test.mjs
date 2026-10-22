@@ -15,6 +15,7 @@ import { Orchestrator } from "../dist/main/orchestrator.js";
 import { CodexAdapter } from "../dist/main/providers.js";
 import { AcpAdapter } from "../dist/main/acp.js";
 import { Applications } from "../dist/main/applications.js";
+import { createDemoProject } from "../dist/main/demo-project.js";
 import { gitText, git } from "../dist/main/git.js";
 const fixture = resolve("tests/fixtures/codex-server.mjs");
 const wait = async (fn) => {
@@ -948,6 +949,72 @@ test("a read-only workflow is refused for an agent without a read-only mode", as
       /READ_ONLY_MODE_UNSUPPORTED/,
     );
     assert.equal(f.store.runs.list(f.project.id, task.id).length, 0);
+  } finally {
+    await f.close();
+  }
+});
+
+test("an applied run can be safely rolled back to its base commit unless newer commits exist", async () => {
+  const f = await setup();
+  const apps = new Applications(f.store, f.supervisor.worktrees);
+  try {
+    const run = await completed(f);
+    await reviewed(f, run);
+    const input = { projectId: f.project.id, runId: run.id };
+    await apps.decide({ ...input, action: "approve" });
+    await apps.decide({ ...input, action: "apply" });
+    assert.equal(f.store.runs.get(f.project.id, run.id).state, "applied");
+    assert.equal(existsSync(join(f.repo, "result.txt")), true);
+
+    await apps.decide({ ...input, action: "rollback" });
+    const rolledBack = f.store.runs.get(f.project.id, run.id);
+    assert.equal(rolledBack.state, "awaiting_review");
+    assert.equal(rolledBack.approvalId, null);
+    assert.equal(existsSync(join(f.repo, "result.txt")), false);
+    assert.equal(await gitText(f.repo, "rev-parse", "HEAD"), run.base);
+
+    // Re-approve and re-apply, then add a newer commit to verify HEAD_MOVED_SINCE_APPLY protection
+    await apps.decide({ ...input, action: "approve" });
+    await apps.decide({ ...input, action: "apply" });
+    writeFileSync(join(f.repo, "extra.txt"), "extra\n");
+    await git(f.repo, ["add", "--all"]);
+    const tree = await gitText(f.repo, "write-tree");
+    const nextCommit = await gitText(
+      f.repo,
+      "commit-tree",
+      tree,
+      "-p",
+      run.head,
+      "-m",
+      "newer",
+    );
+    await git(f.repo, ["update-ref", "HEAD", nextCommit]);
+    await assert.rejects(
+      apps.decide({ ...input, action: "rollback" }),
+      /HEAD_MOVED_SINCE_APPLY/,
+    );
+  } finally {
+    await f.close();
+  }
+});
+
+test("createDemoProject initializes a clean Git repository with starter task and memory", async () => {
+  const f = await setup();
+  try {
+    const project = await createDemoProject(
+      f.store,
+      join(f.dir, "userdata"),
+      "pl",
+    );
+    assert.equal(project.name, "Demo · Kalkulator rabatów");
+    assert.equal(existsSync(join(project.root, "src", "pricing.js")), true);
+    const status = await gitText(project.root, "status", "--porcelain");
+    assert.equal(status, "");
+    const tasks = f.store.tasks(project.id);
+    assert.equal(tasks.length, 1);
+    assert.equal(tasks[0].status, "draft");
+    const memory = f.store.memory(project.id);
+    assert.equal(memory.length, 1);
   } finally {
     await f.close();
   }

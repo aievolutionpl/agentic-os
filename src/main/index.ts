@@ -50,6 +50,7 @@ import { route } from "./router.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
 import { MemoryVault } from "./memory-vault.js";
+import { createDemoProject } from "./demo-project.js";
 import {
   AGENTS,
   type Agent,
@@ -903,6 +904,13 @@ app
         return store.taskAction(input);
       },
       createProject: (input) => store.createProject(input),
+      createDemoProject: (input) => {
+        const lang =
+          (input as { language?: unknown } | null)?.language === "en"
+            ? "en"
+            : "pl";
+        return createDemoProject(store, app.getPath("userData"), lang);
+      },
       createTask: (input) => store.createTask(input),
       createMemory: (input) => store.createMemory(input),
       deleteMemory: (input) => store.deleteMemory(input),
@@ -956,6 +964,8 @@ app
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
           if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
+          if (name === "runDecision" && code === "HEAD_MOVED_SINCE_APPLY")
+            throw Error(code);
           if (name.startsWith("limitBridge") && code.startsWith("BRIDGE_"))
             throw Error(code);
           if (name.startsWith("terminal") && code.startsWith("TERMINAL_"))

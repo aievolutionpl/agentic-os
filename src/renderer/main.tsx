@@ -494,7 +494,7 @@ function App() {
           void selectProject(item.id);
         },
       });
-    if (snapshot && project)
+    if (snapshot && project) {
       for (const t of [
         ["master", "plan", "Master Agent", "Master Agent"],
         ["tasks", "task", "Zadania", "Tasks"],
@@ -510,6 +510,33 @@ function App() {
             setTab(t[0]);
           },
         });
+      for (const task of data.tasks.slice(0, 30))
+        list.push({
+          id: `task-${task.id}`,
+          label: task.title.split("\n")[0],
+          group: pl ? "Zadania" : "Tasks",
+          hint: `${project.name} · ${w.statuses[task.status]} · ${agentName(task.implementer)} → ${agentName(task.reviewer)}`,
+          icon: "task",
+          run: () => {
+            setRequestedTask(task.id);
+            setView("project");
+            setTab("tasks");
+          },
+        });
+      for (const mem of data.memory.slice(0, 20))
+        list.push({
+          id: `memory-${mem.id}`,
+          label: mem.content.split("\n")[0].slice(0, 90),
+          group: pl ? "Pamięć" : "Memory",
+          hint: `${project.name} · ${mem.source}`,
+          icon: "memory",
+          run: () => {
+            setView("project");
+            setTab("memory");
+            setQuery(mem.content.split("\n")[0].slice(0, 40));
+          },
+        });
+    }
     list.push(
       {
         id: "action-new-project",
@@ -518,6 +545,19 @@ function App() {
         icon: "plus",
         run: openProject,
       },
+      ...(api?.createDemoProject
+        ? [
+            {
+              id: "action-demo-project",
+              label: pl
+                ? "Utwórz projekt treningowy (Demo Repo 1-klik)"
+                : "Create training project (1-click Demo Repo)",
+              group: act,
+              icon: "plan",
+              run: () => void startDemoProject(),
+            },
+          ]
+        : []),
       ...(api?.backupCreate
         ? [
             {
@@ -613,6 +653,25 @@ function App() {
   function openProject() {
     setProjectsExpanded(false);
     setProjectOpen(true);
+  }
+  async function startDemoProject() {
+    if (!api?.createDemoProject || busy) return;
+    setProjectsExpanded(false);
+    await mutate(
+      async () => {
+        const created = await api.createDemoProject!({
+          language: prefs.language,
+        });
+        const next = await api.snapshot();
+        setSnapshot(next);
+        setView("project");
+        setTab("tasks");
+        await selectProject(created.id);
+      },
+      prefs.language === "pl"
+        ? "Utworzono projekt demonstracyjny z zadaniem i pamięcią."
+        : "Created demo project with a starter task and memory.",
+    );
   }
   function sidebar() {
     return (
@@ -1077,6 +1136,11 @@ function App() {
                 onOpenQuota={() => setView("quota")}
                 onConfigure={() => setView("connections")}
                 onNewProject={openProject}
+                onDemoProject={
+                  api?.createDemoProject
+                    ? () => void startDemoProject()
+                    : undefined
+                }
                 projectCount={snapshot?.projects.length ?? 0}
                 work={attention}
                 onOpenInbox={() => setView("inbox")}
@@ -1093,9 +1157,23 @@ function App() {
                 <Icon name="layers" />
                 <h1>{w.empty}</h1>
                 <p>{w.intro}</p>
-                <button className="primary" onClick={openProject}>
-                  {w.newProject}
-                </button>
+                <div className="empty-actions">
+                  <button className="primary" onClick={openProject}>
+                    {w.newProject}
+                  </button>
+                  {api?.createDemoProject && (
+                    <button
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => void startDemoProject()}
+                    >
+                      <Icon name="plan" />
+                      {prefs.language === "pl"
+                        ? "Projekt demo (1 klik)"
+                        : "Demo project (1 click)"}
+                    </button>
+                  )}
+                </div>
               </section>
             ) : (
               <>

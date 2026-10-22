@@ -122,9 +122,47 @@ export class Applications {
       projectId = text(p.projectId),
       run = this.store.runs.get(projectId, text(p.runId));
     if (!run) throw Error("RUN_NOT_FOUND");
-    if (!["approve", "reject", "apply"].includes(String(p.action)))
+    if (!["approve", "reject", "apply", "rollback"].includes(String(p.action)))
       throw Error("INVALID_ACTION");
     if (p.action === "apply" && run.state === "applied") return;
+    if (p.action === "rollback") {
+      if (
+        run.state !== "applied" ||
+        this.active.has(run.repository) ||
+        this.busy(run.taskId)
+      )
+        throw Error("RUN_NOT_APPLIED");
+      const task = this.store
+        .tasks(projectId)
+        .find((t) => t.id === run.taskId);
+      if (
+        !task ||
+        task.attempt !== run.attempt ||
+        this.store.runs.list(projectId, run.taskId)[0]?.id !== run.id
+      )
+        throw Error("STALE_RUN");
+      this.active.add(run.repository);
+      try {
+        const source = await this.worktrees.inspect(run.repository);
+        if (source.base !== run.head) throw Error("HEAD_MOVED_SINCE_APPLY");
+        await git(run.repository, ["reset", "--hard", run.base]);
+        if ((await gitText(run.repository, "rev-parse", "HEAD")) !== run.base)
+          throw Error("ROLLBACK_FAILED");
+        this.store.runs.update(projectId, run.id, {
+          state: "awaiting_review",
+          approvalId: null,
+          error: null,
+        });
+        this.store.runs.event(
+          run.id,
+          "rollback",
+          "Rolled back applied changes to the previous base commit. Source repository restored.",
+        );
+        return;
+      } finally {
+        this.active.delete(run.repository);
+      }
+    }
     if (
       run.state !== "awaiting_review" ||
       this.active.has(run.repository) ||

@@ -72,6 +72,8 @@ const api: API = {
   mcpDisconnect: (input) => ipcRenderer.invoke("app:mcpDisconnect", input),
   browserAction: (input) => ipcRenderer.invoke("app:browserAction", input),
   runDecision: (input) => ipcRenderer.invoke("app:runDecision", input),
+  createDemoProject: (input) =>
+    ipcRenderer.invoke("app:createDemoProject", input),
   memorySearch: (input) => ipcRenderer.invoke("app:memorySearch", input),
   contextPreview: (input) => ipcRenderer.invoke("app:contextPreview", input),
   runtimeView: (input) => ipcRenderer.invoke("app:runtimeView", input),

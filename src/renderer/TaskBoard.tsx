@@ -94,6 +94,7 @@ export function TaskBoard(props: Props) {
   } = props;
   const w = words[language];
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
   useEffect(() => { if (props.requestedTask) setSelectedId(props.requestedTask); }, [props.requestedTask]);
   const [cancelling, setCancelling] = useState<Task | null>(null);
   const [dismissed, setDismissed] = useState(() => {
@@ -168,6 +169,30 @@ export function TaskBoard(props: Props) {
               })),
             ]}
           />
+          <div
+            className="segmented"
+            role="group"
+            aria-label={language === "pl" ? "Widok zadań" : "Task view"}
+          >
+            <button
+              type="button"
+              className={viewMode === "list" ? "selected" : ""}
+              aria-pressed={viewMode === "list"}
+              onClick={() => setViewMode("list")}
+            >
+              <Icon name="task" />
+              {language === "pl" ? "Lista" : "List"}
+            </button>
+            <button
+              type="button"
+              className={viewMode === "kanban" ? "selected" : ""}
+              aria-pressed={viewMode === "kanban"}
+              onClick={() => setViewMode("kanban")}
+            >
+              <Icon name="board" />
+              Kanban
+            </button>
+          </div>
         </div>
       </div>
       {loading ? (
@@ -186,6 +211,101 @@ export function TaskBoard(props: Props) {
           <button className="secondary" onClick={props.onCompose}>
             {w.firstTask}
           </button>
+        </div>
+      ) : viewMode === "kanban" ? (
+        <div className="kanban-grid project-kanban-grid">
+          {(
+            [
+              {
+                id: "backlog",
+                title: language === "pl" ? "Szkic i kolejka" : "Draft & Queued",
+                tone: "queued",
+                match: (t: Task) => t.status === "draft" || t.status === "queued",
+              },
+              {
+                id: "running",
+                title: w.statuses.running,
+                tone: "running",
+                match: (t: Task) => t.status === "running",
+              },
+              {
+                id: "completed",
+                title: w.statuses.completed,
+                tone: "completed",
+                match: (t: Task) => t.status === "completed",
+              },
+              {
+                id: "failed",
+                title:
+                  language === "pl"
+                    ? "Wymaga uwagi / Anulowane"
+                    : "Failed / Cancelled",
+                tone: "failed",
+                match: (t: Task) =>
+                  t.status === "failed" || t.status === "cancelled",
+              },
+            ] as const
+          ).map((col) => {
+            const colTasks = visible.filter(col.match);
+            return (
+              <section className="kanban-column" key={col.id}>
+                <header>
+                  <span className={`status-dot tone-${col.tone}`} />
+                  <h3>{col.title}</h3>
+                  <span className="count">{colTasks.length}</span>
+                </header>
+                <div className="kanban-cards">
+                  {colTasks.length ? (
+                    colTasks.map((task) => (
+                      <article
+                        key={task.id}
+                        className="kanban-card"
+                        onClick={() => setSelectedId(task.id)}
+                      >
+                        <div className="kanban-card-top">
+                          <span className={`badge status-badge tone-${task.status}`}>
+                            <span className="status-dot" aria-hidden="true" />
+                            {w.statuses[task.status]}
+                          </span>
+                          <time dateTime={lastActivity(task)}>
+                            {relativeTime(lastActivity(task), language)}
+                          </time>
+                        </div>
+                        <h4>{task.title}</h4>
+                        <footer>
+                          <span>
+                            <AgentAvatar agent={task.implementer} />
+                            <span aria-hidden="true">→</span>
+                            <AgentAvatar agent={task.reviewer} />
+                          </span>
+                          <span onClick={(e) => e.stopPropagation()}>
+                            {actions(task)
+                              .filter((a) => a !== "cancel")
+                              .map((action) => (
+                                <button
+                                  key={action}
+                                  type="button"
+                                  className="ghost task-quick-action"
+                                  disabled={busy || loading}
+                                  onClick={() => act(task, action)}
+                                >
+                                  {w.actions[action]}
+                                </button>
+                              ))}
+                          </span>
+                        </footer>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="kanban-empty">
+                      <Icon name="board" />
+                      <span>{w.noTasks}</span>
+                    </div>
+                  )}
+                </div>
+              </section>
+            );
+          })}
         </div>
       ) : (
         <>

@@ -58,6 +58,14 @@ export interface GitHubIssueItem {
   url: string;
   labels: string[];
 }
+export interface GitRepoHealth {
+  isGit: boolean;
+  branch: string | null;
+  clean: boolean;
+  changedFiles: number;
+  lastCommit: string | null;
+  observedAt: string;
+}
 export interface MissionStep {
   key: string;
   title: string;
@@ -799,6 +807,14 @@ export interface API {
     implementer: Agent;
     reviewer: Agent;
   }): Promise<Task>;
+  gitRepoHealth?(input: { projectId: string }): Promise<GitRepoHealth>;
+  skillCreateCustom?(input: {
+    projectId: string;
+    name: string;
+    description: string;
+    license: string;
+    instructions: string;
+  }): Promise<Extension>;
   mcpConnect(input: {
     projectId: string;
     id: string;

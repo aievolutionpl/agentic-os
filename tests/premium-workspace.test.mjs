@@ -19,6 +19,7 @@ import { workBoard } from "../dist/main/work-board.js";
 import { CodexAdapter } from "../dist/main/providers.js";
 import { Chats } from "../dist/main/chats.js";
 import { AVAILABLE_AGENTS } from "../dist/shared.js";
+import { inspectGitRepoHealth } from "../dist/main/github-integration.js";
 
 function setup(t) {
   const dir = mkdtempSync(join(tmpdir(), "agenting-premium-"));
@@ -371,4 +372,26 @@ test("Classic and Harness themes persist and active selectors retain Antigravity
   }
   assert.ok(AVAILABLE_AGENTS.includes("antigravity"));
   assert.ok(!AVAILABLE_AGENTS.includes("gemini"));
+});
+test("custom SKILL.md Studio writes skill package and inspectGitRepoHealth reports Git branch and dirty worktree", async (t) => {
+  const { dir, store, project } = setup(t);
+  execFileSync("git", ["init", "-q"], { cwd: dir });
+  const custom = store.extensions.createCustomSkill({
+    projectId: project.id,
+    name: "Playwright QA Guard",
+    summary: "Enforce deterministic E2E assertions",
+    instructions: "# Playwright QA Guard\n\nAlways verify DOM state before clicking.",
+  });
+  assert.equal(custom.slug, "playwright-qa-guard");
+  assert.ok(existsSync(join(dir, ".agents", "skills", "playwright-qa-guard", "SKILL.md")));
+  assert.ok(
+    store.extensions
+      .skills(project.id, [])
+      .some((s) => s.id === custom.id && s.instructions.includes("playwright-qa-guard")),
+  );
+  writeFileSync(join(dir, "README.md"), "# Alpha\n");
+  const health = await inspectGitRepoHealth(store, { projectId: project.id });
+  assert.equal(health.isGit, true);
+  assert.equal(health.clean, false);
+  assert.ok(health.changedFiles >= 1);
 });

@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
-import { isAbsolute } from "node:path";
-import { realpathSync, statSync } from "node:fs";
+import { isAbsolute, join } from "node:path";
+import { existsSync, mkdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { exact, object, text, redact } from "./validate.js";
 import type { ContextSkill } from "./knowledge.js";
 import { RpcProcess } from "./rpc.js";
@@ -354,7 +354,9 @@ export class Extensions {
     const activePlugins = this.list(projectId)
       .filter(
         (item) =>
-          (item.kind === "plugin" || item.kind === "hook") &&
+          (item.kind === "plugin" ||
+            item.kind === "hook" ||
+            (item.kind === "skill" && item.installed)) &&
           item.enabled !== false &&
           item.instructions,
       )
@@ -435,6 +437,60 @@ export class Extensions {
       );
     this.event(projectId, id, "installed");
     return { ...skill, installed: true, installPath };
+  }
+  createCustomSkill(input: unknown): Extension {
+    const p = exact(input, [
+      "projectId",
+      "name",
+      "description",
+      "summary",
+      "license",
+      "instructions",
+    ]);
+    const projectId = this.project(p.projectId);
+    const name = redact(text(p.name, 80));
+    const description = redact(text(p.description ?? p.summary ?? name, 240));
+    const license = redact(text(p.license ?? "MIT", 60));
+    const body = redact(text(p.instructions, 10000));
+    const slug =
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9-]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 48) || "custom-skill";
+    const fullMarkdown = `---\nname: ${slug}\ndescription: ${description.replace(/[\r\n]+/g, " ")}\nlicense: ${license}\n---\n\n${body}\n`;
+    const project = this.db
+      .prepare("SELECT root FROM projects WHERE id=?")
+      .get(projectId) as { root?: string } | undefined;
+    let installPath: string | undefined;
+    if (project?.root && existsSync(String(project.root))) {
+      const targetDir = join(String(project.root), ".agents", "skills", slug);
+      mkdirSync(targetDir, { recursive: true });
+      writeFileSync(join(targetDir, "SKILL.md"), fullMarkdown, "utf8");
+      installPath = targetDir;
+    }
+    const rowId = `custom-skill:${projectId}:${slug}`;
+    const manifest: Omit<Extension, "id"> = {
+      kind: "skill",
+      name,
+      slug,
+      version: "1.0.0-custom",
+      author: "Custom Studio",
+      license,
+      source: "local/skill-studio",
+      description,
+      instructions: fullMarkdown,
+      installed: true,
+      enabled: true,
+      ...(installPath ? { installPath } : {}),
+    };
+    this.db
+      .prepare(
+        "INSERT INTO extensions(id,projectId,manifest,createdAt) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET manifest=excluded.manifest",
+      )
+      .run(rowId, projectId, JSON.stringify(manifest), new Date().toISOString());
+    this.event(projectId, rowId, "custom_skill_created");
+    return { ...manifest, id: rowId };
   }
   event(projectId: string, id: string, action: string) {
     this.db

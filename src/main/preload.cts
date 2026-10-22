@@ -79,6 +79,9 @@ const api: API = {
     ipcRenderer.invoke("app:githubIssuesList", input),
   githubIssueImport: (input) =>
     ipcRenderer.invoke("app:githubIssueImport", input),
+  gitRepoHealth: (input) => ipcRenderer.invoke("app:gitRepoHealth", input),
+  skillCreateCustom: (input) =>
+    ipcRenderer.invoke("app:skillCreateCustom", input),
   mcpConnect: (input) => ipcRenderer.invoke("app:mcpConnect", input),
   mcpCall: (input) => ipcRenderer.invoke("app:mcpCall", input),
   mcpDisconnect: (input) => ipcRenderer.invoke("app:mcpDisconnect", input),

@@ -56,6 +56,7 @@ import {
   listGitHubIssues,
   importGitHubIssueAsTask,
   exportRunToBranch,
+  inspectGitRepoHealth,
 } from "./github-integration.js";
 import {
   AGENTS,
@@ -586,6 +587,18 @@ app
       runExportBranch: (input) => exportRunToBranch(store, input),
       githubIssuesList: (input) => listGitHubIssues(store, input),
       githubIssueImport: (input) => importGitHubIssueAsTask(store, input),
+      gitRepoHealth: (input) => inspectGitRepoHealth(store, input),
+      skillCreateCustom: (input) => {
+        const skill = store.extensions.createCustomSkill(input);
+        const p = input as { projectId: string };
+        store.createMemory({
+          projectId: p.projectId,
+          source: `skill:${skill.id}`,
+          scope: "project",
+          content: `Created custom skill: ${skill.name}\nLicense: ${skill.license}\n${skill.installPath ? `Path: ${skill.installPath}/SKILL.md` : "Stored in project database"}`,
+        });
+        return skill;
+      },
       mcpConnect: (input) => mcp!.connect(input),
       mcpCall: (input) => mcp!.call(input),
       mcpDisconnect: (input) => {

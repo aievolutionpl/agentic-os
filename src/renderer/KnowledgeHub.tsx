@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { Extension, Memory, Project } from "../shared";
 import { Icon, Modal } from "./ui";
 import { MemoryGraphPanel } from "./MemoryGraphPanel";
+import { copyText } from "./clipboard";
 
 export function SkillsHub({
   language,
@@ -19,6 +20,11 @@ export function SkillsHub({
     [query, setQuery] = useState(""),
     [category, setCategory] = useState("all"),
     [selected, setSelected] = useState<Extension | null>(null),
+    [studioOpen, setStudioOpen] = useState(false),
+    [customName, setCustomName] = useState(""),
+    [customDesc, setCustomDesc] = useState(""),
+    [customLicense, setCustomLicense] = useState("MIT"),
+    [customBody, setCustomBody] = useState(""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
@@ -173,6 +179,20 @@ export function SkillsHub({
           <Icon name="download" />
           {pl ? "Importuj SKILL.md" : "Import SKILL.md"}
         </button>
+        {api.skillCreateCustom && (
+          <button
+            type="button"
+            className="secondary"
+            disabled={!project || busy}
+            onClick={() => {
+              setError("");
+              setStudioOpen(true);
+            }}
+          >
+            <Icon name="code" />
+            {pl ? "Kreator SKILL.md" : "SKILL.md Studio"}
+          </button>
+        )}
         {project && visible.some((s) => !s.installed && s.slug) && (
           <button
             className="primary"
@@ -328,6 +348,152 @@ export function SkillsHub({
           </button>
         </div>
       </Modal>
+      <Modal
+        open={studioOpen}
+        onClose={() => setStudioOpen(false)}
+        titleId="skill-studio-title"
+        className="skill-preview"
+      >
+        <h2 id="skill-studio-title">
+          {pl
+            ? "SKILL.md Studio — Utwórz własny skill projektowy"
+            : "SKILL.md Studio — Create custom project skill"}
+        </h2>
+        <p className="helper">
+          {pl
+            ? "Zapisuje pakiet bezpośrednio w .agents/skills/<slug>/SKILL.md wybranego projektu oraz w pamięci kontekstowej."
+            : "Writes the package directly to .agents/skills/<slug>/SKILL.md in the selected project and registers it in project memory."}
+        </p>
+        <div className="harness-slash-bar" style={{ padding: "4px 0 10px" }}>
+          <span className="harness-slash-label">
+            {pl ? "Szablon:" : "Template:"}
+          </span>
+          {[
+            {
+              label: "Engineering & TDD",
+              name: "Project Engineering Standard",
+              desc: "Enforces strict TypeScript types, deterministic unit tests, and small atomic diffs.",
+              body: "# Project Engineering Standard\n\n## Rules\n1. Always run `npm run typecheck` and `npm test` before completing a task.\n2. Keep functions modular and validate all external inputs at boundaries.\n3. Never modify unrelated files or remove existing tests.",
+            },
+            {
+              label: "UI & Design System",
+              name: "Project Design System",
+              desc: "Maintains visual consistency, theme token usage, and WCAG AA accessibility.",
+              body: "# Project Design System\n\n## Rules\n1. Always use CSS variables (`--bg`, `--surface`, `--text`, `--accent`) instead of hardcoded hex values.\n2. Ensure full keyboard navigation (`Tab`, `Enter`, `Escape`) and ARIA labels.\n3. Verify layout across both wide desktop and narrow mobile viewports.",
+            },
+            {
+              label: "API & Security Gate",
+              name: "API Security & Contracts",
+              desc: "Audits IPC/HTTP boundaries, input schemas, and secret redaction.",
+              body: "# API Security & Contracts\n\n## Rules\n1. Validate every payload with strict schema checks (`exact`, `text`).\n2. Redact sensitive tokens or credentials before persisting logs or memory.\n3. Return deterministic error codes.",
+            },
+          ].map((tpl) => (
+            <button
+              key={tpl.label}
+              type="button"
+              className="slash-chip"
+              onClick={() => {
+                setCustomName(tpl.name);
+                setCustomDesc(tpl.desc);
+                setCustomBody(tpl.body);
+              }}
+            >
+              <strong>+</strong>
+              <span>{tpl.label}</span>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: "grid", gap: "10px", margin: "8px 0" }}>
+          <label>
+            {pl ? "Nazwa skilla" : "Skill name"}
+            <input
+              value={customName}
+              maxLength={80}
+              placeholder="np. Project Architecture Rules"
+              onChange={(e) => setCustomName(e.target.value)}
+            />
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px" }}>
+            <label>
+              {pl ? "Krótki opis (YAML description)" : "Short description (YAML)"}
+              <input
+                value={customDesc}
+                maxLength={240}
+                placeholder="When and how agents should apply this skill…"
+                onChange={(e) => setCustomDesc(e.target.value)}
+              />
+            </label>
+            <label>
+              {pl ? "Licencja" : "License"}
+              <input
+                value={customLicense}
+                maxLength={60}
+                onChange={(e) => setCustomLicense(e.target.value)}
+              />
+            </label>
+          </div>
+          <label>
+            {pl ? "Instrukcje Markdown (SKILL.md body)" : "Markdown instructions (SKILL.md body)"}
+            <textarea
+              rows={7}
+              maxLength={10000}
+              value={customBody}
+              placeholder="# Instructions\n\n1. Follow project conventions…"
+              onChange={(e) => setCustomBody(e.target.value)}
+            />
+          </label>
+        </div>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setStudioOpen(false)}
+          >
+            {pl ? "Anuluj" : "Cancel"}
+          </button>
+          <button
+            type="button"
+            className="primary"
+            disabled={
+              busy ||
+              !project ||
+              !customName.trim() ||
+              !customDesc.trim() ||
+              !customBody.trim()
+            }
+            onClick={() => {
+              setBusy(true);
+              setError("");
+              void api
+                .skillCreateCustom!({
+                  projectId: project,
+                  name: customName.trim(),
+                  description: customDesc.trim(),
+                  license: customLicense.trim() || "MIT",
+                  instructions: customBody.trim(),
+                })
+                .then(async () => {
+                  setStudioOpen(false);
+                  setCustomName("");
+                  setCustomDesc("");
+                  setCustomBody("");
+                  await load();
+                })
+                .catch(() =>
+                  setError(
+                    pl
+                      ? "Nie udało się utworzyć skilla. Sprawdź poprawność pól."
+                      : "Could not create custom skill. Check all fields.",
+                  ),
+                )
+                .finally(() => setBusy(false));
+            }}
+          >
+            <Icon name="check" />
+            {pl ? "Zapisz w .agents/skills" : "Save to .agents/skills"}
+          </button>
+        </div>
+      </Modal>
     </section>
   );
 }
@@ -354,6 +520,7 @@ export function MemoryHub({
     [projectId, setProjectId] = useState(projects[0]?.id ?? ""),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
+    [exportedBundle, setExportedBundle] = useState(false),
     [deleting, setDeleting] = useState<Memory | null>(null);
   async function load() {
     setRows(await api.memoryList!());
@@ -469,6 +636,49 @@ export function MemoryHub({
           <Icon name="plus" />
           {pl ? "Nowy wpis" : "New entry"}
         </button>
+        {!!visible.length && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              const pinnedRows = visible.filter((m) => m.pinned);
+              const regularRows = visible.filter((m) => !m.pinned);
+              const md = [
+                "# AGENTS.md — Workspace & Project Context Bundle",
+                `> Generated by Agenting OS · ${new Date().toISOString()}`,
+                "",
+                "## Pinned Rules & Architecture Decisions",
+                ...(pinnedRows.length
+                  ? pinnedRows.map(
+                      (m) =>
+                        `### [${(m.scope || "project").toUpperCase()}] (${m.source})\n${m.content}`,
+                    )
+                  : ["_No pinned entries._"]),
+                "",
+                "## Working Memory & Context Notes",
+                ...(regularRows.length
+                  ? regularRows.map(
+                      (m) =>
+                        `### [${(m.scope || "project").toUpperCase()}] (${m.source})\n${m.content}`,
+                    )
+                  : ["_No working notes._"]),
+              ].join("\n\n");
+              void copyText(md).then(() => {
+                setExportedBundle(true);
+                setTimeout(() => setExportedBundle(false), 2500);
+              });
+            }}
+          >
+            <Icon name={exportedBundle ? "check" : "copy"} />
+            {exportedBundle
+              ? pl
+                ? "Skopiowano AGENTS.md"
+                : "Copied AGENTS.md"
+              : pl
+                ? "Eksportuj AGENTS.md"
+                : "Export AGENTS.md"}
+          </button>
+        )}
       </div>
       <div className="memory-policy">
         <Icon name="shield" />

@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import type { Store } from "./store.js";
-import type { Agent, GitHubIssueItem, Task } from "../shared.js";
+import type { Agent, GitHubIssueItem, GitRepoHealth, Task } from "../shared.js";
 import { AGENTS } from "../shared.js";
 import { exact, text } from "./validate.js";
 import { git, gitText } from "./git.js";
@@ -186,4 +186,66 @@ export async function exportRunToBranch(
   );
 
   return { branchName: requested, head: run.head };
+}
+
+export async function inspectGitRepoHealth(
+  store: Store,
+  input: unknown,
+): Promise<GitRepoHealth> {
+  const p = exact(input, ["projectId"]);
+  const projectId = text(p.projectId);
+  const project = store.projects().find((item) => item.id === projectId);
+  if (!project) throw Error("PROJECT_NOT_FOUND");
+  const observedAt = new Date().toISOString();
+  if (!project.root) {
+    return {
+      isGit: false,
+      branch: null,
+      clean: true,
+      changedFiles: 0,
+      lastCommit: null,
+      observedAt,
+    };
+  }
+  try {
+    const inside = (
+      await gitText(project.root, "rev-parse", "--is-inside-work-tree")
+    ).trim();
+    if (inside !== "true") throw Error("NOT_GIT");
+    const branch = (
+      await gitText(project.root, "symbolic-ref", "--short", "HEAD").catch(() =>
+        gitText(project.root, "rev-parse", "--abbrev-ref", "HEAD").catch(
+          () => "HEAD",
+        ),
+      )
+    ).trim();
+    const porcelain = await gitText(project.root, "status", "--porcelain");
+    const changedFiles = porcelain
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0).length;
+    const lastCommit = (
+      await gitText(project.root, "log", "-1", "--pretty=format:%h %s").catch(
+        () => "",
+      )
+    )
+      .trim()
+      .slice(0, 100);
+    return {
+      isGit: true,
+      branch: branch || "HEAD",
+      clean: changedFiles === 0,
+      changedFiles,
+      lastCommit: lastCommit || null,
+      observedAt,
+    };
+  } catch {
+    return {
+      isGit: false,
+      branch: null,
+      clean: true,
+      changedFiles: 0,
+      lastCommit: null,
+      observedAt,
+    };
+  }
 }

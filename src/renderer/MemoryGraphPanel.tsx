@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import type { MemoryGraph } from "../shared";
 import { Icon } from "./ui";
+import { copyText } from "./clipboard";
 
 export function MemoryGraphPanel({
   pl,
@@ -16,6 +17,8 @@ export function MemoryGraphPanel({
     [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(""),
     [project, setProject] = useState(""),
+    [graphQuery, setGraphQuery] = useState(""),
+    [copiedCluster, setCopiedCluster] = useState(false),
     [zoom, setZoom] = useState(1);
   useEffect(() => {
     let alive = true,
@@ -49,9 +52,26 @@ export function MemoryGraphPanel({
     () =>
       (graph?.nodes ?? [])
         .filter((n) => !project || n.projectId === project)
+        .filter(
+          (n) =>
+            !graphQuery.trim() ||
+            n.kind === "project" ||
+            `${n.label} ${n.content} ${n.source}`
+              .toLowerCase()
+              .includes(graphQuery.toLowerCase()),
+        )
         .slice(0, 100),
-    [graph, project],
+    [graph, project, graphQuery],
   );
+  const neighborIds = useMemo(() => {
+    const set = new Set<string>();
+    if (!selected || !graph) return set;
+    for (const edge of graph.edges) {
+      if (edge.from === selected) set.add(edge.to);
+      if (edge.to === selected) set.add(edge.from);
+    }
+    return set;
+  }, [graph, selected]);
   const points = useMemo(() => {
     const centers = nodes.filter((n) => n.kind === "project");
     const map = new Map<string, { x: number; y: number }>();
@@ -99,6 +119,14 @@ export function MemoryGraphPanel({
           <h2>{pl ? "Połączone myśli." : "Connected thinking."}</h2>
         </div>
         <div className="graph-tools">
+          <input
+            type="search"
+            aria-label={pl ? "Szukaj węzłów w grafie" : "Search graph nodes"}
+            placeholder={pl ? "Filtruj węzły…" : "Filter nodes…"}
+            value={graphQuery}
+            onChange={(e) => setGraphQuery(e.target.value)}
+            style={{ maxWidth: "180px" }}
+          />
           <select
             aria-label={pl ? "Projekt grafu" : "Graph project"}
             value={project}
@@ -241,14 +269,61 @@ export function MemoryGraphPanel({
             <small>{current.source}</small>
             <h3>{current.label}</h3>
             <p>{current.content.slice(0, 450)}</p>
-            {current.memoryId && (
-              <button
-                className="secondary"
-                onClick={() => onSelect(current.memoryId!)}
-              >
-                {pl ? "Otwórz notatkę" : "Open note"}
-              </button>
+            {neighborIds.size > 0 && (
+              <small style={{ display: "block", marginBottom: "8px" }}>
+                {pl
+                  ? `Powiązane węzły: ${neighborIds.size}`
+                  : `Linked nodes: ${neighborIds.size}`}
+              </small>
             )}
+            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+              {current.memoryId && (
+                <button
+                  className="secondary"
+                  onClick={() => onSelect(current.memoryId!)}
+                >
+                  {pl ? "Otwórz notatkę" : "Open note"}
+                </button>
+              )}
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  const linked = (graph?.nodes ?? []).filter((n) =>
+                    neighborIds.has(n.id),
+                  );
+                  const md = [
+                    `# Knowledge Cluster: ${current.label}`,
+                    `Source: ${current.source}`,
+                    "",
+                    current.content,
+                    ...(linked.length
+                      ? [
+                          "",
+                          "## Linked Nodes",
+                          ...linked.map(
+                            (n) =>
+                              `### ${n.label} (${n.source})\n${n.content}`,
+                          ),
+                        ]
+                      : []),
+                  ].join("\n\n");
+                  void copyText(md).then(() => {
+                    setCopiedCluster(true);
+                    setTimeout(() => setCopiedCluster(false), 2000);
+                  });
+                }}
+              >
+                <Icon name={copiedCluster ? "check" : "copy"} />
+                {copiedCluster
+                  ? pl
+                    ? "Skopiowano klaster"
+                    : "Copied cluster"
+                  : pl
+                    ? "Kopiuj klaster MD"
+                    : "Copy cluster MD"}
+              </button>
+            </div>
           </aside>
         )}
       </div>

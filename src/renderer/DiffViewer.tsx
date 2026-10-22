@@ -167,6 +167,8 @@ export function DiffViewer({
   const files = useMemo(() => parseUnifiedDiff(diff), [diff]);
   const [mode, setMode] = useState<"unified" | "split" | "raw">("unified");
   const [activeFile, setActiveFile] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState<string | null>(null);
 
   const totalAdditions = useMemo(
@@ -178,10 +180,16 @@ export function DiffViewer({
     [files],
   );
 
-  const shownFiles =
+  const shownFiles = (
     activeFile === "all"
       ? files
-      : files.filter((f) => f.path === activeFile);
+      : files.filter((f) => f.path === activeFile)
+  ).filter(
+    (f) =>
+      !searchQuery.trim() ||
+      f.path.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      f.raw.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   function copy(text: string, id: string) {
     void copyText(text)
@@ -232,6 +240,37 @@ export function DiffViewer({
           </span>
         </div>
         <div className="diff-controls">
+          <input
+            type="search"
+            aria-label={pl ? "Szukaj w zmianach" : "Search in diff"}
+            placeholder={pl ? "Szukaj w diffie…" : "Search in diff…"}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ maxWidth: "165px", fontSize: "12px", padding: "4px 8px" }}
+          />
+          {files.length > 1 && mode !== "raw" && (
+            <button
+              type="button"
+              className="secondary"
+              style={{ fontSize: "12px", padding: "4px 8px" }}
+              onClick={() => {
+                const allCollapsed = files.every((f) => collapsed[f.path]);
+                const next: Record<string, boolean> = {};
+                if (!allCollapsed) {
+                  for (const f of files) next[f.path] = true;
+                }
+                setCollapsed(next);
+              }}
+            >
+              {files.every((f) => collapsed[f.path])
+                ? pl
+                  ? "Rozwiń wszystkie"
+                  : "Expand all"
+                : pl
+                  ? "Zwiń wszystkie"
+                  : "Collapse all"}
+            </button>
+          )}
           <div
             className="diff-mode-switch"
             role="group"
@@ -330,6 +369,19 @@ export function DiffViewer({
                   <button
                     type="button"
                     className="icon-button"
+                    title={pl ? "Zwiń / Rozwiń plik" : "Toggle file collapse"}
+                    onClick={() =>
+                      setCollapsed((prev) => ({
+                        ...prev,
+                        [file.path]: !prev[file.path],
+                      }))
+                    }
+                  >
+                    <Icon name={collapsed[file.path] ? "chevron" : "down"} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-button"
                     title={pl ? "Kopiuj zmiany w pliku" : "Copy file diff"}
                     aria-label={pl ? "Kopiuj zmiany w pliku" : "Copy file diff"}
                     onClick={() => copy(file.raw, file.path)}
@@ -339,7 +391,8 @@ export function DiffViewer({
                 </div>
               </header>
 
-              {mode === "unified" ? (
+              {!collapsed[file.path] &&
+                (mode === "unified" ? (
                 <div className="diff-table-wrap">
                   <pre className="diff-unified-pre" tabIndex={0}>
                     {file.hunks.map((hunk, hIdx) => (
@@ -404,7 +457,7 @@ export function DiffViewer({
                     ))}
                   </pre>
                 </div>
-              )}
+              ))}
             </article>
           ))}
         </div>

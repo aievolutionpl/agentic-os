@@ -1233,6 +1233,36 @@ export function ChatWorkspace({
                           {pl ? "Utwórz zadanie" : "Create task"}
                         </button>
                         <button
+                          type="button"
+                          onClick={() => {
+                            const nextAgent =
+                              AGENTS.find(
+                                (a) =>
+                                  a !== chat.agent &&
+                                  providers.find((p) => p.id === a)?.configured,
+                              ) ?? (chat.agent === "codex" ? "claude" : "codex");
+                            const excerpt = m.content.slice(0, 3500);
+                            const consultPrompt = pl
+                              ? `Przeprowadź niezależny przegląd (Second Opinion) poniższej propozycji od agenta ${agentName(chat.agent)}. Wskaż słabe punkty, luki architektoniczne oraz lepsze alternatywy:\n\n---\n${excerpt}`
+                              : `Provide an independent Second Opinion review of the following proposal from ${agentName(chat.agent)}. Identify blind spots, architectural trade-offs, and better alternatives:\n\n---\n${excerpt}`;
+                            setAgent(nextAgent);
+                            setMode(
+                              READ_ONLY_AGENTS.includes(nextAgent)
+                                ? "plan"
+                                : "chat",
+                            );
+                            drafts.set("", {
+                              message: consultPrompt,
+                              files: [],
+                            });
+                            selectChat("");
+                            setMessage(consultPrompt);
+                          }}
+                        >
+                          <Icon name="swap" />
+                          {pl ? "Druga opinia" : "Second opinion"}
+                        </button>
+                        <button
                           onClick={() =>
                             void copyText(m.content)
                               .then(() =>

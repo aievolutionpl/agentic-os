@@ -135,6 +135,55 @@ export function PolicyPanel({ language }: { language: "pl" | "en" }) {
           </p>
         </div>
       </div>
+      <div className="harness-slash-bar" style={{ padding: "0 0 12px" }}>
+        <span className="harness-slash-label">
+          {pl ? "Profile bezpieczeństwa:" : "Security presets:"}
+        </span>
+        {[
+          {
+            id: "strict",
+            label: pl ? "Strict Sandbox ($0 API)" : "Strict Sandbox ($0 API)",
+            paidApi: "deny" as const,
+            cap: "0",
+            agents: ["codex", "claude", "local", "antigravity"] as Agent[],
+          },
+          {
+            id: "balanced",
+            label: pl ? "Balanced Team ($25 / Ask)" : "Balanced Team ($25 / Ask)",
+            paidApi: "ask" as const,
+            cap: "25",
+            agents: [] as Agent[],
+          },
+          {
+            id: "sprint",
+            label: pl
+              ? "Autonomous Sprint ($100)"
+              : "Autonomous Sprint ($100)",
+            paidApi: "allow" as const,
+            cap: "100",
+            agents: [] as Agent[],
+          },
+        ].map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            className="slash-chip"
+            disabled={busy}
+            onClick={() => {
+              setPolicy({
+                ...policy,
+                allowedAgents: preset.agents,
+                paidApi: preset.paidApi,
+              });
+              setBudget(preset.cap);
+              setStatus("");
+            }}
+          >
+            <strong>⚡</strong>
+            <span>{preset.label}</span>
+          </button>
+        ))}
+      </div>
       <fieldset className="policy-agents">
         <legend>{pl ? "Kto może pracować" : "Who may work"}</legend>
         {AGENTS.filter(id => id !== "gemini").map((id) => (

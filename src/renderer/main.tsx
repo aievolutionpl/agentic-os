@@ -6,6 +6,7 @@ import type {
   Attention,
   AttentionItem,
   ConnectorScan,
+  GitRepoHealth,
   Memory,
   Preferences,
   ProjectData,
@@ -150,6 +151,25 @@ function App() {
             .includes(query.toLocaleLowerCase(prefs.language)),
         );
   const draft = drafts[projectId] ?? "";
+  const [gitHealth, setGitHealth] = useState<GitRepoHealth | null>(null);
+  useEffect(() => {
+    if (!projectId || !api?.gitRepoHealth) {
+      setGitHealth(null);
+      return;
+    }
+    let alive = true;
+    void api
+      .gitRepoHealth({ projectId })
+      .then((h) => {
+        if (alive) setGitHealth(h);
+      })
+      .catch(() => {
+        if (alive) setGitHealth(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [projectId, data.tasks.length]);
   useEffect(() => {
     setMemoryResults(null);
     if (tab !== "memory" || !query.trim() || !api?.memorySearch) return;
@@ -206,6 +226,32 @@ function App() {
   }, [draft, tab, projectId]);
   useEffect(() => {
     const shortcuts = (event: KeyboardEvent) => {
+      if (
+        event.altKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        api?.connectorScan &&
+        !document.querySelector("dialog[open]")
+      ) {
+        const map: Record<string, typeof view> = {
+          "1": "center",
+          "2": "chat",
+          "3": "terminal",
+          "4": "inbox",
+          "5": "skills",
+          "6": "shared-memory",
+          "7": "connections",
+          "8": "quota",
+        };
+        const nextView = map[event.key];
+        if (nextView) {
+          event.preventDefault();
+          setProjectsExpanded(false);
+          setView(nextView);
+          return;
+        }
+      }
       if (
         event.key !== "/" ||
         event.metaKey ||
@@ -430,31 +476,17 @@ function App() {
       go = pl ? "Przejdź" : "Go to",
       act = pl ? "Akcja" : "Action",
       projects = pl ? "Projekt" : "Project";
-    const views: [typeof view, string, string, string, boolean][] = [
-      ["chat", "message", "Czaty", "Chats", !!api?.chatList],
-      ["terminal", "terminal", "Terminal", "Terminal", !!api?.terminalList],
+    const views: [typeof view, string, string, string, boolean, string][] = [
+      ["center", "grid", ccWords.pl.nav, ccWords.en.nav, !!api?.connectorScan, "Alt+1"],
+      ["chat", "message", "Czaty", "Chats", !!api?.chatList, "Alt+2"],
+      ["terminal", "terminal", "Terminal", "Terminal", !!api?.terminalList, "Alt+3"],
       [
         "inbox",
         "inbox",
         attentionWords.pl.title,
         attentionWords.en.title,
         !!api?.attention,
-      ],
-      ["center", "grid", ccWords.pl.nav, ccWords.en.nav, !!api?.connectorScan],
-      [
-        "connections",
-        "connections",
-        "Połączenia i modele",
-        "Connections & models",
-        !!api?.connectorScan,
-      ],
-      ["quota", "layers", "Limity i tokeny", "OpenQuota", !!api?.connectorScan],
-      [
-        "shared-memory",
-        "memory",
-        "Wspólna pamięć",
-        "Shared memory",
-        !!api?.chatList,
+        "Alt+4",
       ],
       [
         "skills",
@@ -462,14 +494,33 @@ function App() {
         "Biblioteka skilli",
         "Skill library",
         !!api?.chatList,
+        "Alt+5",
       ],
+      [
+        "shared-memory",
+        "memory",
+        "Wspólna pamięć",
+        "Shared memory",
+        !!api?.chatList,
+        "Alt+6",
+      ],
+      [
+        "connections",
+        "connections",
+        "Połączenia i modele",
+        "Connections & models",
+        !!api?.connectorScan,
+        "Alt+7",
+      ],
+      ["quota", "layers", "Limity i tokeny", "OpenQuota", !!api?.connectorScan, "Alt+8"],
     ];
     const list: Command[] = views
       .filter((v) => v[4])
-      .map(([id, icon, plLabel, enLabel]) => ({
+      .map(([id, icon, plLabel, enLabel, , shortcut]) => ({
         id: `view-${id}`,
         label: pl ? plLabel : enLabel,
         group: go,
+        hint: `${go} · ${shortcut}`,
         icon,
         run: () => setView(id),
       }));
@@ -1336,6 +1387,36 @@ function App() {
                     {w.safety}
                   </span>
                 </div>
+                {gitHealth?.isGit && (
+                  <div className="project-harness-bar">
+                    <div className="project-harness-meta">
+                      <span>
+                        GIT BRANCH: <code>{gitHealth.branch}</code>
+                      </span>
+                      <span>·</span>
+                      <span>
+                        WORKTREE:{" "}
+                        <code>
+                          {gitHealth.clean
+                            ? prefs.language === "pl"
+                              ? "CLEAN (CZYSTE)"
+                              : "CLEAN"
+                            : prefs.language === "pl"
+                              ? `DIRTY (${gitHealth.changedFiles} ZMIAN)`
+                              : `DIRTY (${gitHealth.changedFiles} CHANGED)`}
+                        </code>
+                      </span>
+                      {gitHealth.lastCommit && (
+                        <>
+                          <span>·</span>
+                          <span>
+                            HEAD: <code>{gitHealth.lastCommit}</code>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <nav className="tabs" aria-label={w.work}>
                   {(
                     [
@@ -1401,6 +1482,134 @@ function App() {
                     <section className="composer">
                       <h2>{w.title}</h2>
                       <p className="composer-subtitle">{w.subtitle}</p>
+                      <div
+                        className="harness-slash-bar"
+                        style={{ padding: "0 0 10px" }}
+                      >
+                        <span className="harness-slash-label">
+                          {prefs.language === "pl"
+                            ? "Szablony & DAG:"
+                            : "Templates & DAG:"}
+                        </span>
+                        {[
+                          {
+                            cmd: "/spec",
+                            label:
+                              prefs.language === "pl"
+                                ? "Specyfikacja"
+                                : "Specification",
+                            text:
+                              prefs.language === "pl"
+                                ? "Przygotuj szczegółową specyfikację techniczną, kontrakty typów i plan weryfikacji."
+                                : "Prepare a detailed technical specification, type contracts, and verification plan.",
+                          },
+                          {
+                            cmd: "/impl",
+                            label:
+                              prefs.language === "pl"
+                                ? "Implementacja + Testy"
+                                : "Implement + Tests",
+                            text:
+                              prefs.language === "pl"
+                                ? "Zaimplementuj zmianę zgodnie z architekturą projektu i dopisz testy jednostkowe."
+                                : "Implement the change following project architecture and add unit tests.",
+                          },
+                          {
+                            cmd: "/security",
+                            label: "Security Audit",
+                            text:
+                              prefs.language === "pl"
+                                ? "Przeprowadź audyt bezpieczeństwa granic IPC/API, walidacji danych i zależności."
+                                : "Run a security audit of IPC/API boundaries, input validation, and dependencies.",
+                          },
+                        ].map((tpl) => (
+                          <button
+                            key={tpl.cmd}
+                            type="button"
+                            className="slash-chip"
+                            disabled={busy}
+                            onClick={() =>
+                              setDrafts((cur) => ({
+                                ...cur,
+                                [projectId]: tpl.text,
+                              }))
+                            }
+                          >
+                            <strong>{tpl.cmd}</strong>
+                            <span>{tpl.label}</span>
+                          </button>
+                        ))}
+                        {api.taskAction && (
+                          <button
+                            type="button"
+                            className="slash-chip"
+                            disabled={busy || loading}
+                            onClick={() => {
+                              const id = projectId;
+                              const rev =
+                                reviewer === implementer
+                                  ? implementer === "codex"
+                                    ? "claude"
+                                    : "codex"
+                                  : reviewer;
+                              void mutate(
+                                async () => {
+                                  const t1 = await api.createTask({
+                                    projectId: id,
+                                    title:
+                                      prefs.language === "pl"
+                                        ? "Etap 1/3 [Spec]: Analiza architektury i specyfikacja zmian"
+                                        : "Step 1/3 [Spec]: Architecture analysis and change specification",
+                                    implementer,
+                                    reviewer: rev,
+                                  });
+                                  const t2 = await api.createTask({
+                                    projectId: id,
+                                    title:
+                                      prefs.language === "pl"
+                                        ? "Etap 2/3 [Kod]: Implementacja funkcjonalności i kontraktów"
+                                        : "Step 2/3 [Code]: Feature and contract implementation",
+                                    implementer,
+                                    reviewer: rev,
+                                  });
+                                  await api.taskAction({
+                                    projectId: id,
+                                    id: t2.id,
+                                    action: "dependencies",
+                                    dependencyIds: [t1.id],
+                                  });
+                                  const t3 = await api.createTask({
+                                    projectId: id,
+                                    title:
+                                      prefs.language === "pl"
+                                        ? "Etap 3/3 [QA]: Testy regresyjne i weryfikacja końcowa"
+                                        : "Step 3/3 [QA]: Regression tests and final verification",
+                                    implementer,
+                                    reviewer: rev,
+                                  });
+                                  await api.taskAction({
+                                    projectId: id,
+                                    id: t3.id,
+                                    action: "dependencies",
+                                    dependencyIds: [t2.id],
+                                  });
+                                  await reloadProject(id);
+                                },
+                                prefs.language === "pl"
+                                  ? "Utworzono 3-etapowy łańcuch zadań DAG (Spec → Kod → QA)."
+                                  : "Created 3-step DAG task pipeline (Spec → Code → QA).",
+                              );
+                            }}
+                          >
+                            <strong>⚡ DAG</strong>
+                            <span>
+                              {prefs.language === "pl"
+                                ? "Pipeline 3 Zadań (Spec→Kod→QA)"
+                                : "3-Step Pipeline (Spec→Code→QA)"}
+                            </span>
+                          </button>
+                        )}
+                      </div>
                       <form
                         onSubmit={(event) => {
                           event.preventDefault();

@@ -15,7 +15,8 @@ export function BrowserPanel({
     editing = useRef(false);
   const [address, setAddress] = useState("https://"),
     [state, setState] = useState<BrowserState | null>(null),
-    [error, setError] = useState(false);
+    [error, setError] = useState(false),
+    [savedNotice, setSavedNotice] = useState(false);
   async function action(
     action: "navigate" | "back" | "forward" | "reload",
     url?: string,
@@ -176,7 +177,61 @@ export function BrowserPanel({
           required
         />
         <button className="primary">{pl ? "Otwórz" : "Open"}</button>
+        <button
+          type="button"
+          className="secondary"
+          disabled={!state?.url && !address.trim()}
+          onClick={() => {
+            const targetUrl = state?.url || address.trim();
+            if (!targetUrl) return;
+            void api
+              .createMemory({
+                projectId,
+                source: "browser:url-context",
+                scope: "project",
+                content: `Project Browser URL Context: ${targetUrl}${state?.title ? `\nPage Title: ${state.title}` : ""}`,
+              })
+              .then(() => {
+                setSavedNotice(true);
+                setTimeout(() => setSavedNotice(false), 2500);
+              })
+              .catch(() => setError(true));
+          }}
+        >
+          {savedNotice
+            ? pl
+              ? "✓ Zapisano w Pamięci"
+              : "✓ Saved to Memory"
+            : pl
+              ? "Zapisz URL w Pamięci"
+              : "Save URL to Memory"}
+        </button>
       </form>
+      <div className="harness-slash-bar" style={{ padding: "0 0 10px" }}>
+        <span className="harness-slash-label">
+          {pl ? "Lokalne porty & Docs:" : "Local ports & Docs:"}
+        </span>
+        {[
+          { label: "localhost:3000", url: "http://localhost:3000" },
+          { label: "localhost:5173 (Vite)", url: "http://localhost:5173" },
+          { label: "localhost:8080", url: "http://localhost:8080" },
+          { label: "localhost:4321", url: "http://localhost:4321" },
+          { label: "GitHub", url: "https://github.com" },
+        ].map((item) => (
+          <button
+            key={item.url}
+            type="button"
+            className="slash-chip"
+            onClick={() => {
+              setAddress(item.url);
+              void action("navigate", item.url);
+            }}
+          >
+            <strong>→</strong>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
       {(error || state?.error) && (
         <p className="inline-error" role="alert">
           {pl

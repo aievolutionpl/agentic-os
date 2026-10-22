@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import type { UsageEntry, UsageSummary } from "../shared";
-import { agentName, relativeTime } from "./ui";
+import { Icon, agentName, relativeTime } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
+import { copyText } from "./clipboard";
 
 /** Per-agent usage measured by this app. Unknown is shown as unknown. */
 export function UsageLedgerPanel({ language }: { language: "pl" | "en" }) {
@@ -11,6 +12,7 @@ export function UsageLedgerPanel({ language }: { language: "pl" | "en" }) {
     summary: UsageSummary[];
     recent: UsageEntry[];
   } | null>(null);
+  const [copied, setCopied] = useState(false);
   useEffect(() => {
     void api
       .usageReport?.()
@@ -37,9 +39,39 @@ export function UsageLedgerPanel({ language }: { language: "pl" | "en" }) {
   };
   return (
     <section className="usage-ledger" aria-labelledby="usage-title">
-      <h2 id="usage-title" className="cc-section">
-        {pl ? "Rejestr zużycia · 30 dni" : "Usage ledger · 30 days"}
-      </h2>
+      <div className="cc-head" style={{ marginBottom: "0.4rem" }}>
+        <h2 id="usage-title" className="cc-section" style={{ margin: 0 }}>
+          {pl ? "Rejestr zużycia · 30 dni" : "Usage ledger · 30 days"}
+        </h2>
+        {!!data.summary.length && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              const rows = [
+                "agent,invocations,measured,unmeasured,inputTokens,outputTokens",
+                ...data.summary.map(
+                  (s) =>
+                    `${s.agent},${s.invocations},${s.measured},${s.unmeasured},${s.inputTokens ?? ""},${s.outputTokens ?? ""}`,
+                ),
+              ].join("\n");
+              void copyText(rows).then(() => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              });
+            }}
+          >
+            <Icon name={copied ? "check" : "copy"} />
+            {copied
+              ? pl
+                ? "Skopiowano CSV"
+                : "Copied CSV"
+              : pl
+                ? "Eksportuj CSV"
+                : "Export CSV"}
+          </button>
+        )}
+      </div>
       <p className="helper">
         {pl
           ? "Każde wywołanie agenta w tej aplikacji. Tokeny tylko z raportu CLI; bez raportu wywołanie liczy się jako nieznane, nigdy jako zero."

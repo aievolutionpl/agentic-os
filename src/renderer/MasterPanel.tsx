@@ -329,6 +329,81 @@ export function MasterPanel({
         >
           <label>
             {pl ? "Co ma osiągnąć zespół?" : "What should the team achieve?"}
+            <div
+              className="harness-slash-bar"
+              style={{ padding: "4px 0 6px" }}
+            >
+              <span className="harness-slash-label">
+                {pl ? "Szablony misji:" : "Mission presets:"}
+              </span>
+              {[
+                {
+                  cmd: "/full-feature",
+                  label: pl ? "Funkcja + TDD" : "Feature + TDD",
+                  goal: pl
+                    ? "Zaprojektuj i wdróż kompletną funkcjonalność z testami jednostkowymi (TDD), weryfikacją typów oraz przeglądem kodu przed zatwierdzeniem."
+                    : "Design and implement the complete feature with unit tests (TDD), type verification, and code review before approval.",
+                  skills: [
+                    "builtin:teamwork",
+                    "builtin:test-driven-development",
+                    "builtin:verification-before-completion",
+                    "builtin:addyosmani-agent-skills",
+                  ],
+                },
+                {
+                  cmd: "/ui-overhaul",
+                  label: "Taste UI Craft",
+                  goal: pl
+                    ? "Dopracuj interfejs użytkownika zgodnie z zasadami Taste-Skill: popraw hierarchię typograficzną, responsywność, dostępność (A11y) i spójność komponentów."
+                    : "Refine the user interface following Taste-Skill: improve typographic hierarchy, responsiveness, accessibility (A11y), and component consistency.",
+                  skills: [
+                    "builtin:teamwork",
+                    "builtin:taste-skill",
+                    "builtin:frontend-design",
+                  ],
+                },
+                {
+                  cmd: "/arch-audit",
+                  label: "Archify & Security",
+                  goal: pl
+                    ? "Przeprowadź audyt architektury i bezpieczeństwa: zmapuj granice modułów, zaktualizuj dokumentację C4/Mermaid i wyeliminuj wąskie gardła."
+                    : "Run an architecture and security audit: map module boundaries, update C4/Mermaid documentation, and eliminate bottlenecks.",
+                  skills: [
+                    "builtin:teamwork",
+                    "builtin:archify",
+                    "builtin:requesting-code-review",
+                  ],
+                },
+                {
+                  cmd: "/bug-hunt",
+                  label: "Root-Cause Debug",
+                  goal: pl
+                    ? "Zdiagnozuj źródło błędów metodą Systematic Debugging, odtwórz problem w teście regresyjnym i wdróż minimalną, bezpieczną poprawkę."
+                    : "Diagnose root causes using Systematic Debugging, reproduce in a regression test, and apply a minimal, safe fix.",
+                  skills: [
+                    "builtin:teamwork",
+                    "builtin:systematic-debugging",
+                    "builtin:verification-before-completion",
+                  ],
+                },
+              ].map((preset) => (
+                <button
+                  key={preset.cmd}
+                  type="button"
+                  className="slash-chip"
+                  disabled={busy || active}
+                  onClick={() => {
+                    setGoal(preset.goal);
+                    setSkillIds((prev) =>
+                      Array.from(new Set([...prev, ...preset.skills])),
+                    );
+                  }}
+                >
+                  <strong>{preset.cmd}</strong>
+                  <span>{preset.label}</span>
+                </button>
+              ))}
+            </div>
             <textarea
               rows={4}
               maxLength={4000}

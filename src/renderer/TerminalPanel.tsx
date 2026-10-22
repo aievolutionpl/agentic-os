@@ -158,20 +158,15 @@ function TerminalView({
   useEffect(() => {
     if (instance.current)
       instance.current.options.theme =
-        theme === "dark"
-          ? {
-              background: "#0d1320",
-              foreground: "#e8eef8",
-              cursor: "#65d5ff",
-              selectionBackground: "#355471",
-            }
-          : {
-              background: "#f8faff",
-              foreground: "#142139",
-              cursor: "#075c94",
-              selectionBackground: "#bed8f2",
-            };
+        TERMINAL_THEMES[theme] ?? TERMINAL_THEMES.dark;
   }, [theme, session.id]);
+  const runQuickCommand = (cmd: string) => {
+    if (session.state === "exited") return;
+    void window.agenting
+      ?.terminalWrite?.({ id: session.id, data: `${cmd}\r` })
+      .then(() => instance.current?.focus())
+      .catch(() => setError(true));
+  };
   return (
     <>
       <div className="terminal-toolbar">
@@ -179,6 +174,34 @@ function TerminalView({
           <Icon name="folder" />
           {session.cwd}
         </span>
+        <div
+          className="harness-slash-bar"
+          style={{ padding: 0, marginLeft: "auto", marginRight: "8px" }}
+        >
+          {[
+            { label: "git status", cmd: "git status" },
+            { label: "git diff", cmd: "git diff --stat" },
+            { label: "npm test", cmd: "npm test" },
+            { label: "codex", cmd: "codex" },
+            { label: "claude", cmd: "claude" },
+          ].map((item) => (
+            <button
+              key={item.cmd}
+              type="button"
+              className="slash-chip"
+              disabled={session.state === "exited"}
+              title={
+                pl
+                  ? `Wyślij "${item.cmd}" do aktywnego terminala PTY`
+                  : `Send "${item.cmd}" to active PTY terminal`
+              }
+              onClick={() => runQuickCommand(item.cmd)}
+            >
+              <strong>$</strong>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
         <button
           className="secondary"
           onClick={() => {

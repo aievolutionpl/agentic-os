@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Agent, Attention, AttentionItem } from "../shared";
 import { Icon, agentName, relativeTime } from "./ui";
 import { WorkBoard } from "./WorkBoard";
@@ -140,12 +140,27 @@ export function Inbox({
   onStart?: (target: "chat" | "project" | "connections") => void;
 }) {
   const t = COPY[language];
+  const pl = language === "pl";
+  const [filter, setFilter] = useState<"all" | "review" | "mission" | "blocked">(
+    "all",
+  );
   // A failed refresh may hide new decisions; never claim "all caught up" then.
   const idle =
     !failed &&
     !!attention &&
     !attention.decisions.length &&
     !attention.active.length;
+  const filteredDecisions = (attention?.decisions ?? []).filter((item) => {
+    if (filter === "all") return true;
+    if (filter === "review") return item.kind === "run_review";
+    if (filter === "mission") return item.kind.startsWith("mission_");
+    return (
+      item.kind === "run_failed" ||
+      item.kind === "run_interrupted" ||
+      item.kind === "apply_uncertain" ||
+      item.kind.startsWith("batch_")
+    );
+  });
   return (
     <section className="inbox" aria-labelledby="inbox-title">
       <div className="cc-head">
@@ -176,9 +191,34 @@ export function Inbox({
         {t.decisions}
         {attention ? ` (${attention.decisions.length})` : ""}
       </h2>
-      {attention?.decisions.length ? (
+      {!!attention?.decisions.length && (
+        <div
+          className="harness-slash-bar"
+          style={{ padding: "0 0 10px" }}
+        >
+          {(
+            [
+              { id: "all", label: pl ? "Wszystkie" : "All" },
+              { id: "review", label: pl ? "Diff & Recenzje" : "Diff & Reviews" },
+              { id: "mission", label: pl ? "Misje Mastera" : "Master Missions" },
+              { id: "blocked", label: pl ? "Blokady & Błędy" : "Blocked & Errors" },
+            ] as const
+          ).map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              className={filter === cat.id ? "primary" : "secondary"}
+              style={{ fontSize: "0.76rem", padding: "0.28rem 0.65rem" }}
+              onClick={() => setFilter(cat.id)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {filteredDecisions.length ? (
         <ul className="inbox-list">
-          {attention.decisions.map((item) => (
+          {filteredDecisions.map((item) => (
             <Item
               key={`${item.kind}:${item.id}`}
               item={item}

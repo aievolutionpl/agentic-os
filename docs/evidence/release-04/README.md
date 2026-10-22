@@ -17,7 +17,7 @@ This stage completes the owner's three-stage continuation. Earlier stage evidenc
 - Typecheck and production build pass.
 - [Electron workspace smoke](smoke/smoke-result.json): persistence/restart/preferences, existing UI/security and reflow. Host native clipboard write/read baseline is unavailable; the trusted copy payload is verified separately and OS readback remains unverified.
 - [Real browser/extensions checks](tools/result.json): no remote Node/app bridge, geolocation denied, separate cookie jars, native preview removed behind dialogs, project-scoped import and light/dark small-window captures. Local HTTP fixture only; no user accounts or model calls.
-- [Text contrast matrix](contrast/result.json): actual measured screens, counts, failures and scope are recorded in JSON. Includes the new extension/browser UI. It is not a full accessibility audit or coverage of every execution/error state.
+- [Text contrast matrix](contrast/result.json.gz): actual measured screens, counts, failures and scope are recorded in JSON. Includes the new extension/browser UI. It is not a full accessibility audit or coverage of every execution/error state.
 - [Packaged executable smoke](package/result.json): actual Windows EXE opens from ASAR, preload works and first-launch profile is isolated. The NSIS installer is built; no installation into the user's profile, registry modification, upgrade or uninstall test was performed.
 
 ## Practical limits

@@ -23,7 +23,7 @@ Host: native Windows (`win32`), Node **26.10.0**, npm **11.19.1**, Electron **43
 | `npm run typecheck` | PASS | [typecheck.log](typecheck.log) |
 | `npm test` (includes production build) | PASS, 30/30 | [tests.log](tests.log) |
 | `npm run smoke` | PASS, real sandboxed Electron | [smoke.log](smoke.log), [smoke-result.json](smoke-result.json) |
-| `npm run qa:contrast` | PASS, 1986 measurements, 41 screens, zero text failures or horizontal overflow | [contrast.log](contrast.log), [contrast/result.json](contrast/result.json) |
+| `npm run qa:contrast` | PASS, 1986 measurements, 41 screens, zero text failures or horizontal overflow | [contrast.log](contrast.log), [contrast/result.json.gz](contrast/result.json.gz) |
 
 Baseline on this Windows host was 27/30 tests: two `EPERM` cleanup failures and `NOT_ISOLATED_WORKTREE`. After canonicalizing DOS aliases the Git fixture exposed an independent global `autocrlf` dependency (`WORKTREE_CHANGED`); fixing the fixture made all tests pass. Startup language selection also exposed an existing preference/snapshot race during contrast QA; disabled startup controls and a delayed-snapshot DOM regression cover it.
 

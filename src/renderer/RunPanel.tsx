@@ -7,6 +7,7 @@ import {
   type RuntimeView,
   type Run,
   type Extension,
+  type VerificationReport,
 } from "../shared";
 import { Icon, Modal, SelectField } from "./ui";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
@@ -160,6 +161,8 @@ export function RunPanel({
     [decision, setDecision] = useState<
       "approve" | "reject" | "apply" | "rollback" | null
     >(null),
+    [verification, setVerification] = useState<VerificationReport | null>(null),
+    [exportedBranch, setExportedBranch] = useState<string | null>(null),
     [errorCode, setErrorCode] = useState("");
   const alive = useRef(true);
   const [skills, setSkills] = useState<Extension[]>([]),
@@ -679,6 +682,95 @@ export function RunPanel({
                   ? `Popraw według review (próba ${task.attempt + 1} z ${MAX_ATTEMPTS})`
                   : `Revise from review (attempt ${task.attempt + 1} of ${MAX_ATTEMPTS})`}
               </button>
+            </div>
+          )}
+          {run.artifactId && (api.runVerify || api.runExportBranch) && (
+            <div className="verification-gate-box">
+              <div className="diff-toolbar">
+                <strong>
+                  <Icon name="shield" />{" "}
+                  {language === "pl"
+                    ? "Bramki weryfikacyjne i integracja Git"
+                    : "Verification Gates & Git Integration"}
+                </strong>
+                <div className="button-row">
+                  {api.runVerify && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() =>
+                        void action(async () => {
+                          const report = await api.runVerify!({
+                            projectId: task.projectId,
+                            runId: run.id,
+                          });
+                          setVerification(report);
+                        })
+                      }
+                    >
+                      <Icon name="check" />
+                      {language === "pl"
+                        ? "Uruchom bramki QA / Security"
+                        : "Run QA / Security Gates"}
+                    </button>
+                  )}
+                  {api.runExportBranch && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() =>
+                        void action(async () => {
+                          const res = await api.runExportBranch!({
+                            projectId: task.projectId,
+                            runId: run.id,
+                            branchName: "",
+                          });
+                          setExportedBranch(res.branchName);
+                        })
+                      }
+                    >
+                      <Icon name="spark" />
+                      {language === "pl"
+                        ? "Eksportuj gałąź Git"
+                        : "Export Git branch"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {exportedBranch && (
+                <p className="helper" role="status">
+                  <span className="badge diff-stat-add">
+                    branch: {exportedBranch}
+                  </span>{" "}
+                  {language === "pl"
+                    ? `Gotowe do wypchnięcia: git push -u origin ${exportedBranch}`
+                    : `Ready to push: git push -u origin ${exportedBranch}`}
+                </p>
+              )}
+              {verification && verification.runId === run.id && (
+                <ul className="verification-checks-list">
+                  {verification.checks.map((chk) => (
+                    <li key={chk.id} className="verification-check-row">
+                      <span
+                        className={`badge ${
+                          chk.status === "passed"
+                            ? "diff-stat-add"
+                            : chk.status === "failed"
+                              ? "diff-stat-del"
+                              : ""
+                        }`}
+                      >
+                        {chk.status.toUpperCase()}
+                      </span>
+                      <strong>{chk.name}</strong>
+                      <span className="helper">{chk.detail}</span>
+                      <small className="helper">{chk.durationMs} ms</small>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
           {run.state === "awaiting_review" && api.runDecision && (

@@ -588,6 +588,12 @@ function LocalModelSetup({ language }: { language: "pl" | "en" }) {
     pl = language === "pl";
   const [baseURL, setBaseURL] = useState("http://127.0.0.1:11434/v1"),
     [model, setModel] = useState("");
+  const [discoveredModels, setDiscoveredModels] = useState<string[]>([]),
+    [pingInfo, setPingInfo] = useState<{
+      ok: boolean;
+      latencyMs: number;
+      detail: string;
+    } | null>(null);
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
   useEffect(() => {
@@ -619,6 +625,61 @@ function LocalModelSetup({ language }: { language: "pl" | "en" }) {
           ? "Włącz serwer zgodny z OpenAI i podaj dokładny identyfikator zainstalowanego modelu. Narzędzia agenta obsługuje OpenCode przez ACP. Serwer i model muszą działać na tym komputerze."
           : "Start an OpenAI-compatible server and enter the exact installed model ID. OpenCode provides agent tools over ACP. The server and model must run on this computer."}
       </p>
+      <div className="button-row" style={{ marginBottom: 10 }}>
+        <button
+          type="button"
+          className="ghost"
+          disabled={busy}
+          onClick={() => setBaseURL("http://127.0.0.1:11434/v1")}
+        >
+          Ollama (11434)
+        </button>
+        <button
+          type="button"
+          className="ghost"
+          disabled={busy}
+          onClick={() => setBaseURL("http://127.0.0.1:1234/v1")}
+        >
+          LM Studio (1234)
+        </button>
+        {api.localModelDiscover && (
+          <button
+            type="button"
+            className="secondary"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              setMessage("");
+              void api
+                .localModelDiscover!({ baseURL })
+                .then((res) => {
+                  setDiscoveredModels(res.models);
+                  if (res.models.length && !model) setModel(res.models[0]);
+                  setMessage(
+                    res.reachable
+                      ? pl
+                        ? `Wykryto serwer (${res.latencyMs} ms) · modeli: ${res.models.length}`
+                        : `Server detected (${res.latencyMs} ms) · models: ${res.models.length}`
+                      : pl
+                        ? "Serwer lokalny nie odpowiada pod tym adresem."
+                        : "Local server is not responding at this URL.",
+                  );
+                })
+                .catch(() =>
+                  setMessage(
+                    pl
+                      ? "Wymagany adres http://127.0.0.1:port/v1."
+                      : "Use http://127.0.0.1:port/v1.",
+                  ),
+                )
+                .finally(() => setBusy(false));
+            }}
+          >
+            <Icon name="search" />
+            {pl ? "Wykryj modele lokalne" : "Discover local models"}
+          </button>
+        )}
+      </div>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -652,6 +713,27 @@ function LocalModelSetup({ language }: { language: "pl" | "en" }) {
             disabled={busy}
           />
         </label>
+        {!!discoveredModels.length && (
+          <label>
+            {pl ? "Wykryte modele na serwerze" : "Discovered models on server"}
+            <select
+              value={discoveredModels.includes(model) ? model : ""}
+              disabled={busy}
+              onChange={(e) => {
+                if (e.target.value) setModel(e.target.value);
+              }}
+            >
+              <option value="">
+                {pl ? "Wybierz wykryty model…" : "Select a discovered model…"}
+              </option>
+              {discoveredModels.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           {pl ? "Identyfikator modelu" : "Model ID"}
           <input
@@ -667,6 +749,42 @@ function LocalModelSetup({ language }: { language: "pl" | "en" }) {
           <button disabled={busy || !model.trim()}>
             {pl ? "Zapisz lokalny model" : "Save local model"}
           </button>
+          {api.localModelPing && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy || !model.trim()}
+              onClick={() => {
+                setBusy(true);
+                setPingInfo(null);
+                void api
+                  .localModelPing!({ baseURL, model })
+                  .then((res) => {
+                    setPingInfo(res);
+                    setMessage(
+                      res.ok
+                        ? pl
+                          ? `Ping OK (${res.latencyMs} ms) · model odpowiada.`
+                          : `Ping OK (${res.latencyMs} ms) · model responds.`
+                        : pl
+                          ? `Test nieudany (${res.detail}).`
+                          : `Ping failed (${res.detail}).`,
+                    );
+                  })
+                  .catch(() =>
+                    setMessage(
+                      pl
+                        ? "Nie udało się przetestować modelu."
+                        : "Could not ping model.",
+                    ),
+                  )
+                  .finally(() => setBusy(false));
+              }}
+            >
+              <Icon name="connections" />
+              {pl ? "Testuj model (Ping)" : "Test model (Ping)"}
+            </button>
+          )}
           <button
             type="button"
             className="secondary"
@@ -676,6 +794,7 @@ function LocalModelSetup({ language }: { language: "pl" | "en" }) {
               void api.localModelRemove!()
                 .then(() => {
                   setModel("");
+                  setPingInfo(null);
                   setMessage(
                     pl ? "Usunięto konfigurację." : "Configuration removed.",
                   );
@@ -693,6 +812,14 @@ function LocalModelSetup({ language }: { language: "pl" | "en" }) {
             {pl ? "Usuń konfigurację" : "Remove configuration"}
           </button>
         </div>
+        {pingInfo && (
+          <p className="helper">
+            <span className="badge">
+              {pingInfo.ok ? "ONLINE" : "OFFLINE"} · {pingInfo.latencyMs} ms
+            </span>{" "}
+            {pingInfo.detail}
+          </p>
+        )}
         <p role="status">{message}</p>
       </form>
     </section>

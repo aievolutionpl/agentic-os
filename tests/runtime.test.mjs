@@ -16,6 +16,8 @@ import { CodexAdapter } from "../dist/main/providers.js";
 import { AcpAdapter } from "../dist/main/acp.js";
 import { Applications } from "../dist/main/applications.js";
 import { createDemoProject } from "../dist/main/demo-project.js";
+import { runVerificationChecks } from "../dist/main/verification-hooks.js";
+import { exportRunToBranch } from "../dist/main/github-integration.js";
 import { gitText, git } from "../dist/main/git.js";
 const fixture = resolve("tests/fixtures/codex-server.mjs");
 const wait = async (fn) => {
@@ -972,6 +974,25 @@ test("an applied run can be safely rolled back to its base commit unless newer c
     assert.equal(rolledBack.approvalId, null);
     assert.equal(existsSync(join(f.repo, "result.txt")), false);
     assert.equal(await gitText(f.repo, "rev-parse", "HEAD"), run.base);
+
+    const verification = await runVerificationChecks(
+      f.store,
+      f.project.id,
+      run.id,
+    );
+    assert.equal(verification.passed, true);
+    assert.ok(verification.checks.length >= 4);
+
+    const branchExport = await exportRunToBranch(f.store, {
+      projectId: f.project.id,
+      runId: run.id,
+      branchName: "",
+    });
+    assert.match(branchExport.branchName, /^agentic\/task-/);
+    assert.equal(
+      await gitText(f.repo, "rev-parse", branchExport.branchName),
+      run.head,
+    );
 
     // Re-approve and re-apply, then add a newer commit to verify HEAD_MOVED_SINCE_APPLY protection
     await apps.decide({ ...input, action: "approve" });

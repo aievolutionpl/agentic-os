@@ -22,6 +22,42 @@ export interface LocalModelSetting {
   baseURL: string;
   model: string;
 }
+export interface LocalModelDiscovery {
+  reachable: boolean;
+  baseURL: string;
+  provider: "ollama" | "lmstudio" | "openai-local";
+  models: string[];
+  latencyMs: number;
+  observedAt: string;
+}
+export interface LocalModelPingResult {
+  ok: boolean;
+  model: string;
+  latencyMs: number;
+  detail: string;
+  observedAt: string;
+}
+export interface VerificationCheck {
+  id: string;
+  name: string;
+  status: "passed" | "warning" | "failed";
+  detail: string;
+  durationMs: number;
+}
+export interface VerificationReport {
+  runId: string;
+  passed: boolean;
+  checks: VerificationCheck[];
+  observedAt: string;
+  durationMs: number;
+}
+export interface GitHubIssueItem {
+  number: number;
+  title: string;
+  body: string;
+  url: string;
+  labels: string[];
+}
 export interface MissionStep {
   key: string;
   title: string;
@@ -718,6 +754,41 @@ export interface API {
     consent: true;
   }): Promise<Extension>;
   extensionRemove(input: { projectId: string; id: string }): Promise<void>;
+  pluginCatalog?(input?: { projectId?: string }): Promise<Extension[]>;
+  pluginInstall?(input: {
+    projectId: string;
+    id: string;
+    consent: true;
+  }): Promise<Extension>;
+  extensionToggle?(input: {
+    projectId: string;
+    id: string;
+    enabled: boolean;
+  }): Promise<Extension>;
+  localModelDiscover?(input?: { baseURL?: string }): Promise<LocalModelDiscovery>;
+  localModelPing?(input: {
+    baseURL: string;
+    model: string;
+  }): Promise<LocalModelPingResult>;
+  runVerify?(input: {
+    projectId: string;
+    runId: string;
+  }): Promise<VerificationReport>;
+  runExportBranch?(input: {
+    projectId: string;
+    runId: string;
+    branchName?: string;
+  }): Promise<{ branchName: string; head: string }>;
+  githubIssuesList?(input: { projectId: string }): Promise<GitHubIssueItem[]>;
+  githubIssueImport?(input: {
+    projectId: string;
+    number: number;
+    title: string;
+    body: string;
+    url: string;
+    implementer: Agent;
+    reviewer: Agent;
+  }): Promise<Task>;
   mcpConnect(input: {
     projectId: string;
     id: string;
@@ -857,7 +928,7 @@ export interface TerminalRead {
 }
 export interface Extension {
   id: string;
-  kind: "skill" | "mcp";
+  kind: "skill" | "mcp" | "plugin" | "hook";
   name: string;
   version: string;
   author: string;
@@ -866,6 +937,10 @@ export interface Extension {
   slug?: string;
   files?: number;
   installed?: boolean;
+  enabled?: boolean;
+  description?: string;
+  category?: string;
+  pluginId?: string;
   installPath?: string;
   instructions?: string;
   command?: string;

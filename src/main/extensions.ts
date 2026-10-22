@@ -77,9 +77,95 @@ const BUILTINS: Extension[] = [
       "Reuse existing design tokens and components. Check keyboard focus, labels, contrast, responsive overflow, loading, empty and error states. Keep content readable and actions explicit. Verify changes with the project's existing checks.",
   },
 ];
+
+export const PLUGIN_CATALOG: Extension[] = [
+  {
+    id: "plugin:github-workflow",
+    kind: "plugin",
+    name: "GitHub PR & Issue Workflow Pack",
+    version: "1.1.0",
+    author: "AI Evolution Polska",
+    license: "Apache-2.0",
+    source: "agenting-os/plugins/github-workflow",
+    category: "Integracje / Git",
+    description:
+      "Łączy zgłoszenia GitHub Issues z zadaniami agentów, wymusza atomowe commity i strukturę opisu zmian pod Pull Request.",
+    instructions:
+      "When working on a GitHub-linked task, reference the Issue number (#N) in the summary, keep changes scoped to a single reviewable PR, verify tests before finishing, and output a structured PR checklist (Summary, Root Cause, Files Changed, Verification).",
+  },
+  {
+    id: "plugin:qa-gate",
+    kind: "plugin",
+    name: "Deterministic QA & Test Gate",
+    version: "1.1.0",
+    author: "AI Evolution Polska",
+    license: "Apache-2.0",
+    source: "agenting-os/plugins/qa-gate",
+    category: "Weryfikacja / QA",
+    description:
+      "Aktywuje bramkę weryfikacyjną po przebiegu (składnia JS, integralność JSON, higiena diffu) oraz wymaga od wykonawcy raportu z uruchomionych testów.",
+    instructions:
+      "Every code modification must be accompanied by deterministic verification: run unit/integration tests covering the changed code paths, ensure zero syntax or type regressions, and report the exact commands executed.",
+  },
+  {
+    id: "plugin:security-guard",
+    kind: "plugin",
+    name: "Secret & Dependency Guard",
+    version: "1.0.0",
+    author: "AI Evolution Polska",
+    license: "Apache-2.0",
+    source: "agenting-os/plugins/security-guard",
+    category: "Bezpieczeństwo",
+    description:
+      "Chroni repozytorium przed wyciekiem sekretów, kluczy API, modyfikacją plików .env oraz nieautoryzowanymi zmianami uprawnień plików.",
+    instructions:
+      "Never hardcode API keys, tokens, credentials, or private URLs in source files or tests. Validate all external inputs at system boundaries, preserve file permissions, and avoid adding unverified third-party dependencies.",
+  },
+  {
+    id: "plugin:architecture-adr",
+    kind: "plugin",
+    name: "Architecture & ADR Curator",
+    version: "1.0.0",
+    author: "AI Evolution Polska",
+    license: "Apache-2.0",
+    source: "agenting-os/plugins/architecture-adr",
+    category: "Architektura & Pamięć",
+    description:
+      "Wzbogaca przebiegi o ustrukturyzowane podsumowania decyzji architektonicznych (ADR) gotowe do przypięcia we Wspólnej Pamięci projektu.",
+    instructions:
+      "Document non-trivial architectural trade-offs using a concise ADR summary (Context, Decision, Consequences) at the end of your handoff so the operator can pin it into Project Memory.",
+  },
+];
+
 export class Extensions {
   catalog(): Extension[] {
     return skillCatalog();
+  }
+  pluginCatalog(projectId?: string): Extension[] {
+    if (!projectId) return PLUGIN_CATALOG;
+    this.project(projectId);
+    const rows = this.db
+      .prepare("SELECT id,manifest FROM extensions WHERE projectId=?")
+      .all(projectId)
+      .map(
+        (r): { id: string; pluginId?: string; enabled?: boolean } => ({
+          ...(JSON.parse(String(r.manifest)) as {
+            pluginId?: string;
+            enabled?: boolean;
+          }),
+          id: String(r.id),
+        }),
+      );
+    return PLUGIN_CATALOG.map((plugin) => {
+      const match = rows.find(
+        (r) => r.id === plugin.id || r.pluginId === plugin.id,
+      );
+      return {
+        ...plugin,
+        installed: !!match,
+        enabled: match ? match.enabled !== false : false,
+      };
+    });
   }
   constructor(private db: DatabaseSync) {
     if (Number(db.prepare("PRAGMA user_version").get()!.user_version) === 7)
@@ -122,7 +208,8 @@ export class Extensions {
     const extension =
       this.list(projectId).find((item) => item.id === text(id)) ??
       BUILTINS.find((item) => item.id === id) ??
-      COMMUNITY_SKILLS.find((item) => item.id === id);
+      COMMUNITY_SKILLS.find((item) => item.id === id) ??
+      PLUGIN_CATALOG.find((item) => item.id === id);
     if (!extension) throw Error("EXTENSION_NOT_FOUND");
     return extension;
   }
@@ -132,16 +219,30 @@ export class Extensions {
     if (p.consent !== true) throw Error("EXPLICIT_TRUST_REQUIRED");
     const raw = text(p.manifest, 32000),
       value = object(JSON.parse(raw));
-    const m = exact(value, [
-      "kind",
-      "name",
-      "version",
-      "author",
-      "license",
-      "source",
-      ...(value.kind === "skill" ? ["instructions"] : ["command", "args"]),
-    ]);
-    if (m.kind !== "skill" && m.kind !== "mcp") throw Error("INVALID_KIND");
+    const allowedKeys =
+      value.kind === "skill"
+        ? ["kind", "name", "version", "author", "license", "source", "instructions"]
+        : value.kind === "plugin" || value.kind === "hook"
+          ? [
+              "kind",
+              "name",
+              "version",
+              "author",
+              "license",
+              "source",
+              "instructions",
+              "description",
+              "category",
+            ]
+          : ["kind", "name", "version", "author", "license", "source", "command", "args"];
+    const m = exact(value, allowedKeys);
+    if (
+      m.kind !== "skill" &&
+      m.kind !== "mcp" &&
+      m.kind !== "plugin" &&
+      m.kind !== "hook"
+    )
+      throw Error("INVALID_KIND");
     const manifest: Omit<Extension, "id"> = {
       kind: m.kind,
       name: text(m.name, 120),
@@ -149,9 +250,15 @@ export class Extensions {
       author: text(m.author, 120),
       license: text(m.license, 120),
       source: text(m.source, 1000),
+      enabled: true,
     };
-    if (m.kind === "skill") manifest.instructions = text(m.instructions, 12000);
-    else {
+    if (m.kind === "skill" || m.kind === "plugin" || m.kind === "hook") {
+      manifest.instructions = text(m.instructions, 12000);
+      if (typeof m.description === "string")
+        manifest.description = text(m.description, 600);
+      if (typeof m.category === "string")
+        manifest.category = text(m.category, 80);
+    } else {
       const command = text(m.command, 4096);
       if (
         !isAbsolute(command) ||
@@ -178,6 +285,55 @@ export class Extensions {
     this.event(projectId, id, "imported");
     return { ...manifest, id };
   }
+  installPlugin(input: unknown): Extension {
+    const p = exact(input, ["projectId", "id", "consent"]);
+    const projectId = this.project(p.projectId);
+    if (p.consent !== true) throw Error("EXPLICIT_TRUST_REQUIRED");
+    const pluginId = text(p.id, 120);
+    const plugin = PLUGIN_CATALOG.find((item) => item.id === pluginId);
+    if (!plugin) throw Error("EXTENSION_NOT_FOUND");
+    const rowId = `plugin:${projectId}:${plugin.id}`;
+    const manifest: Omit<Extension, "id"> & { pluginId: string } = {
+      pluginId: plugin.id,
+      kind: "plugin",
+      name: plugin.name,
+      version: plugin.version,
+      author: plugin.author,
+      license: plugin.license,
+      source: plugin.source,
+      description: plugin.description,
+      category: plugin.category,
+      instructions: plugin.instructions,
+      installed: true,
+      enabled: true,
+    };
+    this.db
+      .prepare(
+        "INSERT INTO extensions(id,projectId,manifest,createdAt) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET manifest=excluded.manifest",
+      )
+      .run(rowId, projectId, JSON.stringify(manifest), new Date().toISOString());
+    this.event(projectId, plugin.id, "plugin_installed");
+    return { ...manifest, id: rowId };
+  }
+  toggle(input: unknown): Extension {
+    const p = exact(input, ["projectId", "id", "enabled"]);
+    const projectId = this.project(p.projectId);
+    const id = text(p.id, 200);
+    if (typeof p.enabled !== "boolean") throw Error("INVALID_INPUT");
+    const row = this.db
+      .prepare(
+        "SELECT id,manifest FROM extensions WHERE projectId=? AND id=?",
+      )
+      .get(projectId, id) as { id: string; manifest: string } | undefined;
+    if (!row) throw Error("EXTENSION_NOT_FOUND");
+    const parsed = JSON.parse(String(row.manifest)) as Record<string, unknown>;
+    parsed.enabled = p.enabled;
+    this.db
+      .prepare("UPDATE extensions SET manifest=? WHERE projectId=? AND id=?")
+      .run(JSON.stringify(parsed), projectId, id);
+    this.event(projectId, id, p.enabled ? "enabled" : "disabled");
+    return { ...(parsed as Omit<Extension, "id">), id: row.id };
+  }
   remove(projectId: string, id: string) {
     this.project(projectId);
     if (
@@ -195,27 +351,44 @@ export class Extensions {
       new Set(ids).size !== ids.length
     )
       throw Error("INVALID_SKILLS");
+    const activePlugins = this.list(projectId)
+      .filter(
+        (item) =>
+          (item.kind === "plugin" || item.kind === "hook") &&
+          item.enabled !== false &&
+          item.instructions,
+      )
+      .map((item) => item.id);
     const selected = [
       ...new Set([
         ...ids,
         ...this.installed(projectId).map((s) => s.catalogId),
+        ...activePlugins,
       ]),
-    ];
-    return selected.map((id) => {
-      const item = this.get(projectId, text(id));
-      if (item.kind !== "skill") throw Error("INVALID_SKILLS");
-      return {
-        id: item.id,
-        name: item.name,
-        version: item.version,
-        source: item.source,
-        license: item.license,
-        instructions:
-          item.installed && item.installPath
-            ? `Installed skill: ${item.name}. Read the full instructions at .agents/skills/${item.slug}/SKILL.md inside the current workspace when applicable. Supporting references and scripts are in the same directory. Installation does not authorize arbitrary script execution.\n${item.instructions?.match(/^description:\s*(.+)$/m)?.[1] ?? ""}`
-            : item.instructions!,
-      };
-    });
+    ].slice(0, 10);
+    return selected
+      .map((id) => {
+        const item = this.get(projectId, text(id));
+        if (
+          item.kind !== "skill" &&
+          item.kind !== "plugin" &&
+          item.kind !== "hook"
+        )
+          throw Error("INVALID_SKILLS");
+        if (item.enabled === false) return null;
+        return {
+          id: item.id,
+          name: item.name,
+          version: item.version,
+          source: item.source,
+          license: item.license,
+          instructions:
+            item.installed && item.installPath
+              ? `Installed skill: ${item.name}. Read the full instructions at .agents/skills/${item.slug}/SKILL.md inside the current workspace when applicable. Supporting references and scripts are in the same directory. Installation does not authorize arbitrary script execution.\n${item.instructions?.match(/^description:\s*(.+)$/m)?.[1] ?? ""}`
+              : item.instructions!,
+        };
+      })
+      .filter((s): s is ContextSkill => s !== null);
   }
   private installed(
     projectId: string,
@@ -330,7 +503,7 @@ export class McpTools {
         }),
       );
       if (
-        init.protocolVersion !== "2025-11-25" ||
+        !["2025-11-25", "2024-11-05"].includes(String(init.protocolVersion)) ||
         !object(init.capabilities).tools
       )
         throw Error("UNSUPPORTED_MCP");

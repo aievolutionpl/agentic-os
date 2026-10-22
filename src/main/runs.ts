@@ -135,6 +135,7 @@ export class Runs {
         "revision",
         "review_outcome",
         "rollback",
+        "verification",
       ].includes(kind)
     )
       return;

@@ -51,6 +51,12 @@ import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
 import { MemoryVault } from "./memory-vault.js";
 import { createDemoProject } from "./demo-project.js";
+import { runVerificationChecks } from "./verification-hooks.js";
+import {
+  listGitHubIssues,
+  importGitHubIssueAsTask,
+  exportRunToBranch,
+} from "./github-integration.js";
 import {
   AGENTS,
   type Agent,
@@ -560,6 +566,26 @@ app
         await mcp!.disconnect(projectId, id);
         store.extensions.remove(projectId, id);
       },
+      pluginCatalog: (input) => {
+        const projectId =
+          input &&
+          typeof input === "object" &&
+          typeof (input as { projectId?: unknown }).projectId === "string"
+            ? text((input as { projectId: string }).projectId)
+            : undefined;
+        return store.extensions.pluginCatalog(projectId);
+      },
+      pluginInstall: (input) => store.extensions.installPlugin(input),
+      extensionToggle: (input) => store.extensions.toggle(input),
+      localModelDiscover: (input) => localModel.discover(input),
+      localModelPing: (input) => localModel.ping(input),
+      runVerify: (input) => {
+        const p = exact(input, ["projectId", "runId"]);
+        return runVerificationChecks(store, text(p.projectId), text(p.runId));
+      },
+      runExportBranch: (input) => exportRunToBranch(store, input),
+      githubIssuesList: (input) => listGitHubIssues(store, input),
+      githubIssueImport: (input) => importGitHubIssueAsTask(store, input),
       mcpConnect: (input) => mcp!.connect(input),
       mcpCall: (input) => mcp!.call(input),
       mcpDisconnect: (input) => {

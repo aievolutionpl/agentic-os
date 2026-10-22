@@ -15,6 +15,22 @@ const sample = JSON.stringify(
   null,
   2,
 );
+const pluginSample = JSON.stringify(
+  {
+    kind: "plugin",
+    name: "Custom Release & QA Plugin",
+    version: "1.0.0",
+    author: "Your team",
+    license: "Apache-2.0",
+    source: "local/release-qa-plugin",
+    category: "QA & Release",
+    description: "Validates tests and enforces changelog summaries.",
+    instructions:
+      "Run project tests before completing the task and include a concise release note in the final summary.",
+  },
+  null,
+  2,
+);
 export function ExtensionsPanel({
   projectId,
   language,
@@ -25,6 +41,7 @@ export function ExtensionsPanel({
   const api = window.agenting!,
     pl = language === "pl";
   const [items, setItems] = useState<Extension[]>([]),
+    [plugins, setPlugins] = useState<Extension[]>([]),
     [query, setQuery] = useState(""),
     [manifest, setManifest] = useState(sample),
     [consent, setConsent] = useState(false),
@@ -38,6 +55,7 @@ export function ExtensionsPanel({
     [result, setResult] = useState<{ isError: boolean; text: string } | null>(
       null,
     ),
+    [pinnedNotice, setPinnedNotice] = useState(false),
     [pending, setPending] = useState<{
       id: string;
       name: string;
@@ -45,7 +63,14 @@ export function ExtensionsPanel({
     } | null>(null),
     [remove, setRemove] = useState<Extension | null>(null);
   async function refresh() {
-    setItems(await api.extensionList({ projectId }));
+    const [extList, plugList] = await Promise.all([
+      api.extensionList({ projectId }),
+      api.pluginCatalog
+        ? api.pluginCatalog({ projectId }).catch(() => [])
+        : Promise.resolve([]),
+    ]);
+    setItems(extList);
+    setPlugins(plugList);
   }
   useEffect(() => {
     let alive = true;
@@ -114,6 +139,102 @@ export function ExtensionsPanel({
             : "Request rejected. Check the manifest, trusted executable path and connection state."}
         </p>
       )}
+      {!!plugins.length && (
+        <section className="plugin-marketplace" aria-label={pl ? "Katalog Pluginów" : "Plugin Marketplace"}>
+          <div className="plugin-marketplace-header">
+            <h3>
+              <Icon name="spark" />
+              {pl ? "Katalog Pluginów (1-Klik)" : "Plugin Marketplace (1-Click)"}
+            </h3>
+            <span className="helper">
+              {pl
+                ? "Gotowe pakiety łączące reguły agentów, bramki QA oraz integracje GitHub."
+                : "Bundled packs combining agent rules, QA gates and GitHub workflows."}
+            </span>
+          </div>
+          <div className="plugin-cards-grid">
+            {plugins.map((plugin) => {
+              const installedRow = items.find(
+                (i) => i.pluginId === plugin.id || i.id === `plugin:${projectId}:${plugin.id}`,
+              );
+              const isInstalled = !!installedRow || !!plugin.installed;
+              const isEnabled = installedRow
+                ? installedRow.enabled !== false
+                : plugin.enabled !== false;
+              return (
+                <article key={plugin.id} className="plugin-card">
+                  <div className="plugin-card-top">
+                    <span className="badge">{plugin.category ?? "Plugin"}</span>
+                    <span className="helper">v{plugin.version}</span>
+                  </div>
+                  <h4>{plugin.name}</h4>
+                  <p className="helper">{plugin.description}</p>
+                  <div className="plugin-card-actions">
+                    {!isInstalled ? (
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={busy}
+                        onClick={() =>
+                          void act(async () => {
+                            await api.pluginInstall?.({
+                              projectId,
+                              id: plugin.id,
+                              consent: true,
+                            });
+                            await refresh();
+                          })
+                        }
+                      >
+                        <Icon name="plus" />
+                        {pl ? "Zainstaluj plugin" : "Install plugin"}
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className={isEnabled ? "secondary" : "ghost"}
+                          disabled={busy || !installedRow}
+                          onClick={() => {
+                            if (!installedRow) return;
+                            void act(async () => {
+                              await api.extensionToggle?.({
+                                projectId,
+                                id: installedRow.id,
+                                enabled: !isEnabled,
+                              });
+                              await refresh();
+                            });
+                          }}
+                        >
+                          <Icon name={isEnabled ? "check" : "close"} />
+                          {isEnabled
+                            ? pl
+                              ? "Włączony"
+                              : "Enabled"
+                            : pl
+                              ? "Wyłączony"
+                              : "Disabled"}
+                        </button>
+                        {installedRow && (
+                          <button
+                            type="button"
+                            className="ghost"
+                            disabled={busy}
+                            onClick={() => setRemove(installedRow)}
+                          >
+                            {pl ? "Odinstaluj" : "Uninstall"}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      )}
       {loading ? (
         <p role="status">{pl ? "Wczytywanie…" : "Loading…"}</p>
       ) : (
@@ -136,25 +257,63 @@ export function ExtensionsPanel({
                 <span className="helper">
                   {" "}
                   {item.version} · {item.kind.toUpperCase()}
+                  {item.enabled === false
+                    ? pl
+                      ? " · WYŁĄCZONY"
+                      : " · DISABLED"
+                    : ""}
                 </span>
                 <p className="helper">
                   {item.author} · {item.license} · {item.source}
                 </p>
-                {item.kind === "skill" && (
-                  <details>
-                    <summary>{pl ? "Instrukcje" : "Instructions"}</summary>
-                    <pre>{item.instructions}</pre>
-                  </details>
+                {item.description && (
+                  <p className="helper">{item.description}</p>
                 )}
+                {(item.kind === "skill" ||
+                  item.kind === "plugin" ||
+                  item.kind === "hook") &&
+                  item.instructions && (
+                    <details>
+                      <summary>{pl ? "Instrukcje" : "Instructions"}</summary>
+                      <pre>{item.instructions}</pre>
+                    </details>
+                  )}
               </div>
               {!item.id.startsWith("builtin:") && (
-                <button
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() => setRemove(item)}
-                >
-                  {pl ? "Usuń" : "Remove"}
-                </button>
+                <div className="button-row">
+                  {api.extensionToggle && !item.installed && (
+                    <button
+                      type="button"
+                      className="ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        void act(async () => {
+                          await api.extensionToggle!({
+                            projectId,
+                            id: item.id,
+                            enabled: item.enabled === false,
+                          });
+                          await refresh();
+                        })
+                      }
+                    >
+                      {item.enabled === false
+                        ? pl
+                          ? "Włącz"
+                          : "Enable"
+                        : pl
+                          ? "Wyłącz"
+                          : "Disable"}
+                    </button>
+                  )}
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => setRemove(item)}
+                  >
+                    {pl ? "Usuń" : "Remove"}
+                  </button>
+                </div>
               )}
             </li>
           ))}
@@ -176,6 +335,22 @@ export function ExtensionsPanel({
         <summary>
           {pl ? "Importuj manifest JSON" : "Import JSON manifest"}
         </summary>
+        <div className="button-row" style={{ marginBottom: 8 }}>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => setManifest(sample)}
+          >
+            {pl ? "Szablon: Skill" : "Template: Skill"}
+          </button>
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => setManifest(pluginSample)}
+          >
+            {pl ? "Szablon: Plugin" : "Template: Plugin"}
+          </button>
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -322,6 +497,62 @@ export function ExtensionsPanel({
                     )}
                   </pre>
                 </details>
+                {(() => {
+                  const activeTool = tools.find((t) => t.name === tool);
+                  const props = activeTool?.inputSchema?.properties as
+                    | Record<string, { type?: string; description?: string }>
+                    | undefined;
+                  const keys = props ? Object.keys(props).slice(0, 8) : [];
+                  if (!keys.length) return null;
+                  let currentObj: Record<string, unknown> = {};
+                  try {
+                    const p = JSON.parse(args);
+                    if (p && typeof p === "object" && !Array.isArray(p))
+                      currentObj = p as Record<string, unknown>;
+                  } catch {}
+                  return (
+                    <div className="mcp-schema-fields">
+                      <span className="helper">
+                        {pl
+                          ? "Szybki formularz z inputSchema:"
+                          : "Quick form from inputSchema:"}
+                      </span>
+                      {keys.map((fieldKey) => {
+                        const fieldSpec = props![fieldKey];
+                        return (
+                          <label key={fieldKey}>
+                            {fieldKey}
+                            {fieldSpec?.description
+                              ? ` (${fieldSpec.description})`
+                              : ""}
+                            <input
+                              value={
+                                currentObj[fieldKey] !== undefined
+                                  ? String(currentObj[fieldKey])
+                                  : ""
+                              }
+                              disabled={busy}
+                              onChange={(e) => {
+                                const val =
+                                  fieldSpec?.type === "number" ||
+                                  fieldSpec?.type === "integer"
+                                    ? Number(e.target.value)
+                                    : fieldSpec?.type === "boolean"
+                                      ? e.target.value === "true"
+                                      : e.target.value;
+                                const next = {
+                                  ...currentObj,
+                                  [fieldKey]: val,
+                                };
+                                setArgs(JSON.stringify(next, null, 2));
+                              }}
+                            />
+                          </label>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
                 <label>
                   {pl ? "Argumenty JSON" : "JSON arguments"}
                   <textarea
@@ -342,15 +573,44 @@ export function ExtensionsPanel({
         )}
         {result && (
           <div className="run-output" role="status">
-            <strong>
-              {result.isError
-                ? pl
-                  ? "Narzędzie zgłosiło błąd"
-                  : "Tool returned an error"
-                : pl
-                  ? "Wynik narzędzia"
-                  : "Tool result"}
-            </strong>
+            <div className="diff-toolbar">
+              <strong>
+                {result.isError
+                  ? pl
+                    ? "Narzędzie zgłosiło błąd"
+                    : "Tool returned an error"
+                  : pl
+                    ? "Wynik narzędzia"
+                    : "Tool result"}
+              </strong>
+              {!result.isError && result.text.trim() && (
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy || pinnedNotice}
+                  onClick={() =>
+                    void act(async () => {
+                      await api.createMemory({
+                        projectId,
+                        source: `mcp:${tool || "tool"}`,
+                        scope: "project",
+                        content: result.text.slice(0, 7500),
+                      });
+                      setPinnedNotice(true);
+                    })
+                  }
+                >
+                  <Icon name="memory" />
+                  {pinnedNotice
+                    ? pl
+                      ? "Przypięto do Pamięci Projektu"
+                      : "Pinned to Project Memory"
+                    : pl
+                      ? "Przypnij wynik do Pamięci Projektu"
+                      : "Pin result to Project Memory"}
+                </button>
+              )}
+            </div>
             <pre>{result.text}</pre>
           </div>
         )}
@@ -381,6 +641,7 @@ export function ExtensionsPanel({
               onClick={() => {
                 const call = pending;
                 setPending(null);
+                setPinnedNotice(false);
                 void act(async () =>
                   setResult(
                     await api.mcpCall({ projectId, ...call, consent: true }),

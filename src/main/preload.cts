@@ -67,6 +67,18 @@ const api: API = {
   extensionList: (input) => ipcRenderer.invoke("app:extensionList", input),
   extensionImport: (input) => ipcRenderer.invoke("app:extensionImport", input),
   extensionRemove: (input) => ipcRenderer.invoke("app:extensionRemove", input),
+  pluginCatalog: (input) => ipcRenderer.invoke("app:pluginCatalog", input),
+  pluginInstall: (input) => ipcRenderer.invoke("app:pluginInstall", input),
+  extensionToggle: (input) => ipcRenderer.invoke("app:extensionToggle", input),
+  localModelDiscover: (input) =>
+    ipcRenderer.invoke("app:localModelDiscover", input),
+  localModelPing: (input) => ipcRenderer.invoke("app:localModelPing", input),
+  runVerify: (input) => ipcRenderer.invoke("app:runVerify", input),
+  runExportBranch: (input) => ipcRenderer.invoke("app:runExportBranch", input),
+  githubIssuesList: (input) =>
+    ipcRenderer.invoke("app:githubIssuesList", input),
+  githubIssueImport: (input) =>
+    ipcRenderer.invoke("app:githubIssueImport", input),
   mcpConnect: (input) => ipcRenderer.invoke("app:mcpConnect", input),
   mcpCall: (input) => ipcRenderer.invoke("app:mcpCall", input),
   mcpDisconnect: (input) => ipcRenderer.invoke("app:mcpDisconnect", input),

@@ -1395,6 +1395,7 @@ function App() {
                     />
                     <TaskBoard
                       key={projectId}
+                      projectId={projectId}
                       requestedTask={requestedTask}
                       tasks={data.tasks}
                       memory={data.memory}

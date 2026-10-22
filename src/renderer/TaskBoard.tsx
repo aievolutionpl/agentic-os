@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { Task, TaskAction, TaskEvent, Memory } from "../shared";
+import type {
+  Task,
+  TaskAction,
+  TaskEvent,
+  Memory,
+  GitHubIssueItem,
+} from "../shared";
 import { RunPanel } from "./RunPanel";
 import { words } from "./i18n";
 import {
@@ -12,6 +18,7 @@ import {
 } from "./ui";
 
 type Props = {
+  projectId?: string;
   requestedTask?: string | null;
   memory?: Memory[];
   onRunChanged?: () => void;
@@ -93,8 +100,14 @@ export function TaskBoard(props: Props) {
     onAction,
   } = props;
   const w = words[language];
+  const api = window.agenting;
+  const activeProjectId =
+    props.projectId ?? tasks[0]?.projectId ?? props.memory?.[0]?.projectId ?? "";
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "kanban">("list");
+  const [ghOpen, setGhOpen] = useState(false);
+  const [ghLoading, setGhLoading] = useState(false);
+  const [ghIssues, setGhIssues] = useState<GitHubIssueItem[]>([]);
   useEffect(() => { if (props.requestedTask) setSelectedId(props.requestedTask); }, [props.requestedTask]);
   const [cancelling, setCancelling] = useState<Task | null>(null);
   const [dismissed, setDismissed] = useState(() => {
@@ -193,6 +206,25 @@ export function TaskBoard(props: Props) {
               Kanban
             </button>
           </div>
+          {api?.githubIssuesList && activeProjectId && (
+            <button
+              type="button"
+              className="secondary"
+              disabled={busy || loading}
+              onClick={() => {
+                setGhOpen(true);
+                setGhLoading(true);
+                void api
+                  .githubIssuesList!({ projectId: activeProjectId })
+                  .then(setGhIssues)
+                  .catch(() => setGhIssues([]))
+                  .finally(() => setGhLoading(false));
+              }}
+            >
+              <Icon name="globe" />
+              {language === "pl" ? "GitHub Issues" : "GitHub Issues"}
+            </button>
+          )}
         </div>
       </div>
       {loading ? (
@@ -655,6 +687,89 @@ export function TaskBoard(props: Props) {
             {w.actions.cancel}
           </button>
         </div>
+      </Modal>
+      <Modal
+        open={ghOpen}
+        onClose={() => setGhOpen(false)}
+        titleId="gh-issues-title"
+        className="task-panel"
+      >
+        <div className="panel-header">
+          <span className="eyebrow">GITHUB CLI INTEGRATION</span>
+          <button
+            className="icon-button"
+            title={w.close}
+            aria-label={w.close}
+            onClick={() => setGhOpen(false)}
+          >
+            <Icon name="close" />
+          </button>
+        </div>
+        <h2 id="gh-issues-title">
+          {language === "pl"
+            ? "Importuj zadanie z GitHub Issues"
+            : "Import task from GitHub Issues"}
+        </h2>
+        <p className="helper">
+          {language === "pl"
+            ? "Pobiera otwarte zgłoszenia z repozytorium projektu przez gh issue list i zapisuje opis zgłoszenia w Pamięci Projektu."
+            : "Loads open issues from the project repository via gh issue list and saves the issue body into Project Memory."}
+        </p>
+        {ghLoading ? (
+          <p role="status">{w.loading}</p>
+        ) : !ghIssues.length ? (
+          <p className="helper">
+            {language === "pl"
+              ? "Brak otwartych zgłoszeń lub repozytorium nie jest połączone z GitHub CLI (gh auth status)."
+              : "No open issues found or repository is not connected to GitHub CLI (gh auth status)."}
+          </p>
+        ) : (
+          <ul className="extension-list">
+            {ghIssues.map((issue) => (
+              <li key={issue.number}>
+                <div>
+                  <strong>
+                    #{issue.number} · {issue.title}
+                  </strong>
+                  {!!issue.labels.length && (
+                    <span className="helper"> ({issue.labels.join(", ")})</span>
+                  )}
+                  {issue.body && (
+                    <p className="helper">
+                      {issue.body.slice(0, 220)}
+                      {issue.body.length > 220 ? "…" : ""}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => {
+                    if (!api?.githubIssueImport || !activeProjectId) return;
+                    void api
+                      .githubIssueImport({
+                        projectId: activeProjectId,
+                        number: issue.number,
+                        title: issue.title,
+                        body: issue.body,
+                        url: issue.url,
+                        implementer: "codex",
+                        reviewer: "claude",
+                      })
+                      .then(() => {
+                        setGhOpen(false);
+                        props.onRefresh();
+                      });
+                  }}
+                >
+                  <Icon name="plus" />
+                  {language === "pl" ? "Importuj jako zadanie" : "Import as task"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </Modal>
     </section>
   );

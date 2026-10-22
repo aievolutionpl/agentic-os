@@ -214,7 +214,18 @@ Te cztery obszary dają największy zwrot i są nieobsłużone.
 
 ---
 
-## 11. Ryzyka
+## 11. Ustalenie z wykonania (22.10, PR #30)
+
+**CI flake: `npm audit --audit-level=moderate` na Windows.**
+`verify (windows-latest)` spadł po **10 min** z błędem `npm audit endpoint returned an error` — log pokazuje `npm warn audit network timeout at: https://registry.npmjs.org/-/npm/v1/security/advisories/bulk`. To timeout sieciowy do registry, **nie regresja kodu** (PR #30 to jeden plik Markdown). Po `gh run rerun --job` job przeszedł w 8 min 4 s.
+
+**Wniosek operacyjny:** audit bez fallbacku jest boja gate'em — jedna sieć wyłącza cały pipeline Windows, w tym `windows-package`. Do naprawy w planie higieny (`PLAN-REFINE`):
+- `npm audit` z `--audit-level=moderate` i **retry + timeout**, a przy niedostępności registry **nie zabija joba** (fail-soft z ostrzeżeniem), bo bezpieczeństwo i tak pilnuje `npm ci` (lockfile) + CodeQL;
+- albo rozdzielić audit na osobny, nieblokujący job.
+
+Dopisek: `gh api -X DELETE repos/.../git/refs/heads/<branch>` wymaga **URL-encoding** separatora `/` w nazwie gałęzi (`claude%2Ftask-graph`). Bez tego API zwraca `Not Found` i sprzątanie wygląda na nieudaną operację.
+
+## 12. Ryzyka
 
 | Ryzyko | Wpływ | Mitygacja |
 |---|---|---|

@@ -135,7 +135,7 @@ try {
   assert.match(await dialog.locator("pre").innerText(), /Root Cause/);
   await dialog.getByRole("button", { name: "Zamknij", exact: true }).click();
   await page.getByRole("textbox", { name: "Szukaj skilli" }).fill("");
-  assert.equal(await page.locator(".skill-library article").count(), 20);
+  assert.equal(await page.locator(".skill-library article").count(), 23);
   report.checks.push("twenty-complete-skills-search-and-licensed-source-preview");
   await nav("Czaty");
   await page.locator(".chat-history>button").first().waitFor({ state: "attached" });
@@ -283,3 +283,4 @@ try {
   writeFileSync(join(output, "result.json"), JSON.stringify(report, null, 2));
   await app?.close();
 }
+

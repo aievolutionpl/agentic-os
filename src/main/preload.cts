@@ -1,6 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  integrationList: () => ipcRenderer.invoke("app:integrationList"),
+  integrationSave: input => ipcRenderer.invoke("app:integrationSave", input),
+  integrationConnect: input => ipcRenderer.invoke("app:integrationConnect", input),
+  integrationDisconnect: input => ipcRenderer.invoke("app:integrationDisconnect", input),
+  integrationTools: input => ipcRenderer.invoke("app:integrationTools", input),
+  integrationCall: input => ipcRenderer.invoke("app:integrationCall", input),
+
+  providerToggle: input => ipcRenderer.invoke("app:providerToggle", input),
   harnessGet: () => ipcRenderer.invoke("app:harnessGet"),
   harnessSave: (input) => ipcRenderer.invoke("app:harnessSave", input),
   memoryExport: (input) => ipcRenderer.invoke("app:memoryExport", input),

@@ -77,7 +77,7 @@ try {
   report.checks.push("every-configured-subscription-has-a-full-card-with-honest-unknowns");
   await nav("Czaty");await page.getByRole("button",{name:"Nowy czat",exact:true}).click();
   await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Midnight",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "dark");await capture("graphite-chat-1440");
-  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Claude Light",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "classic");
+  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Light Orange",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "classic");
   assert.equal((await page.evaluate(()=>window.agenting.snapshot())).preferences.theme,"classic");
   report.checks.push("Classic-palette-selects-and-persists-over-ipc");assert.deepEqual(report.errors,[]);report.status="passed";
 } catch(error) { report.status="failed";report.error=String(error);process.exitCode=1;console.error(error);await page?.screenshot({path:join(output,"failure.png"),fullPage:true}).catch(()=>{}); }

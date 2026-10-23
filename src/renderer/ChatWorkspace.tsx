@@ -935,6 +935,7 @@ export function ChatWorkspace({
                   ].map((item) => (
                     <button
                       key={item.icon}
+                        data-intent={item.icon}
                       type="button"
                       onClick={() => {
                         setMessage(item.prompt);

@@ -1,3 +1,4 @@
+import { Integrations } from "./integrations.js";
 import {voiceAvailable,transcribeVoice} from "./voice.js";
 import { ScheduleRunner, executeScheduledChat } from "./schedules.js";
 import { ClaudeUsage } from "./claude-usage.js";
@@ -94,6 +95,7 @@ let quotaMonitor: QuotaMonitor | undefined;
 let memoryVault: MemoryVault | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
+let integrations: Integrations | undefined;
 let browser: ProjectBrowser | undefined;
 let terminals: Terminals | undefined;
 const primaryInstance = app.requestSingleInstanceLock();
@@ -151,6 +153,10 @@ app
     const localModel = new LocalModelConnection(app.getPath("userData"));
     // Isolated in-memory network session: renderer requests remain blocked.
     const quotaNetwork = session.fromPartition("quota-account");
+    integrations = new Integrations(app.getPath("userData"), {
+      available: () => safeStorage.isEncryptionAvailable() && (process.platform !== "linux" || safeStorage.getSelectedStorageBackend() !== "basic_text"),
+      encrypt: value => safeStorage.encryptString(value), decrypt: value => safeStorage.decryptString(value),
+    }, url => shell.openExternal(url), quotaNetwork.fetch.bind(quotaNetwork) as typeof fetch);
     const claudeUsage = new ClaudeUsage(undefined, quotaNetwork.fetch.bind(quotaNetwork) as typeof fetch);
     const limitBridge = new LimitBridge(app.getPath("userData"));
     // An app update moves the runtime; a linked status line keeps working.
@@ -680,6 +686,22 @@ app
         store.capabilities.clear((input as { agent: Agent }).agent);
         quotaMonitor!.invalidate();
       },
+      integrationList: () => integrations!.list(),
+      integrationSave: input => integrations!.save(input),
+      integrationConnect: input => integrations!.connect(input),
+      integrationDisconnect: input => integrations!.disconnect(input),
+      integrationTools: input => integrations!.listTools(input),
+      integrationCall: input => integrations!.call(input),
+      providerToggle: (input) => {
+        const p = exact(input, ["agent", "enabled"]);
+        if (!AGENTS.includes(p.agent as Agent) || typeof p.enabled !== "boolean") throw Error("INVALID_INPUT");
+        const agent = p.agent as Agent, saved = store.runs.provider(agent);
+        if (!saved) throw Error("PROVIDER_NOT_CONFIGURED");
+        if (p.enabled) supervisor.configure({agent, command:saved.command, args:saved.args, protocol:saved.protocol, profile:saved.profile, model:saved.model, consent:true});
+        else store.runs.disableProvider(agent);
+        store.capabilities.clear(agent);
+        quotaMonitor!.invalidate();
+      },
       providerSettings: () => {
         const checks = store.capabilities.list();
         return supervisor.settings().map((setting) => {
@@ -1028,6 +1050,7 @@ app
             throw Error(code);
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
+          if (name.startsWith("integration") && /^PLUGIN_[A-Z_]+$/.test(code)) throw Error(code);
           if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
           if (name === "harnessSave" && code === "HARNESS_SETTINGS_CONFLICT") throw Error(code);
           if (["contextPreview", "memoryExport"].includes(name) &&
@@ -1111,6 +1134,7 @@ app.on("before-quit", (event) => {
     quotaMonitor?.close(),
     supervisor?.close(),
     mcp?.close(),
+    integrations?.close(),
     terminals?.dispose(),
     memoryVault?.close(),
   ]).finally(() => {

@@ -17,11 +17,17 @@
 [![Electron](https://img.shields.io/badge/Electron-43-47848F?logo=electron&logoColor=white)](#architektura-i-stack-technologiczny)
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20macOS%20%7C%20Linux-0078D6)](#pobranie-i-instalacja)
 
-[**🚀 Pobierz**](#pobranie-i-instalacja) · [**🛠️ Uruchom ze źródeł**](#uruchomienie-ze-źródeł) · [**✨ Możliwości i funkcje**](#kompleksowy-przegląd-funkcji) · [**🧠 20 Wbudowanych Skilli**](#20-wbudowanych-pakietów-skilli--kreator-skillmd-studio) · [**🔌 Dostawcy AI**](docs/PROVIDERS.md) · [**💼 Licencja i Biznes**](#licencja-i-wykorzystanie-komercyjne) · [**🇬🇧 English**](README.en.md)
+[**🚀 Pobierz**](#pobranie-i-instalacja) · [**🛠️ Uruchom ze źródeł**](#uruchomienie-ze-źródeł) · [**✨ Możliwości i funkcje**](#kompleksowy-przegląd-funkcji) · [**🧠 33 Wbudowane Skille**](#biblioteka-skilli) · [**🔌 Dostawcy AI**](docs/PROVIDERS.md) · [**💼 Licencja i Biznes**](#licencja-i-wykorzystanie-komercyjne) · [**🇬🇧 English**](README.en.md)
 
 </div>
 
 ---
+
+## Połączenia, pluginy i skille
+
+Dashboard pokazuje aktywnych agentów i wspólne źródła rozliczeń bez duplikatów. W **Połączeniach i modelach** można wyłączyć agenta bez wylogowywania konta. Biblioteka zawiera 33 pakiety, w tym 10 skili marketingowych z polskimi opisami. Wyłączenie skilla zachowuje pliki, ale usuwa go z katalogu odczytywanego przez agentów.
+
+Nowy widok **Pluginy** obsługuje Google Drive, Canva, Notion i Firecrawl. Konfigurację, uprawnienia i obecne ograniczenia opisuje [instrukcja pluginów](docs/PLUGINS.md). Test przepływów UI: `npm run qa:plugins`.
 
 ## Harness — instrukcja, pamięć i kontekst zespołu
 
@@ -38,7 +44,7 @@ Nowy widok **Harness** łączy edycję instrukcji głównej, ustawienia automaty
 - 🤖 **Wieloagentowy czat i planowanie** (*Codex*, *Claude Code*, *Antigravity*, *OpenCode / OpenRouter*, *Hermes*, *ACP* oraz modele lokalne) z opcją **„Druga opinia”** (*Multi-Agent Second Opinion*).
 - 🛡️ **Izolowany proces zmian w Git Worktree** z kryptograficzną weryfikacją diffów (`SHA-256`), niezależnym agentem-recenzentem (*Reviewer*) oraz 1-klikowym tworzeniem **GitHub Pull Requestów**.
 - 🧠 **Lokalny Graf Pamięci MCP + Auto-Vault** z wyszukiwaniem pełnotekstowym `FTS5`, eksportem klastrów wiedzy oraz generatorem specyfikacji **`AGENTS.md`**.
-- 📚 **20 wbudowanych pakietów Skilli + interaktywny kreator `SKILL.md Studio`** zapisujący skille bezpośrednio w `.agents/skills/<slug>/SKILL.md`.
+- 📚 **33 wbudowane pakiety Skilli + interaktywny kreator `SKILL.md Studio`** zapisujący skille bezpośrednio w `.agents/skills/<slug>/SKILL.md`.
 - 💻 **Natywny, wielokartowy terminal PTY (`node-pty` + Xterm.js)** z paskiem szybkich komend CLI i dynamiczną synchronizacją z **7 motywami kolorystycznymi**.
 
 ![Agenting OS — Główny pulpit i środowisko rozmowy z agentami](docs/images/classic-start.png)
@@ -105,14 +111,17 @@ flowchart LR
   - Kopiowanie diffu pojedynczego pliku jednym kliknięciem.
 - **Eksport gałęzi i GitHub Pull Request:** Z zatwierdzonego przebiegu możesz jednym kliknięciem wyeksportować lokalny branch (`agentic/task-...`) lub utworzyć **Pull Request na GitHubie (`gh pr create`)** z pełnym raportem recenzenta.
 
-### 4. 🧠20 Wbudowanych Pakietów Skilli + Kreator `SKILL.md Studio`
-Agenting OS posiada wbudowany katalog **20 zweryfikowanych, przypiętych do konkretnego commita (`SHA-1`) pakietów skilli** dostępnych z poziomu **Dashboard Skills Dock** oraz **Biblioteki Skilli**:
+<a id="biblioteka-skilli"></a>
+
+### 4. 🧠33 Wbudowane Pakiety Skilli + Kreator `SKILL.md Studio`
+Agenting OS posiada wbudowany katalog **33 zweryfikowanych, przypiętych do konkretnego commita (`SHA-1`) pakietów skilli** dostępnych z poziomu **Dashboard Skills Dock** oraz **Biblioteki Skilli**:
 
 | Kategoria | Wbudowane pakiety skilli (instalowane 1 kliknięciem do `.agents/skills/`) |
 | :--- | :--- |
 | **🏗️ Engineering & Architecture** | `archify` (*Architecture Diagrams & ADR*), `addyosmani-agent-skills` (*Chrome Eng Workflows*), `agentskills-standard` (*Modular Spec*), `mcp-builder` (*Anthropic MCP Builder*) |
 | **🎨 Design & Frontend** | `frontend-design` (*Anthropic UI Craft*), `taste-skill` (*High-Taste UI & Anti-Slop Design*) |
 | **🧪 Testing, QA & Debugging** | `webapp-testing` (*Playwright Verification*), `systematic-debugging` (*Root-Cause Debugging*), `test-driven-development` (*Strict Red-Green-Refactor*), `verification-before-completion` (*Evidence Gate*) |
+| **📈 Marketing: praca i kampanie** | `copywriting`, `content-strategy`, `seo-audit`, `marketing-plan`, `customer-research`, `social`, `emails`, `ads`, `product-marketing`, `sales-enablement` |
 | **📈 Marketing & Content** | `marketingskills` (*CRO, Copywriting, SEO & Analytics*), `humanizer` (*Natural Writing & AI Pattern Removal*), `brainstorming` (*Structured Ideation*) |
 | **☁️ Google Workspace & Docs** | `gws-calendar` (*Calendar & Meet*), `gws-docs` (*Google Docs Markdown*), `gws-sheets` (*Spreadsheets & Formulas*), `gws-shared` (*Drive Auth & Permissions*), `pdf` (*Anthropic PDF Toolkit*) |
 | **🌐 Web Automation & Ecosystem** | `browserbase-skills` (*Stagehand Cloud Browser Automation*), `awesome-claude-skills` (*Composio Workflow Patterns*) |

@@ -107,6 +107,12 @@ try {
       "githubIssuesList",
       "harnessGet",
       "harnessSave",
+      "integrationCall",
+      "integrationConnect",
+      "integrationDisconnect",
+      "integrationList",
+      "integrationSave",
+      "integrationTools",
       "localModelDiscover",
       "localModelPing",
       "memoryExport",
@@ -147,6 +153,7 @@ try {
       "skillImportFile",
       "providerCheck",
       "providerSignIn",
+      "providerToggle",
       "providerConnectDetected",
       "connectorScan",
       "orchestrationStart",
@@ -327,7 +334,7 @@ try {
       exact: true,
     })
     .waitFor();
-  await page.locator(".project-link", {hasText: "Client A"}).click();
+  await page.locator('.project-link[aria-label$=": Client A"]').click();
   await page
     .locator(".tabs")
     .getByRole("button", { name: /^(Zadania|Tasks)/ })
@@ -403,7 +410,7 @@ try {
       document.documentElement.dataset.theme === "light",
   );
   // The app now opens on the Control Center; persisted projects stay in the sidebar.
-  await page.locator(".project-link", { hasText: "Client A" }).click();
+  await page.locator('.project-link[aria-label$=": Client A"]').click();
   await page
     .locator(".tabs")
     .getByRole("button", { name: /^Tasks/ })
@@ -544,14 +551,14 @@ try {
   await projectToggle.focus();
   await page.keyboard.press("Enter");
   assert.equal(await projectToggle.getAttribute("aria-expanded"), "true");
-  await page.locator(".project-link").filter({ hasText: "Client B" }).click();
+  await page.locator('.project-link[aria-label$=": Client B"]').click();
   assert.equal(await projectToggle.getAttribute("aria-expanded"), "false");
   assert.equal(
     await projectToggle.evaluate((el) => el === document.activeElement),
     true,
   );
   await projectToggle.click();
-  await page.locator(".project-link").filter({ hasText: "Client A" }).click();
+  await page.locator('.project-link[aria-label$=": Client A"]').click();
   for (const width of [320, 390, 768, 1280, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     assert.equal(

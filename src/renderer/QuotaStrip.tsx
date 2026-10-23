@@ -2,14 +2,15 @@ import React, { useEffect, useState } from "react";
 import type { ProviderQuotaCard } from "../shared";
 import { ProviderIcon } from "./ProviderIcon";
 import { quotaSummary } from "./LimitLink";
+import { activeQuotaCards } from "../quota-visibility";
 import { Icon } from "./ui";
 
 export function QuotaStrip({pl,onOpen}:{pl:boolean;onOpen:()=>void}) {
   const [cards,setCards]=useState<ProviderQuotaCard[]>([]),[failed,setFailed]=useState(false);
   useEffect(()=>{
     let alive=true,pending=false;
-    const read=async()=>{if(pending||!window.agenting?.quotaScan)return;pending=true;try{const result=await window.agenting.quotaScan();if(alive){setCards(result.filter(c=>c.status!=="not_configured"));setFailed(false);}}catch{if(alive)setFailed(true);}finally{pending=false;}};
-    void read();const timer=setInterval(()=>void read(),60000);return()=>{alive=false;clearInterval(timer);};
+    const read=async()=>{if(pending||!window.agenting?.quotaScan)return;pending=true;try{const [result,providers]=await Promise.all([window.agenting.quotaScan(),window.agenting.providerSettings()]);if(alive){setCards(activeQuotaCards(result,providers));setFailed(false);}}catch{if(alive)setFailed(true);}finally{pending=false;}};
+    const changed=()=>void read();window.addEventListener("agenting:evidence",changed);void read();const timer=setInterval(()=>void read(),60000);return()=>{alive=false;clearInterval(timer);window.removeEventListener("agenting:evidence",changed);};
   },[]);
   return <nav className="quota-strip" aria-label={pl?"Pozostałe limity subskrypcji":"Remaining subscription limits"}>
     <button className="quota-strip-label" onClick={onOpen}><Icon name="tokens"/>{pl?"Pozostało":"Remaining"}</button>

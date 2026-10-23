@@ -32,10 +32,12 @@
     "qa:premium": "node scripts/premium-qa.mjs && node scripts/harness-studio-qa.mjs",
     "lint": "eslint .",
     "qa:harness-studio": "node scripts/harness-studio-qa.mjs",
-    "qa:calm": "node scripts/calm-qa.mjs"
+    "qa:calm": "node scripts/calm-qa.mjs",
+    "qa:plugins": "node scripts/plugins-qa.mjs"
   },
   "dependencies": {
     "@lobehub/icons-static-svg": "1.95.1",
+    "@modelcontextprotocol/sdk": "1.32.1",
     "@modelcontextprotocol/server-memory": "2.0.0",
     "@xterm/addon-fit": "0.11.0",
     "@xterm/xterm": "6.0.0",

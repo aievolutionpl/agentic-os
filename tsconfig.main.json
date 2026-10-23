@@ -7,7 +7,14 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src/main/**/*.ts", "src/shared.ts", "src/main/**/*.cts"]
+  "include": [
+    "src/main/**/*.ts",
+    "src/shared.ts",
+    "src/main/**/*.cts",
+    "src/quota-visibility.ts"
+  ]
 }

@@ -638,6 +638,12 @@ export interface ProjectData {
   events: TaskEvent[];
 }
 export interface API {
+  integrationList(): Promise<IntegrationStatus[]>;
+  integrationSave(input: {id: IntegrationId; apiKey?:string; clientId?:string; clientSecret?:string}): Promise<void>;
+  integrationConnect(input: {id: IntegrationId}): Promise<void>;
+  integrationDisconnect(input: {id: IntegrationId; forget?:boolean}): Promise<void>;
+  integrationTools(input: {id: IntegrationId}): Promise<McpTool[]>;
+  integrationCall(input: {id: IntegrationId; name:string; arguments:Record<string,unknown>; consent:true}): Promise<{text:string; isError:boolean}>;
   terminalList?(): Promise<TerminalSession[]>;
   terminalOpen?(input: {
     projectId?: string;
@@ -933,6 +939,7 @@ export interface API {
     consent: true;
   }): Promise<void>;
   providerSettings(): Promise<ProviderSetting[]>;
+  providerToggle(input: {agent: Agent; enabled: boolean}): Promise<void>;
   chooseExecutable(): Promise<string | null>;
   chooseRepository(): Promise<string | null>;
   providerLogin(): Promise<void>;
@@ -1012,6 +1019,14 @@ export interface McpTool {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
+}
+export type IntegrationId = "notion" | "canva" | "google-drive" | "firecrawl";
+export interface IntegrationStatus {
+  id: IntegrationId;
+  state: "disconnected" | "connecting" | "connected" | "error";
+  configured: boolean;
+  toolCount: number;
+  encryptionAvailable: boolean;
 }
 export interface BrowserState {
   url: string;

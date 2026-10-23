@@ -159,8 +159,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
             };
             const state = connectionState(setting, !!detected[id]);
             return (
-              <button
-                key={id}
+              <div key={id} className={`provider-card state-${state} ${saved?.configured ? "enabled" : "disabled"}`}><button
                 type="button"
                 className={`state-${state}${agent === id ? " chosen" : ""}`}
                 aria-pressed={agent === id}
@@ -184,8 +183,24 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
                   )}
                 </small>
               </button>
+              <label className="provider-switch"><input type="checkbox" role="switch" checked={!!saved?.configured} disabled={busy || !saved?.command} aria-label={`${pl ? "Włącz agenta" : "Enable agent"}: ${agentName(id)}`} onChange={e => void act(() => api.providerToggle({agent:id,enabled:e.target.checked}))}/><span>{saved?.configured ? (pl ? "Włączony" : "Enabled") : (pl ? "Wyłączony" : "Disabled")}</span></label>
+              </div>
             );
           })}
+      </div>
+      <div className="provider-quick-actions">
+          {agent === "codex" &&
+            settings.find((p) => p.id === "codex")?.configured && (
+              <button
+                type="button"
+                className="secondary"
+                disabled={busy}
+                onClick={() => void act(() => api.providerLogin(), "login")}
+              >
+                {pl ? "Zaloguj przez przeglądarkę" : "Sign in through browser"}
+              </button>
+            )}
+        <span className="helper">{pl ? "Wyłączenie zatrzymuje nowe zadania i ukrywa limity. Konto dostawcy pozostaje zalogowane." : "Disabling blocks new tasks and hides limits. The provider account stays signed in."}</span>
       </div>
       <ProviderGuide key={agent} agent={agent} pl={pl} onDetect={async () => setDetected(await api.providerDetect!())} />
       <form
@@ -475,17 +490,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
             <Icon name="check" />
             {pl ? "Zapisz połączenie" : "Save connection"}
           </button>
-          {agent === "codex" &&
-            settings.find((p) => p.id === "codex")?.configured && (
-              <button
-                type="button"
-                className="secondary"
-                disabled={busy}
-                onClick={() => void act(() => api.providerLogin(), "login")}
-              >
-                {pl ? "Zaloguj przez przeglądarkę" : "Sign in through browser"}
-              </button>
-            )}
+
         </div>
         {agent === "gemini" && (
           <button

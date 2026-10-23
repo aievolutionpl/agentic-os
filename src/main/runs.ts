@@ -278,6 +278,10 @@ export class Runs {
         }
       : null;
   }
+  disableProvider(id: string) {
+    if (!this.provider(id)) throw Error("PROVIDER_NOT_CONFIGURED");
+    this.db.prepare("UPDATE provider_settings SET consent=0 WHERE id=?").run(id);
+  }
   configure(
     id: string,
     command: string,

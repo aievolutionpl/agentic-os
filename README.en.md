@@ -1,3 +1,7 @@
+![Agenting OS — Chris and Jarvis with a shared subscription dashboard](docs/images/agenting-os-banner.png)
+
+<sub>Product illustration. Quotas and balances are illustrative; reading availability depends on the provider.</sub>
+
 # Agenting OS
 
 **One workspace for agent conversations, projects and persistent knowledge.**

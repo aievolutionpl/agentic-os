@@ -1,3 +1,7 @@
+![Agenting OS — Chris i Jarvis przy wspólnym dashboardzie subskrypcji](docs/images/agenting-os-banner.png)
+
+<sub>Wizualizacja produktu. Wartości limitów i salda są przykładowe; dostępność odczytów zależy od dostawcy.</sub>
+
 # Agenting OS
 
 **Jeden workspace do rozmów z agentami, pracy nad projektami i wiedzy, która zostaje z Tobą.**

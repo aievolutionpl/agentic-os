@@ -9,7 +9,9 @@ import { collectContrast } from "./contrast-dom.mjs";
 import { measure, threshold } from "./contrast-math.mjs";
 const profile = mkdtempSync(join(tmpdir(), "agenting-harness-studio-"));
 const output = resolve(
-  process.env.AGENTING_QA_OUTPUT ? join(process.env.AGENTING_QA_OUTPUT, "harness-studio") : ".runtime/harness-studio-qa",
+  process.env.AGENTING_QA_OUTPUT
+    ? join(process.env.AGENTING_QA_OUTPUT, "harness-studio")
+    : ".runtime/harness-studio-qa",
 );
 mkdirSync(output, { recursive: true });
 const store = new Store(join(profile, "agenting.sqlite"));

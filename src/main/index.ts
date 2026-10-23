@@ -553,6 +553,7 @@ app
         if (
           !before.configured ||
           before.model !== value.model ||
+          JSON.stringify(before.disabledModels) !== JSON.stringify(value.disabledModels) ||
           (typeof apiKey === "string" && apiKey !== "")
         )
           store.capabilities.clear("opencode");

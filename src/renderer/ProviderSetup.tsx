@@ -15,6 +15,7 @@ import {
   connectionState,
   relativeTime,
 } from "./ui";
+import { ProviderGuide } from "./ProviderGuide";
 import { ProviderIcon } from "./ProviderIcon";
 
 const defaults = {
@@ -186,6 +187,7 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
             );
           })}
       </div>
+      <ProviderGuide key={agent} agent={agent} pl={pl} onDetect={async () => setDetected(await api.providerDetect!())} />
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -831,6 +833,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
     api = window.agenting!;
   const [setting, setSetting] = useState<OpenRouterSetting | null>(null),
     [models, setModels] = useState<OpenRouterModel[]>([]);
+  const [disabledModels, setDisabledModels] = useState<string[]>([]), [modelQuery, setModelQuery] = useState("");
   const [key, setKey] = useState(""),
     [managementKey, setManagementKey] = useState(""),
     [model, setModel] = useState(""),
@@ -842,6 +845,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
       .then((s) => {
         setSetting(s);
         setModel(s.model);
+        setDisabledModels(s.disabledModels ?? []);
       })
       .catch(() => setMessage("error"));
   }, []);
@@ -866,7 +870,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
           <h3 id="router-title">OpenRouter</h3>
           <p>
             {pl
-              ? "Jeden klucz. Modele w Twoim workspace."
+              ? "Jeden klucz API. Agent OpenCode. Wiele modeli."
               : "One key. Models in your workspace."}
           </p>
         </div>
@@ -890,6 +894,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
           e.preventDefault();
           void act(async () => {
             const s = await api.openRouterSave!({
+              disabledModels,
               ...(key ? { apiKey: key } : {}),
               ...(managementKey ? { managementKey } : {}),
               model,
@@ -978,7 +983,7 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
             disabled={busy}
           />
           <datalist id="router-models">
-            {models.map((m) => (
+            {models.filter(m => !disabledModels.includes(m.id)).map((m) => (
               <option value={m.id} key={m.id}>
                 {m.name}
                 {m.contextLength
@@ -988,6 +993,11 @@ function OpenRouterSetup({ language }: { language: "pl" | "en" }) {
             ))}
           </datalist>
         </label>
+        {models.length > 0 && <details className="router-model-controls"><summary>{pl ? "Włączone modele" : "Enabled models"} · {models.filter(m => !disabledModels.includes(m.id)).length}</summary>
+          <input aria-label={pl ? "Szukaj modeli OpenRouter" : "Search OpenRouter models"} placeholder={pl ? "Szukaj modelu…" : "Search models…"} value={modelQuery} onChange={e => setModelQuery(e.target.value)} />
+          <div className="router-model-list">{models.filter(m => `${m.id} ${m.name}`.toLowerCase().includes(modelQuery.toLowerCase())).map(m => <label key={m.id}><input type="checkbox" checked={!disabledModels.includes(m.id)} disabled={busy || m.id === model} onChange={e => setDisabledModels(ids => e.target.checked ? ids.filter(id => id !== m.id) : [...ids, m.id])}/><span>{m.name}{m.id === model ? (pl ? " · domyślny" : " · default") : ""}</span></label>)}</div>
+          <p className="helper">{pl ? "Zapisz zmiany, aby ukryć wyłączone modele w wyborze agenta OpenCode. Domyślny model pozostaje włączony." : "Save to hide disabled models in the OpenCode picker. The default model stays enabled."}</p>
+        </details>}
         <div className="panel-actions">
           <button
             type="button"

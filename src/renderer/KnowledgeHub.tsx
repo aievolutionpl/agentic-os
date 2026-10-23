@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import type { Extension, Memory, Project } from "../shared";
 import { Icon, Modal } from "./ui";
 import { MemoryGraphPanel } from "./MemoryGraphPanel";
+import { skillBenefits } from "./skill-benefits";
 import { copyText } from "./clipboard";
 
 export function SkillsHub({
@@ -273,6 +274,8 @@ export function SkillsHub({
                       : "AI EVOLUTION POLSKA"}
               </span>
               <h2>{skill.name}</h2>
+              <p className="skill-benefit">{pl ? (skillBenefits[skill.slug ?? ""]?.[0] ?? "Własna instrukcja pracy agenta. Otwórz szczegóły, aby poznać jej zastosowanie.") : skill.description ?? skill.name}</p>
+              {pl && skillBenefits[skill.slug ?? ""] && <p className="skill-power">{skillBenefits[skill.slug ?? ""]![1]}</p>}
               <p>
                 {skill.author} · {skill.license}
               </p>

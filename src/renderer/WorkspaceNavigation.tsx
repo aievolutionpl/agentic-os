@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import type { ChatSession, Project } from "../shared";
+import appLogo from "./assets/agenting-logo.png";
 import { Icon } from "./ui";
 
 export function BrandMark() {
-  return <svg viewBox="0 0 40 40" width="32" height="32" aria-hidden="true"><path d="M20 3 35 12v16L20 37 5 28V12Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/><path d="m12 25 8-14 8 14M15 21h10" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="20" cy="29" r="1.7" fill="currentColor"/></svg>;
+  return <span className="app-logo-crop"><img src={appLogo} alt="" /></span>;
 }
 export function WorkspaceNavigation({ projects, pl, view, navigate, openChat, newProject, settings, close, onRenamed }: {
   projects: Project[]; pl: boolean; view: string; navigate: (view: string, project?: string) => void;
@@ -30,12 +31,12 @@ export function WorkspaceNavigation({ projects, pl, view, navigate, openChat, ne
     <div className="brand"><span className="brand-mark"><BrandMark /></span><strong>Agenting OS</strong><button className="icon-button drawer-close" aria-label={pl ? "Zamknij menu" : "Close menu"} onClick={close}><Icon name="close" /></button></div>
     <button className="new-conversation" onClick={() => { openChat(""); close(); }}><Icon name="plus" />{pl ? "Nowa rozmowa" : "New conversation"}</button>
     <nav className="primary-nav" aria-label="Agenting OS">
-      {[["chat", "message", "Rozmowy", "Conversations"], ["center", "folder", "Projekty", "Projects"], ["shared-memory", "memory", "Pamięć", "Memory"], ["skills", "skill", "Skille", "Skills"], ["schedule", "clock", "ScheduleJob", "ScheduleJob"], ["quota", "tokens", "Limity", "Limits"]].map(([id, icon, polish, english]) => <button key={id} className={`nav-item ${view === id ? "selected" : ""}`} aria-current={view === id ? "page" : undefined} onClick={() => go(id!)}><Icon name={icon!} /><span>{pl ? polish : english}</span></button>)}
+      {[["chat", "message", "Rozmowy", "Conversations"], ["shared-memory", "memory", "Pamięć", "Memory"], ["skills", "skill", "Skille", "Skills"], ["schedule", "clock", "ScheduleJob", "ScheduleJob"], ["quota", "tokens", "Limity", "Limits"]].map(([id, icon, polish, english]) => <button key={id} className={`nav-item ${view === id ? "selected" : ""}`} aria-current={view === id ? "page" : undefined} onClick={() => go(id!)}><Icon name={icon!} /><span>{pl ? polish : english}</span></button>)}
       <details className="nav-more"><summary><Icon name="grid" />{pl ? "Więcej" : "More"}</summary>
         {[["inbox", "inbox", "Zadania", "Tasks"], ["terminal", "terminal", "Terminal", "Terminal"], ["harness", "layers", "Harness", "Harness"]].map(([id, icon, polish, english]) => <button key={id} className={`nav-item ${view === id ? "selected" : ""}`} onClick={() => go(id!)}><Icon name={icon!} /><span>{pl ? polish : english}</span></button>)}
       </details>
     </nav>
-    <div className="project-heading"><h2 id="projects-title">{pl ? "Projekty" : "Projects"}</h2><button className="icon-button" aria-label={pl ? "Nowy projekt" : "New project"} onClick={newProject}><Icon name="plus" /></button></div>
+    <div className="project-heading"><h2 id="projects-title"><button className="text-action" onClick={() => go("center")}>{pl ? "Projekty" : "Projects"}</button></h2><button className="icon-button" aria-label={pl ? "Nowy projekt" : "New project"} onClick={newProject}><Icon name="plus" /></button></div>
     <nav className="project-tree" aria-label={pl ? "Projekty i rozmowy" : "Projects and conversations"}>
       {projects.map(project => <details key={project.id} open className="project-branch"><summary onDoubleClick={e => { e.preventDefault(); edit(project); }} onKeyDown={e => { if (e.key === "F2") { e.preventDefault(); edit(project); } }} onContextMenu={e => { e.preventDefault(); edit(project); }}><Icon name="folder" />{rename?.id === project.id ? <input className="project-name-input" aria-label={pl ? "Nazwa projektu" : "Project name"} autoFocus ref={element => { if(element && document.activeElement !== element){element.focus();element.select();} }} maxLength={120} value={name} disabled={saving} onChange={e=>setName(e.target.value)} onClick={e=>e.stopPropagation()} onDoubleClick={e=>e.stopPropagation()} onKeyDown={e=>{e.stopPropagation();if(e.key==="Enter"){e.preventDefault();void saveName();}if(e.key==="Escape"){e.preventDefault();setRename(null);}}} /> : <span title={project.name}>{project.name}</span>}</summary><div className="project-children">
         {rename?.id === project.id && <div className="inline-rename-actions"><button disabled={saving || !name.trim()} onClick={()=>void saveName()}><Icon name="check"/>{pl?"Zapisz":"Save"}</button><button disabled={saving} onClick={()=>setRename(null)} aria-label={pl?"Anuluj zmianę nazwy":"Cancel rename"}><Icon name="close"/></button>{renameError&&<small role="alert">{pl?"Nie udało się zapisać":"Could not save"}</small>}</div>}

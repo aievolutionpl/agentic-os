@@ -1,3 +1,5 @@
+import { ScheduleRunner, executeScheduledChat } from "./schedules.js";
+import { ClaudeUsage } from "./claude-usage.js";
 import {
   app,
   BrowserWindow,
@@ -85,6 +87,7 @@ let restarting = false;
 let supervisor: Supervisor;
 let orchestrator: Orchestrator | undefined;
 let masterAgent: MasterAgent | undefined;
+let scheduleRunner: ScheduleRunner | undefined;
 let chats: Chats | undefined;
 let quotaMonitor: QuotaMonitor | undefined;
 let memoryVault: MemoryVault | undefined;
@@ -145,6 +148,9 @@ app
       decrypt: (value) => safeStorage.decryptString(value),
     });
     const localModel = new LocalModelConnection(app.getPath("userData"));
+    // Isolated in-memory network session: renderer requests remain blocked.
+    const quotaNetwork = session.fromPartition("quota-account");
+    const claudeUsage = new ClaudeUsage(undefined, quotaNetwork.fetch.bind(quotaNetwork) as typeof fetch);
     const limitBridge = new LimitBridge(app.getPath("userData"));
     // An app update moves the runtime; a linked status line keeps working.
     limitBridge.refresh();
@@ -217,6 +223,7 @@ app
           return openRouterQuota(key, credits);
         },
         statusLines: () => limitBridge.readings(),
+        claudeAccount: () => supervisor.settings().some(s => s.id === "claude" && s.configured) ? claudeUsage.read() : Promise.resolve(null),
         viaOpenRouter: () =>
           (["opencode", "hermes"] as Agent[]).filter(
             (agent) => quotaProvider(agent) === "openrouter",
@@ -336,6 +343,7 @@ app
       quotas,
       quotaProvider,
     );
+    scheduleRunner = new ScheduleRunner(store.schedules, (job, onChat, stopped) => executeScheduledChat(chats!, job, onChat, stopped));
     masterAgent = new MasterAgent(
       store,
       supervisor,
@@ -407,6 +415,10 @@ app
         throw Error("TASK_HELD_BY_QUEUE");
     };
     const handlers: Record<string, (input: unknown) => unknown> = {
+      scheduleList: () => ({jobs:store!.schedules.list(),runs:store!.schedules.runs()}),
+      scheduleCreate: (input) => store!.schedules.save(input),
+      scheduleAction: (input) => { store!.schedules.action(input); void scheduleRunner!.tick().catch(() => console.error("SCHEDULE_TICK_FAILED")); },
+      projectRename: (input) => store!.renameProject(input),
       chatList: () => chats!.list(),
       chatCreate: (input) => chats!.create(input),
       chatSend: (input) => chats!.send(input),
@@ -1059,6 +1071,7 @@ app
     openWindow();
     quotaMonitor.start();
     memoryVault.start();
+    scheduleRunner.start();
     app.on("activate", () => {
       if (!window) openWindow();
     });
@@ -1086,6 +1099,7 @@ app.on("before-quit", (event) => {
   shuttingDown = true;
   orchestrator?.close();
   void Promise.all([
+    scheduleRunner?.close(),
     masterAgent?.close(),
     chats?.close(),
     quotaMonitor?.close(),

@@ -1,3 +1,4 @@
+import { Schedules } from "./schedules.js";
 import { Artifacts } from "./artifacts.js";
 import { Approvals } from "./approvals.js";
 import { Lifecycle } from "./lifecycle.js";
@@ -43,7 +44,7 @@ function agent(input: unknown): Agent {
   return input as Agent;
 }
 /** Highest schema this build reads; newer databases are refused. */
-export const SCHEMA_VERSION = 17;
+export const SCHEMA_VERSION = 18;
 export class Store {
   private db: DatabaseSync;
   readonly lifecycle: Lifecycle;
@@ -54,6 +55,7 @@ export class Store {
   readonly harness: Harness;
   readonly extensions: Extensions;
   readonly missions: Missions;
+  readonly schedules: Schedules;
   readonly chats: ChatStore;
   readonly batches: Batches;
   readonly capabilities: CapabilityChecks;
@@ -83,7 +85,7 @@ export class Store {
    CREATE INDEX IF NOT EXISTS memory_scope ON memory(projectId);
    CREATE INDEX IF NOT EXISTS task_scope ON tasks(projectId);
    CREATE TABLE IF NOT EXISTS preferences(id INTEGER PRIMARY KEY CHECK(id=1),language TEXT NOT NULL,theme TEXT NOT NULL);
-   INSERT OR IGNORE INTO preferences VALUES(1,'pl','dark');
+   INSERT OR IGNORE INTO preferences VALUES(1,'pl','light');
    PRAGMA user_version=1;`);
       this.db.exec("COMMIT");
     } catch (error) {
@@ -133,6 +135,7 @@ export class Store {
       this.policies = new Policies(this.db);
       this.usage = new UsageLedger(this.db, clock);
       this.harness = new Harness(this.db);
+      this.schedules = new Schedules(this.db, clock);
     } catch (error) {
       this.db.close();
       throw error;
@@ -222,6 +225,13 @@ export class Store {
     return this.db
       .prepare("SELECT * FROM projects ORDER BY createdAt,id")
       .all() as unknown as Project[];
+  }
+  renameProject(input: unknown): Project {
+    const p = object(input);
+    if (Object.keys(p).some(key => !["id", "name"].includes(key))) throw Error("INVALID_INPUT");
+    const id = this.project(p.id), name = text(p.name, 120);
+    this.db.prepare("UPDATE projects SET name=? WHERE id=?").run(name, id);
+    return this.projects().find(project => project.id === id)!;
   }
   createProject(input: unknown): Project {
     const p = object(input);
@@ -375,11 +385,10 @@ export class Store {
       throw Error("MEMORY_NOT_FOUND");
   }
   preferences(): Preferences {
-    return {
-      ...this.db
-        .prepare("SELECT language,theme FROM preferences WHERE id=1")
-        .get(),
-    } as unknown as Preferences;
+    const row = this.db.prepare("SELECT language,theme FROM preferences WHERE id=1").get()!;
+    // Preserve older profiles while exposing only the five current palettes.
+    const legacy: Record<string, Preferences["theme"]> = {tokyo:"codex",nord:"dark"};
+    return {language: row.language as Preferences["language"], theme: legacy[String(row.theme)] ?? row.theme as Preferences["theme"]};
   }
   setPreferences(input: unknown): Preferences {
     const p = object(input);

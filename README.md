@@ -277,3 +277,15 @@ Narzędzie zostało zaprojektowane i zbudowane przez **[AI EVOLUTION POLSKA](htt
 [Licencja](LICENSE) · [Notice](NOTICE) · [Licencje zależności](licenses/THIRD_PARTY_NOTICES.md) · [Kodeks postępowania](CODE_OF_CONDUCT.md)
 
 </div>
+
+
+### Uproszczony workspace
+
+Rozmowy i projekty mają wspólne drzewo nawigacji. Nową rozmowę uruchomisz przyciskiem u góry albo bezpośrednio pod projektem. Skille, Limity i ScheduleJob są dostępne bezpośrednio w menu. Narzędzia dodatkowe znajdują się w „Więcej”, a język, motyw i połączenia w Ustawieniach. Stały pasek u góry pokazuje pozostałe limity podłączonych subskrypcji; stare odczyty są oznaczone. Nowe profile zaczynają od jasnej palety perłowo-granatowej. Mapa pamięci pokazuje rzeczywistych agentów z historii rozmów i notatki, które utworzyli.
+
+Szczegóły odczytu limitów, w tym ograniczenia nieudokumentowanego endpointu konta Claude i ochrona danych logowania: [Calm workspace](docs/CALM_WORKSPACE.md). Weryfikacja nowej nawigacji: `npm run qa:calm`.
+
+ScheduleJob uruchamia codzienne analizy i raporty o wybranej godzinie lokalnej, gdy aplikacja jest włączona. Utworzenie harmonogramu wymaga zgody na cykliczne wysyłanie kontekstu i zużycie limitu. Przebiegi korzystają z istniejących zabezpieczeń rozmowy i trybu tylko do odczytu. Możesz je pauzować, uruchomić od razu i otworzyć wynik z historii. Harmonogram nie wybudza komputera; po przerwie wykonuje jeden zaległy przebieg. Zmiana nazwy projektu jest dostępna pod prawym przyciskiem myszy lub ikoną ołówka i nie przenosi folderu.
+
+
+Kolorystykę zmienisz w górnym pasku: **Pearl**, **Claude Light**, **Midnight**, **Graphite**, **AI Evolution**. Każdy motyw obejmuje także boczne menu i terminal. Dwuklik nazwy projektu w menu włącza edycję w miejscu (Enter zapisuje, Escape anuluje). Pierścienie przy subskrypcjach pokazują pozostały procent rzeczywistego limitu; saldo pieniężne nie jest przeliczane na procenty.

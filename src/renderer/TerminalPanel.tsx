@@ -15,48 +15,11 @@ const TERMINAL_THEMES: Record<
     selectionBackground: string;
   }
 > = {
-  dark: {
-    background: "#0d1117",
-    foreground: "#e8eef8",
-    cursor: "#e5b195",
-    selectionBackground: "#355471",
-  },
-  claude: {
-    background: "#121110",
-    foreground: "#f4f0e8",
-    cursor: "#d97757",
-    selectionBackground: "#4c3228",
-  },
-  codex: {
-    background: "#070b0d",
-    foreground: "#e4f5ef",
-    cursor: "#10a37f",
-    selectionBackground: "#134e3f",
-  },
-  tokyo: {
-    background: "#0f111a",
-    foreground: "#c0caf5",
-    cursor: "#7aa2f7",
-    selectionBackground: "#283457",
-  },
-  nord: {
-    background: "#1c2128",
-    foreground: "#eceff4",
-    cursor: "#88c0d0",
-    selectionBackground: "#3b4252",
-  },
-  light: {
-    background: "#0f141c",
-    foreground: "#e8eef8",
-    cursor: "#65d5ff",
-    selectionBackground: "#355471",
-  },
-  classic: {
-    background: "#181512",
-    foreground: "#f5efe8",
-    cursor: "#d97757",
-    selectionBackground: "#4e3529",
-  },
+  dark: {background:"#1b2b40",foreground:"#ecf3fc",cursor:"#a5d8f4",selectionBackground:"#355471"},
+  claude: {background:"#282e33",foreground:"#edf1f5",cursor:"#bdcbd6",selectionBackground:"#45565f"},
+  codex: {background:"#292039",foreground:"#f4effc",cursor:"#a9e6b4",selectionBackground:"#4b3c63"},
+  light: {background:"#ffffff",foreground:"#202d40",cursor:"#2e618d",selectionBackground:"#b9d5ed"},
+  classic: {background:"#fffdfa",foreground:"#322b26",cursor:"#a74325",selectionBackground:"#ead0b6"},
 };
 
 function TerminalView({

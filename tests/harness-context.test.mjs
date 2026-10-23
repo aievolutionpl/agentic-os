@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { DatabaseSync } from "node:sqlite";
 import { createHash } from "node:crypto";
-import { Store } from "../dist/main/store.js";
+import { Store, SCHEMA_VERSION } from "../dist/main/store.js";
 import { inspectBackup } from "../dist/main/backup.js";
 function setup(t) {
   const dir = mkdtempSync(join(tmpdir(), "agenting-context-"));
@@ -194,7 +194,7 @@ test("v16 database upgrades without losing notes and backup validation requires 
   assert.equal(f.store.harness.get().revision, 0);
   const target = join(f.dir, "backup.sqlite");
   f.store.snapshot(target);
-  assert.equal(inspectBackup(target).schema, 17);
+  assert.equal(inspectBackup(target).schema, SCHEMA_VERSION);
   const broken = new DatabaseSync(target);
   broken.exec("DROP TABLE harness_settings");
   broken.close();

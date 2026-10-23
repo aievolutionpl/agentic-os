@@ -10,6 +10,10 @@ const api: API = {
   terminalWrite: (input) => ipcRenderer.invoke("app:terminalWrite", input),
   terminalResize: (input) => ipcRenderer.invoke("app:terminalResize", input),
   terminalClose: (input) => ipcRenderer.invoke("app:terminalClose", input),
+  scheduleList: () => ipcRenderer.invoke("app:scheduleList"),
+  scheduleCreate: (input) => ipcRenderer.invoke("app:scheduleCreate", input),
+  scheduleAction: (input) => ipcRenderer.invoke("app:scheduleAction", input),
+  projectRename: (input) => ipcRenderer.invoke("app:projectRename", input),
   chatRename: (input) => ipcRenderer.invoke("app:chatRename", input),
   openExternalLink: (input) =>
     ipcRenderer.invoke("app:openExternalLink", input),

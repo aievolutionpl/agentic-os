@@ -309,7 +309,7 @@ export function antigravityLimitMetrics(
         limitValue: 100,
         resetsAt:
           b.resetsAt === null ? null : new Date(b.resetsAt).toISOString(),
-        periodSeconds: /week/i.test(id) ? 604800 : /day/i.test(id) ? 86400 : 0,
+        periodSeconds: /week/i.test(id) ? 604800 : /day/i.test(id) ? 86400 : /5h/i.test(id) ? 18000 : 0,
         format: "percent",
         unit: "%",
       };
@@ -565,6 +565,7 @@ export interface QuotaSources {
   claudePlan?: () => Promise<string | null>;
   /** Quota the CLIs' own status lines handed over (opt-in link). */
   statusLines?: () => BridgeReadings;
+  claudeAccount?: () => Promise<ClaudeReading | null>;
   /** Agents whose model calls are billed to the connected OpenRouter key. */
   viaOpenRouter?: () => string[];
   /** Agents on an OpenRouter model with their own key: shown for reference. */
@@ -575,7 +576,7 @@ export async function scanAllQuotas(
   sources: QuotaSources = {},
 ): Promise<ProviderQuotaCard[]> {
   const observed = readObservations(directory);
-  const [codex, router, claudePlan] = await Promise.all([
+  const [codex, router, claudePlan, claudeAccount] = await Promise.all([
     sources
       .codex?.()
       .catch(() => unavailable("codex", "Codex", "CODEX_LIMITS_UNAVAILABLE")),
@@ -585,6 +586,7 @@ export async function scanAllQuotas(
         unavailable("openrouter", "OpenRouter", "OPENROUTER_UNAVAILABLE"),
       ),
     sources.claudePlan?.().catch(() => null) ?? null,
+    sources.claudeAccount?.().catch(() => null) ?? null,
   ]);
   const lines = (() => {
     try {
@@ -624,9 +626,10 @@ export async function scanAllQuotas(
     null,
     "ANTIGRAVITY_USE_OFFICIAL_USAGE",
   );
+  const accountLimits = claudeAccount ? claudeLimitMetrics(claudeAccount) : [];
   return [
     codex ?? unavailable("codex", "Codex", "CONFIGURE_CODEX"),
-    lines.claude
+    claudeAccount && accountLimits.length ? { ...statusLineCard(claude, accountLimits, claudeAccount.at, claudePlan ?? null), source: "claude-account" as const, detail: "CLAUDE_ACCOUNT_USAGE" } : lines.claude
       ? statusLineCard(
           claude,
           claudeLimitMetrics(lines.claude),

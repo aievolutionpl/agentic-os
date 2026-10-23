@@ -210,9 +210,12 @@ export interface MemoryGraph {
   nodes: {
     id: string;
     label: string;
-    kind: "project" | "memory";
+    kind: "project" | "memory" | "agent";
+    active?: boolean;
     projectId: string;
     memoryId?: string;
+    path?: string;
+    fileType?: "folder" | "markdown";
     content: string;
     source: string;
   }[];
@@ -285,8 +288,6 @@ export const THEMES = [
   "dark",
   "claude",
   "codex",
-  "tokyo",
-  "nord",
   "light",
   "classic",
 ] as const;
@@ -419,6 +420,7 @@ export interface ProviderQuotaCard {
     | "codex-app-server"
     | "openrouter-api"
     | "cli-stream"
+    | "claude-account"
     | "cli-statusline"
     | "manual"
     | "unavailable";
@@ -650,6 +652,10 @@ export interface API {
     rows: number;
   }): Promise<void>;
   terminalClose?(input: { id: string }): Promise<void>;
+  scheduleList?(): Promise<{jobs:ScheduleJob[];runs:ScheduleRun[]}>;
+  scheduleCreate?(input: {title:string;prompt:string;projectId:string;agent:Agent;time:string;consent:true}): Promise<ScheduleJob>;
+  scheduleAction?(input: {id:string;action:"pause"|"resume"|"delete"|"run"}): Promise<void>;
+  projectRename?(input: { id: string; name: string }): Promise<Project>;
   chatRename?(input: { id: string; title: string }): Promise<ChatSession>;
   openExternalLink?(input: { url: string }): Promise<void>;
   chatList?(): Promise<ChatSession[]>;
@@ -1306,4 +1312,13 @@ export function explainError(value: string, pl: boolean): ErrorExplanation {
   const copy = code === "UNKNOWN" ? UNKNOWN : ERRORS[code];
   const [title, hint] = pl ? copy.pl : copy.en;
   return { code, title, hint, raw };
+}
+
+export interface ScheduleJob {
+  id:string; title:string; prompt:string; projectId:string; agent:Agent; time:string;
+  enabled:boolean; requested?:boolean; nextRunAt:number; createdAt:number;
+}
+export interface ScheduleRun {
+  id:string; jobId:string; title:string; status:"running"|"complete"|"failed"|"interrupted";
+  startedAt:number; finishedAt?:number; chatId:string|null; error:string|null;
 }

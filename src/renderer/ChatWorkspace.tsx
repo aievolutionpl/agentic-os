@@ -120,12 +120,14 @@ export function startNewChat() {
 }
 export function ChatWorkspace({
   language,
+  request,
   projects,
   onConfigure,
   onProjectsChanged,
   onTask,
 }: {
   language: "pl" | "en";
+  request?: { id: string; project?: string; nonce: number };
   projects: Project[];
   onConfigure: () => void;
   onProjectsChanged: () => void;
@@ -305,6 +307,14 @@ export function ChatWorkspace({
     setError("");
     setNotice("");
   }
+  useEffect(() => {
+    if (!request) return;
+    selectChat(request.id);
+    if (!request.id) {
+      setExisting(request.project ?? "");
+      setSource(request.project ? "local" : "default");
+    }
+  }, [request?.nonce]);
   async function create() {
     if (attached.reading) return;
     // Check the connection before creating a chat, so the draft stays on the
@@ -544,7 +554,7 @@ export function ChatWorkspace({
                   className={`chat-composer start-composer${drop.over ? " drop-over" : ""}`}
                   {...drop.props}
                 >
-                  <div className="harness-slash-bar">
+                  <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><div className="harness-slash-bar">
                     <span className="harness-slash-label">
                       {pl ? "Komendy:" : "Commands:"}
                     </span>
@@ -623,7 +633,7 @@ export function ChatWorkspace({
                         <span>{item.label}</span>
                       </button>
                     ))}
-                  </div>
+                  </div></details>
                   <textarea
                     aria-label={pl ? "Pierwsza wiadomość" : "First message"}
                     value={message}
@@ -914,36 +924,12 @@ export function ChatWorkspace({
                 )}
                 <div className="conversation-starters">
                   {[
-                    {
-                      icon: "plan",
-                      title: pl ? "Zaplanuj projekt" : "Plan a project",
-                      detail: pl
-                        ? "Rozłóż pomysł na konkretne kroki."
-                        : "Turn your idea into concrete steps.",
-                      prompt: pl
-                        ? "Pomóż mi zaplanować projekt. Zacznijmy od celu i ograniczeń."
-                        : "Help me plan a project. Let's begin with the goal and constraints.",
-                    },
-                    {
-                      icon: "spark",
-                      title: pl ? "Uporządkuj pomysły" : "Organize ideas",
-                      detail: pl
-                        ? "Połącz notatki, pytania i kierunki."
-                        : "Connect notes, questions and directions.",
-                      prompt: pl
-                        ? "Chcę uporządkować pomysły. Pomóż mi określić priorytety."
-                        : "I'd like to organize my ideas. Help me prioritize.",
-                    },
-                    {
-                      icon: "code",
-                      title: pl ? "Przejrzyj kod" : "Review code",
-                      detail: pl
-                        ? "Znajdź problemy i kolejne usprawnienia."
-                        : "Find issues and useful improvements.",
-                      prompt: pl
-                        ? "Przejrzyj ten projekt i wskaż najważniejsze usprawnienia na podstawie kodu."
-                        : "Review this project and identify the most useful improvements based on its code.",
-                    },
+                    { icon: "globe", title: pl ? "Strona ze zdjęć" : "Website from photos", detail: pl ? "Kierunek wizualny" : "Visual direction", prompt: pl ? "Chcę stronę na podstawie zdjęć. Zapytaj o cel strony i ścieżki do zdjęć w projekcie. Sprawdź dostępne narzędzia i możliwość analizy obrazów; jeśli jej nie masz, poproś o opis. Przygotuj projekt i plan wdrożenia." : "Help me design a website from photos. Ask for the goal and project asset paths. Check image capabilities; ask for descriptions if unavailable. Prepare a design and implementation plan." },
+                    { icon: "play", title: pl ? "Mini gra" : "Mini game", detail: "Web / Canvas", prompt: pl ? "Zaprojektuj małą grę przeglądarkową: jedna ciekawa mechanika, sterowanie dotykiem i klawiaturą. Zaproponuj plan, a implementację przekażmy do zadania." : "Design a small browser game with one compelling mechanic, touch and keyboard controls. Prepare a plan for the task workflow." },
+                    { icon: "layers", title: pl ? "Scena 3D" : "3D scene", detail: "Three.js / WebGL", prompt: pl ? "Zaprojektuj interaktywną scenę 3D do przeglądarki. Ustal temat, przygotuj kompozycję, materiały, światło i plan implementacji z budżetem wydajności." : "Design an interactive browser 3D scene. Define composition, materials, lighting and an implementation plan with a performance budget." },
+                    { icon: "code", title: pl ? "Przejrzyj kod" : "Review code", detail: pl ? "Jakość i błędy" : "Quality and bugs", prompt: pl ? "Przejrzyj projekt i wskaż najważniejsze usprawnienia na podstawie kodu. Podaj konkretne pliki i sposób weryfikacji." : "Review this project. Identify actionable improvements with files and verification steps." },
+                    { icon: "plan", title: pl ? "Plan projektu" : "Project plan", detail: pl ? "Od pomysłu do zadań" : "From idea to tasks", prompt: pl ? "Pomóż mi zaplanować projekt. Zacznijmy od celu i ograniczeń, następnie przygotuj zadania i kryteria akceptacji." : "Help me plan a project. Start with goals and constraints, then tasks and acceptance criteria." },
+                    { icon: "spark", title: pl ? "Uporządkuj wiedzę" : "Organize knowledge", detail: pl ? "Notatki i wnioski" : "Notes and insights", prompt: pl ? "Pomóż uporządkować dostępne notatki projektu: podsumuj decyzje, pytania i kolejne kroki. Oznacz brakujące informacje." : "Organize the available project notes into decisions, open questions and next steps. Mark missing information." },
                   ].map((item) => (
                     <button
                       key={item.icon}
@@ -966,50 +952,7 @@ export function ChatWorkspace({
                     </button>
                   ))}
                 </div>
-                {!!projects.filter((p) => p.root).length && (
-                  <section className="return-projects">
-                    <h3>{pl ? "Wróć do pracy" : "Return to work"}</h3>
-                    {projects
-                      .filter((p) => p.root)
-                      .slice(0, 3)
-                      .map((p) => (
-                        <button
-                          type="button"
-                          key={p.id}
-                          onClick={() => {
-                            setSource("local");
-                            setExisting(p.id);
-                            setPath(p.root);
-                            document
-                              .querySelector<HTMLTextAreaElement>(
-                                ".start-composer textarea",
-                              )
-                              ?.focus();
-                          }}
-                        >
-                          <Icon name="folder" />
-                          <span>
-                            <strong>{p.name}</strong>
-                            <small>
-                              {pl ? "Projekt lokalny" : "Local project"}
-                            </small>
-                          </span>
-                          <Icon name="chevron" />
-                        </button>
-                      ))}
-                  </section>
-                )}
-                <div className="conversation-footnote">
-                  <Icon name="memory" />
-                  <span>
-                    {pl
-                      ? "Pamięć projektu pod ręką"
-                      : "Project memory within reach"}
-                  </span>
-                  <button type="button" onClick={onConfigure}>
-                    {pl ? "Zarządzaj połączeniami" : "Manage connections"}
-                  </button>
-                </div>
+
               </div>
             </>
           ) : (
@@ -1390,7 +1333,7 @@ export function ChatWorkspace({
                     {message.length.toLocaleString(language)} / 12 000
                   </span>
                 </div>
-                <div className="harness-slash-bar">
+                <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><div className="harness-slash-bar">
                   <span className="harness-slash-label">
                     {pl ? "Komendy:" : "Commands:"}
                   </span>
@@ -1435,7 +1378,7 @@ export function ChatWorkspace({
                       <span>{item.label}</span>
                     </button>
                   ))}
-                </div>
+                </div></details>
                 <textarea
                   aria-label={pl ? "Wiadomość do agenta" : "Message to agent"}
                   value={message}

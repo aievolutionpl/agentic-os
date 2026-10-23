@@ -403,8 +403,8 @@ test("the Windows command runs the relay through PowerShell", (t) => {
     "win32",
   );
   assert.equal(
-    bridge.command("claude"),
-    'powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "C:/Users/Jo Doe/AppData/Agenting/limit-bridge/relay.ps1" claude',
+    Buffer.from(bridge.command("claude").split(" ").at(-1), "base64").toString("utf16le"),
+    "& 'C:/Users/Jo Doe/AppData/Agenting/limit-bridge/relay.ps1' 'claude'",
   );
 });
 
@@ -470,4 +470,19 @@ test("paths with shell metacharacters are passed literally", (t) => {
   });
   assert.equal(out.status, 0, out.stderr);
   assert.match(out.stdout, /5h 12%/);
+});
+
+
+test("Windows refresh migrates the exact old command and preserves unrelated settings", (t) => {
+  const {home,data}=setup(t);
+  const b=new LimitBridge(data,process.execPath,{},home,"win32");
+  b.install({agent:"claude",consent:true});
+  const path=claudeSettings(home);
+  const settings=JSON.parse(readFileSync(path,"utf8"));
+  settings.model="preserved";
+  settings.statusLine.command=`powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${join(data,"limit-bridge","relay.ps1").replaceAll("\\","/")}" claude`;
+  writeFileSync(path,JSON.stringify(settings));
+  b.refresh();
+  assert.equal(b.status("claude").installed,true);
+  assert.equal(JSON.parse(readFileSync(path,"utf8")).model,"preserved");
 });

@@ -17,6 +17,35 @@ export const READ_ONLY_AGENTS: readonly Agent[] = [
   "opencode",
   "local",
 ];
+export interface HarnessSettings {
+  instructions: string;
+  autoRecall: boolean;
+  recallLimit: number;
+  revision: number;
+  updatedAt: string | null;
+}
+export type HarnessSettingsInput = Omit<HarnessSettings, "updatedAt">;
+export interface ContextManifestEntry {
+  id: string;
+  kind: "harness" | "workflow" | "memory" | "skill";
+  reason: "required" | "pinned" | "selected" | "recalled";
+  label: string;
+  source: string;
+  characters: number;
+  truncated: boolean;
+}
+export interface ContextPreview {
+  body: string;
+  characters: number;
+  limit: number;
+  readOnly: boolean;
+  memoryIds: string[];
+  workflow: string;
+  manifest?: ContextManifestEntry[];
+  fingerprint?: string;
+  harnessRevision?: number;
+  recallSkipped?: number;
+}
 export interface LocalModelSetting {
   configured: boolean;
   baseURL: string;
@@ -847,20 +876,17 @@ export interface API {
     action: "approve" | "reject" | "apply" | "rollback";
   }): Promise<void>;
   createDemoProject?(input?: { language?: "pl" | "en" }): Promise<Project>;
+  harnessGet?(): Promise<HarnessSettings & { core: string }>;
+  harnessSave?(input: HarnessSettingsInput): Promise<HarnessSettings & { core: string }>;
+  memoryExport?(input: { projectId: string }): Promise<string>;
   memorySearch(input: { projectId: string; query: string }): Promise<Memory[]>;
   contextPreview(input: {
     projectId: string;
     contextIds: string[];
     workflow: string;
     skillIds?: string[];
-  }): Promise<{
-    body: string;
-    characters: number;
-    limit: number;
-    readOnly: boolean;
-    memoryIds: string[];
-    workflow: string;
-  }>;
+    query?: string;
+  }): Promise<ContextPreview>;
   runtimeView(input: {
     projectId: string;
     taskId: string;
@@ -1115,6 +1141,10 @@ interface ErrorCopy {
   en: [title: string, hint: string];
 }
 const ERRORS: Record<string, ErrorCopy> = {
+  HARNESS_SETTINGS_CONFLICT: {
+    pl: ["Ustawienia zostały zmienione", "Skopiuj swoje zmiany, wczytaj zapisane ustawienia i połącz obie wersje przed ponownym zapisem."],
+    en: ["Settings changed elsewhere", "Copy your edits, load the saved settings and reconcile both versions before saving again."],
+  },
   PROVIDER_NOT_CONFIGURED: {
     pl: ["Agent nie jest podłączony", "Otwórz Połączenia, sprawdź wykrywanie CLI, zapisz ustawienia i spróbuj ponownie."],
     en: ["This agent is not connected", "Open Connections, re-run detection, save the settings and try again."],

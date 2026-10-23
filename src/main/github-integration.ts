@@ -14,6 +14,7 @@ function runGhInDir(
     let stdout = "";
     let stderr = "";
     let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined = undefined;
     const done = (code: number | null) => {
       if (settled) return;
       settled = true;
@@ -31,10 +32,10 @@ function runGhInDir(
       done(null);
       return;
     }
-    const timer = setTimeout(() => {
+    timer = setTimeout(() => {
       try {
         child.kill();
-      } catch {}
+      } catch { /* The process may already have exited. */ }
       done(null);
     }, timeoutMs);
     child.stdout?.on("data", (chunk: Buffer) => {

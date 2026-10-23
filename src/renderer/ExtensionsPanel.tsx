@@ -509,7 +509,7 @@ export function ExtensionsPanel({
                     const p = JSON.parse(args);
                     if (p && typeof p === "object" && !Array.isArray(p))
                       currentObj = p as Record<string, unknown>;
-                  } catch {}
+                  } catch { /* Keep invalid JSON visible for correction in the raw editor. */ }
                   return (
                     <div className="mcp-schema-fields">
                       <span className="helper">

@@ -45,3 +45,7 @@ Import versioned JSON manifests from **Extensions**. Skills contain instructions
 
 An MCP manifest uses the same metadata with `"kind": "mcp"`, an absolute `command` path and an `args` array instead of `instructions`. Importing does not launch it. Review the executable, arguments, source and license first. Secrets do not belong in a manifest. There is no automatic extension download, executable marketplace or signature verification.
 
+
+## Harness context controls
+
+The Harness view configures workspace instructions and automatic recall (0–8 entries, or disabled). A fixed core describes role boundaries and evidence-based handoff; custom preferences cannot grant runtime permissions. The shared 24,000-character budget now includes these instructions. Context previews expose sources, inclusion reasons, truncation, the instruction revision and a SHA-256 content fingerprint without invoking a model. Existing runs keep their frozen context. Project memory export includes only that project and explicitly shared notes; it masks recognized credentials and limits output to 100 notes / 200,000 characters. See [the development plan](HARNESS_EVOLUTION_PL.md).

@@ -687,7 +687,7 @@ export function ControlCenter({
                           fontSize: "0.66rem",
                           letterSpacing: "0.05em",
                           textTransform: "uppercase",
-                          opacity: 0.72,
+                          color: "var(--text-muted)",
                         }}
                       >
                         {s.source.includes("officialskills.sh/googleworkspace")

@@ -612,6 +612,12 @@ app
         heldRun(input);
         return applications.decide(input);
       },
+      harnessGet: () => store.harness.get(),
+      harnessSave: (input) => store.harness.set(input),
+      memoryExport: (input) => {
+        const p = exact(input, ["projectId"]);
+        return store.knowledge.export(text(p.projectId));
+      },
       memorySearch: (input) => {
         const p = exact(input, ["projectId", "query"]);
         return store.knowledge.search(
@@ -625,12 +631,14 @@ app
           "contextIds",
           "workflow",
           "skillIds",
+          "query",
         ]);
         return store.knowledge.build(
           text(p.projectId),
           p.contextIds,
           p.workflow,
           store.extensions.skills(text(p.projectId), p.skillIds ?? []),
+          text(p.query ?? "", 1000, true),
         );
       },
       runtimeView: (input) => supervisor.view(input),
@@ -1003,6 +1011,9 @@ app
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
           if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
+          if (name === "harnessSave" && code === "HARNESS_SETTINGS_CONFLICT") throw Error(code);
+          if (["contextPreview", "memoryExport"].includes(name) &&
+              ["CONTEXT_BUDGET_EXCEEDED", "INVALID_CONTEXT", "PROJECT_NOT_FOUND"].includes(code)) throw Error(code);
           if (name === "runDecision" && code === "HEAD_MOVED_SINCE_APPLY")
             throw Error(code);
           if (name.startsWith("limitBridge") && code.startsWith("BRIDGE_"))

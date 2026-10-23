@@ -1792,3 +1792,10 @@ button.status-pill:hover {
   color: var(--text);
   font-size: 11px;
 }
+
+/* Keep operational status available without consuming several rows on a phone. */
+@media (max-width: 600px) {
+  .harness-statusbar { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+  .harness-statusbar-left, .harness-statusbar-right { flex-wrap: nowrap; flex-shrink: 0; }
+  .harness-statusbar span { white-space: nowrap; }
+}

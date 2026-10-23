@@ -33,12 +33,14 @@ const REQUIRED_TABLES: [number, string[]][] = [
   [14, ["capability_checks"]],
   [15, ["workspace_policy"]],
   [16, ["usage_ledger"]],
+  [17, ["harness_settings"]],
 ];
 const REQUIRED_COLUMNS: [number, string, string[]][] = [
   [9, "memory", ["scope"]],
   [9, "provider_settings", ["profile"]],
   [11, "memory", ["pinned", "updatedAt"]],
   [12, "provider_settings", ["model"]],
+  [17, "harness_settings", ["instructions", "autoRecall", "recallLimit", "revision", "updatedAt"]],
 ];
 
 /**

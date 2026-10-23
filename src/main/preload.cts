@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
 import type { API } from "../shared.js";
 const api: API = {
+  harnessGet: () => ipcRenderer.invoke("app:harnessGet"),
+  harnessSave: (input) => ipcRenderer.invoke("app:harnessSave", input),
+  memoryExport: (input) => ipcRenderer.invoke("app:memoryExport", input),
   terminalList: () => ipcRenderer.invoke("app:terminalList"),
   terminalOpen: (input) => ipcRenderer.invoke("app:terminalOpen", input),
   terminalRead: (input) => ipcRenderer.invoke("app:terminalRead", input),

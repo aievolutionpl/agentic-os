@@ -1,141 +1,22 @@
-<div align="center">
+# Agenting OS
 
-# ⚡ Agenting OS — Multi-Agent Harness & Engineering Studio
+**One workspace for agent conversations, projects and persistent knowledge.**
 
-### **A professional *Codex / Claude Code Harness*-grade desktop studio for AI agent orchestration, native PTY terminal workflows, MCP knowledge graphs, and verified Git worktree changes.**
+Built by [AI Evolution Polska](https://www.aievolutionpolska.pl). [Polski](README.md)
 
-**Built by [AI EVOLUTION POLSKA](https://www.aievolutionpolska.pl) · [www.aievolutionpolska.pl](https://www.aievolutionpolska.pl)**
+[![CI — main](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml)
 
-[![Built by AI Evolution Polska](https://img.shields.io/badge/Built%20by-AI%20EVOLUTION%20POLSKA-FF5722?style=for-the-badge)](https://www.aievolutionpolska.pl)
-[![Website](https://img.shields.io/badge/WWW-aievolutionpolska.pl-0F172A?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.aievolutionpolska.pl)
-[![Commercial Contact](https://img.shields.io/badge/Commercial%20License-kontakt%40aievolutionpolska.pl-10B981?style=for-the-badge&logo=gmail&logoColor=white)](mailto:kontakt@aievolutionpolska.pl)
+![Agenting OS workspace](docs/images/classic-start.png)
 
-[![CI](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/aievolutionpl/agentic-os?include_prereleases&color=4F46E5)](https://github.com/aievolutionpl/agentic-os/releases/latest)
-[![License](https://img.shields.io/badge/license-Open%20Source%20%2F%20Commercial-4F46E5)](#license--commercial-use)
-[![Node](https://img.shields.io/badge/Node.js-24%20%7C%2026-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
-[![Electron](https://img.shields.io/badge/Electron-43-47848F?logo=electron&logoColor=white)](#architecture--tech-stack)
-[![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20macOS%20%7C%20Linux-0078D6)](#download--installation)
+*Screenshots show earlier interface versions. This README describes the current branch; published installers may contain an earlier feature set. The CI badge refers to main.*
 
-[**🚀 Download**](#download--installation) · [**🛠️ Build from Source**](#build-from-source) · [**✨ Features**](#complete-feature-overview) · [**🧠 20 Built-In Skills**](#20-built-in-skill-packages--skillmd-studio) · [**🔌 AI Providers**](docs/PROVIDERS.md) · [**💼 Commercial License**](#license--commercial-use) · [**🇵🇱 Polski**](README.md)
+Agenting OS is a desktop application for AI conversations, project memory and supervised implementation workflows. Choose an agent and model, organize context, schedule work and inspect results in one window. Coding tasks use a separate implementation and review workflow.
 
-</div>
+## Getting started
 
-## Harness — team instructions, memory and context
+Check [GitHub Releases](https://github.com/aievolutionpl/agentic-os/releases) for available Windows x64 installers and release notes. Where checksums are supplied, compare the downloaded installer's SHA-256 with `SHA256SUMS.txt`.
 
-The **Harness** workspace adds editable shared instructions, configurable automatic memory recall, a source and budget inspector, and recorded agent connection status. `AGENTS.md` export requires an explicit project and includes only its private notes plus explicitly shared workspace memory.
-
-See the [product concept, development plan and implementation prompt (Polish)](docs/HARNESS_EVOLUTION_PL.md). Run `npm run qa:harness-studio` for the native UI journey.
-![Harness — shared instructions and context inspector](docs/images/harness-context.png)
-
-
----
-
-## 🌟 What is Agenting OS?
-
-**Agenting OS** is a flagship, local-first engineering workbench (*Agentic Workbench & Harness Studio*) built by **[AI Evolution Polska](https://www.aievolutionpolska.pl)**. It unifies in a single, ultra-fast desktop window:
-
-- 🤖 **Multi-Agent Chat & Planning** (*Codex*, *Claude Code*, *Antigravity*, *OpenCode / OpenRouter*, *Hermes*, *ACP*, and local models) with a 1-click **Multi-Agent Second Opinion** workflow.
-- 🛡️ **Isolated Git Worktree Execution** with cryptographic diff verification (`SHA-256`), an independent Reviewer agent, and 1-click **GitHub Pull Request** creation.
-- 🧠 **Local MCP Knowledge Graph + Auto-Vault** with `FTS5` full-text search, connected cluster Markdown export, and a 1-click **`AGENTS.md`** context bundle generator.
-- 📚 **20 Built-In Pinned Skill Packages + Interactive `SKILL.md Studio`** writing custom skills directly to `.agents/skills/<slug>/SKILL.md`.
-- 💻 **Native Multi-Tab PTY Terminal (`node-pty` + Xterm.js)** with 1-click CLI quick commands and dynamic synchronization across **7 color themes**.
-
-![Agenting OS — Main workspace and multi-agent conversation studio](docs/images/classic-start.png)
-
----
-
-## 💼 License & Commercial Use
-
-> [!IMPORTANT]
-> ### 📜 Download, Modification & Commercial Licensing Policy (`AI Evolution Polska`)
->
-> - ✅ **Free to Download, Inspect & Customize (Personal / Educational / R&D):** Anyone is free to download, run, modify, and customize the source code for personal, educational, academic, and non-commercial evaluation purposes.
-> - 🏢 **Commercial & Enterprise Use Requires a Commercial License:** If you or your company wish to use **Agenting OS** commercially within an organization, deploy it for business or engineering teams, offer commercial services powered by it, or embed it in commercial products — **you must contact AI Evolution Polska to obtain a commercial license**:
->   - 📧 **Email:** **[kontakt@aievolutionpolska.pl](mailto:kontakt@aievolutionpolska.pl)**
->   - 🌐 **Website:** **[www.aievolutionpolska.pl](https://www.aievolutionpolska.pl)**
->
-> *Base repository code notices are provided in [LICENSE](LICENSE) and [NOTICE](NOTICE) (Copyright © 2026 AI Evolution Polska).*
-
----
-
-## ✨ Complete Feature Overview
-
-### 1. 💬 Multi-Agent Chat, `/Slash` Commands & "Second Opinion"
-- **Conversation & Planning Modes (`Chat` / `Plan`):** Select any configured provider and a per-conversation model override.
-- **Built-in `/slash` commands:** Type `/` in the composer to trigger `/plan`, `/review`, `/test`, `/debug`, or `/clear`.
-- **🔄 Multi-Agent Second Opinion:** Click **"Second opinion"** under any completed assistant reply to switch to a different configured agent in Planning mode with an architectural critique prompt.
-- **1-Click Handoff:** Save any reply directly to **Project Memory** or turn it into a **Task Queue item**.
-
-### 2. 🎯 Master Agent & 3-Step DAG Pipeline Generator (`Spec → Code → QA`)
-- **Autonomous Master Agent:** Proposes up to 6 steps, delegates approved tasks to implementer and reviewer agents, and evaluates the final result.
-- **1-Click Mission Presets with Auto-Skill Bundles:** Launch *Full-Stack Feature + TDD*, *UI/UX Polish & Taste Redesign*, *Architecture Blueprint & Spec*, or *Security Audit & Bug Hunt* with pre-attached skill packages.
-- **⚡ 3-Step DAG Pipeline Generator (`Spec → Code → QA`):** Create 3 sequential tasks with linked `dependencyIds` in a single click.
-
-```mermaid
-flowchart LR
-  A["🎯 Goal / Master Mission"] --> B["⚡ DAG Queue (Spec → Code → QA)"]
-  B --> C["🛠️ Implementer in Isolated Git Worktree"]
-  C --> D["🔐 Diff Artifact + SHA-256 Hash"]
-  D --> E["🧐 Independent Reviewer Agent"]
-  E --> F["✅ Human Approval (15-min TTL)"]
-  F --> G["🚀 Apply to Repo / GitHub PR"]
-```
-
-### 3. 🔍 Advanced Diff Studio, Git Repo Health & GitHub PR Integration
-- **Live Git Repo Health Bar:** Displays the active `GIT BRANCH`, worktree status (`CLEAN` vs `DIRTY` with changed file count), and latest `HEAD` commit in the project header.
-- **Interactive Diff Studio:** Live search inside diffs, per-file collapse/expand, **"Collapse / Expand all"**, and 1-click single-file diff copy.
-- **Branch Export & GitHub Pull Requests:** Export any run to a local branch or create a **GitHub Pull Request (`gh pr create`)** with reviewer evidence.
-
-### 4. 🧠 20 Built-In Skill Packages + Interactive `SKILL.md Studio`
-Install 20 commit-pinned skill packages with one click from the **Dashboard Skills Dock** or **Skill Library**:
-- **Engineering & Architecture:** `archify`, `addyosmani-agent-skills`, `agentskills-standard`, `mcp-builder`
-- **Design & Frontend:** `frontend-design`, `taste-skill`
-- **Testing, QA & Debugging:** `webapp-testing`, `systematic-debugging`, `test-driven-development`, `verification-before-completion`
-- **Marketing & Content:** `marketingskills`, `humanizer`, `brainstorming`
-- **Google Workspace & Docs:** `gws-calendar`, `gws-docs`, `gws-sheets`, `gws-shared`, `pdf`
-- **Web Automation & Ecosystem:** `browserbase-skills`, `awesome-claude-skills`
-- **✨ Interactive `SKILL.md Studio`:** Author custom skills using built-in templates (*Engineering & TDD*, *UI & Design System*, *API & Security Gate*) and write `.agents/skills/<slug>/SKILL.md` directly to your project folder.
-
-### 5. 🕸️ MCP Memory Graph, Auto-Vault & `AGENTS.md` Exporter
-- **Interactive Memory Graph:** Search nodes in real time, inspect connected neighbors, and copy any node + its connected cluster as Markdown (**"Copy cluster MD"**).
-- **1-Click `AGENTS.md` Bundle Export:** Export all pinned rules and working memory notes as a portable `AGENTS.md` specification.
-
-### 6. 💻 Embedded PTY Terminal, Project Browser & 7 Harness Studio Themes
-- **Native PTY Terminal (`node-pty` + Xterm.js):** Up to 6 tabs with 1-click quick commands (`$ git status`, `$ git diff --stat`, `$ npm test`, `$ codex`, `$ claude`).
-- **Project Browser:** Quick localhost presets (`:3000`, `:5173`, `:8080`, `:4321`, `GitHub`) + 1-click **"Save URL to Memory"**.
-- **7 Color Themes:** `Classic · Terra`, `Graphite`, `Light`, `Claude Code`, `Codex CLI`, `Tokyo Night`, and `Nord Frost`.
-- **Global Shortcuts:** `Ctrl+K` / `⌘K` Command Palette and `Alt+1`..`Alt+8` instant workspace switching.
-
----
-
-## 🖼️ Interface Gallery
-
-| Light Conversation Studio | Native Project Terminal |
-| :---: | :---: |
-| ![Light conversation](docs/images/chat-light.png) | ![Real Bash session in a project](docs/images/terminal-dark.png) |
-| **Project Tasks & DAG Queue** | **Team Preflight Verification** |
-| ![Project task queue](docs/images/project.png) | ![Saved role connections and missing reviewer](docs/images/team-preflight.png) |
-| **Live Kanban Board** | **MCP Memory Graph** |
-| ![Live Kanban board](docs/images/classic-kanban.png) | ![Project memory graph](docs/images/classic-memory.png) |
-| **Connections & Diagnostics** | **Light Terminal Theme** |
-| ![Connection evidence](docs/images/connections.png) | ![Light terminal](docs/images/terminal-light.png) |
-
----
-
-## 📥 Download & Installation
-
-The Windows x64 installer and `SHA-256` checksums are available in [**Releases**](https://github.com/aievolutionpl/agentic-os/releases/latest):
-
-1. Download `Agenting-OS-<version>-windows-x64-setup.exe`.
-2. Verify checksum: `certutil -hashfile <file> SHA256` against `SHA256SUMS.txt`.
-3. Run the installer.
-
----
-
-## 🛠️ Build from Source
-
-Requires **Node.js 24 or 26** ([`.nvmrc`](.nvmrc) pins `26`), `npm`, `Git`, and C++ build tools for `node-pty` when prebuilds are unavailable.
+To run from source, install Node.js 24 or 26, npm and Git. The recommended Node version is in [`.nvmrc`](.nvmrc). A graphical environment is required. Building the native terminal module may require Python 3 and C++ tools: Visual Studio Build Tools on Windows, make/g++ on Linux, or Xcode Command Line Tools on macOS. The installer configuration targets Windows x64; CI verifies Windows and Linux.
 
 ```sh
 git clone https://github.com/aievolutionpl/agentic-os.git
@@ -144,41 +25,105 @@ npm ci
 npm start
 ```
 
-### Verification & QA Commands
+Select a specific branch with `git switch <branch>` before installing dependencies if needed. `npm start` builds and opens Electron.
+
+1. Open Settings and configure an agent connection. Detecting a CLI does not prove authentication.
+2. Add a project and select its folder, or use the default conversation workspace.
+3. Start a conversation using the main button or the plus beside a project. Select an agent and model.
+4. Add relevant skills to that project from the library.
+5. Save useful answers to memory. For implementation, turn an answer into a task and use the execution/review workflow.
+
+## Features
+
+| Area | Workflow |
+| --- | --- |
+| Conversations | Per-conversation model selection, attachments, planning, second opinions and handoff to memory or tasks. |
+| Projects | Nested conversations, project search and inline renaming without moving folders. |
+| Tasks | Implementation in Git worktrees, diff inspection, independent review and explicit approval of results. |
+| Memory | Project notes, explicitly shared workspace knowledge and a graph of relationships. |
+| Harness | Editable workspace instructions, automatic recall controls, context sources and budget inspection. |
+| Skills | 33 pinned packages, custom imports and enable/disable controls. |
+| Plugins | Google Drive, Canva, Notion and Firecrawl connections with manual tool execution. |
+| ScheduleJob | One-time, daily and selected-weekday schedules, pause controls and links to results. |
+| Terminal and Git | Native PTY terminal, repository inspection, diff viewing and result export. |
+
+The five visible palettes are **Pearl**, **Light Orange**, **Midnight**, **Graphite** and **AI Evolution**. Themes include the sidebar. Settings control content width, chat text size, project density, motion and glass effects. Active conversations have a compact composer and wider transcript. Wide windows combine the header and quotas into one row; smaller windows wrap controls. `Ctrl+K` / `Cmd+K` opens the command palette.
+
+## Agents and quotas
+
+Connections include Codex, Claude Code, Antigravity, OpenCode, Hermes and a local LLM profile. OpenRouter supplies models and billing for compatible connections. Capabilities depend on the adapter, installed CLI version, account and selected model.
+
+The quota strip shows configured, enabled agents. Shared billing sources are deduplicated where the data identifies the same service. Disabling an agent blocks new jobs and hides its card; it does not log out the external account or stop an existing run.
+
+Percentages, monetary balances and token counts are different measures. The app does not invent token allowances from percentages. Missing and stale readings are labeled. See [provider support](docs/PROVIDERS.md) and [subscription connections](docs/SUBSCRIPTION_CONNECTIONS.md); historical checks there do not establish current account readiness.
+
+## Skills
+
+The [catalog](resources/skills/catalog.json) contains 33 packages pinned to source versions, with source attribution and licenses. It covers design, architecture, debugging, testing, documents and marketing.
+
+Ten added marketing packages from `coreyhaines31/marketingskills`, discovered through skills.sh, cover copywriting, content strategy, SEO, marketing plans, customer research, social media, email, ads, product marketing and sales enablement. Supporting files and licenses are bundled.
+
+Installation writes to `.agents/skills/<slug>` in the selected project. Disabling a catalog skill moves it to `.agents/disabled-skills/<slug>` and excludes it from new agent context. Re-enabling preserves local edits. Installation does not automatically execute package scripts. A skill supplies instructions, not credentials or new tool permissions.
+
+## Plugins
+
+| Service | Connection | Scope |
+| --- | --- | --- |
+| Google Drive | Desktop OAuth client and browser login | Search and read text files; export Google Docs/Sheets. |
+| Notion | Browser OAuth | Tools returned by the official MCP service. |
+| Canva | OAuth; registered client credentials if required | Tools returned by Canva MCP. |
+| Firecrawl | OAuth or API key | Web retrieval and search tools. |
+
+Select a tool, inspect arguments and explicitly execute it in the panel. Results can be saved to project memory. Remote plugins are not automatically available in the model's conversation tool loop. Reconnect after restarting the app; saved grants are reused where supported.
+
+See [plugin setup, storage and limitations](docs/PLUGINS.md).
+
+## Memory and harness
+
+Private memory belongs to its project; workspace sharing is explicit. Harness controls additional workspace instructions and recall. Exporting `AGENTS.md` requires selecting a project.
+
+The core instruction covers the complete work cycle: understand the goal, inspect relevant context, act within permission boundaries, verify and report evidence. Skills, retrieved files and memories cannot expand permissions. Runtime code and provider adapters enforce execution limits.
+
+![Harness context inspector](docs/images/harness-context.png)
+
+## Current limitations
+
+- Conversation and planning are not direct project editors. Chat still uses research context: compatible adapters run read-only, while other adapters use an isolated workspace. Direct selected-folder editing and an Auto accept switch in chat are not implemented. Use the task workflow for implementation.
+- A configured connection does not guarantee model availability or remaining quota. CLI installation, authentication, an eligible plan or API configuration may be required.
+- ScheduleJob requires a running app and computer; it does not wake the device. Scheduled jobs inherit conversation restrictions and require consent for recurring provider usage.
+- Plugins require your own accounts and permissions. Google Drive requires OAuth setup. Protocol tests do not replace testing authenticated accounts.
+- Local storage does not mean offline inference. Prompts, selected context and tool requests are sent to the providers you use. Provider charges and limits apply.
+
+## Development
+
+Electron and TypeScript provide the main process, React/Vite the interface, SQLite/FTS5 persistence, and node-pty/Xterm.js the terminal. Main-process adapters are in `src/main`, components in `src/renderer`, and IPC contracts in `src/shared.ts`.
 
 ```sh
 npm run typecheck
+npm run lint
 npm test
 npm run smoke
+npm run qa:calm
+npm run qa:plugins
+npm run qa:harness-studio
 npm run release:audit
 ```
 
----
+UI checks require a graphical environment; Linux CI uses Xvfb. The release audit checks local documentation links, license inventory and skill pinning. It is not a comprehensive security audit.
 
-## 🏛️ Architecture & Tech Stack
+Build and verify a Windows installer:
 
-| Layer | Technology |
-| :--- | :--- |
-| **Desktop Shell** | Electron 43 + TypeScript 5.9 (`contextIsolation: true`, `sandbox: true`) |
-| **Frontend UI** | React 19 + Vite 7 |
-| **Storage & Memory** | SQLite + FTS5 + `@modelcontextprotocol/server-memory` |
-| **Terminal** | `node-pty` 1.1 + `@xterm/xterm` |
-| **Testing** | `node:test` + JSDOM + Playwright |
+```sh
+npm run package:win
+npm run smoke:package
+```
 
-More documentation: [Providers](docs/PROVIDERS.md) · [Release Status](docs/RELEASE_STATUS.md) · [Workbench Audit](docs/WORKBENCH_AUDIT.md) · [Claudex / CC Switch Research](docs/research/claudex-cc-switch.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md).
+## Data, licenses and support
 
----
+Application data is stored locally in Electron's user-data directory. OpenRouter keys and plugin credentials use the system encryption store. External tools can maintain their own authentication data. See [SECURITY.md](SECURITY.md).
 
-## 🤝 Contact & Commercial Licensing
+Code terms are defined in [LICENSE](LICENSE); attribution is in [NOTICE](NOTICE). Skills and dependencies retain their own licenses; see [third-party notices](licenses/THIRD_PARTY_NOTICES.md). Contact AI Evolution Polska for deployment, support and collaboration.
 
-Designed and engineered by **[AI EVOLUTION POLSKA](https://www.aievolutionpolska.pl)**.
+[Website](https://www.aievolutionpolska.pl) · [Email](mailto:kontakt@aievolutionpolska.pl) · [Issues](https://github.com/aievolutionpl/agentic-os/issues)
 
-- 🌐 **Website:** **[www.aievolutionpolska.pl](https://www.aievolutionpolska.pl)**
-- 📧 **Commercial Licensing & Enterprise Inquiries:** **[kontakt@aievolutionpolska.pl](mailto:kontakt@aievolutionpolska.pl)**
-- 🐛 **Issues & Feature Requests:** [GitHub Issues](https://github.com/aievolutionpl/agentic-os/issues)
-
-<div align="center">
-
-**Built by [AI EVOLUTION POLSKA](https://www.aievolutionpolska.pl)** · [License](LICENSE) · [Notice](NOTICE) · [Third-Party Licenses](licenses/THIRD_PARTY_NOTICES.md) · [Code of Conduct](CODE_OF_CONDUCT.md)
-
-</div>
+[Plugins](docs/PLUGINS.md) · [Providers](docs/PROVIDERS.md) · [Release status](docs/RELEASE_STATUS.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)

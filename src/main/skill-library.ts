@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import {
   readFileSync,
   readdirSync,
@@ -39,9 +40,10 @@ function safeDirectory(parent: string, name: string) {
   return path;
 }
 /** Install only pinned, bundled packages; a click never downloads or executes scripts. */
-export async function installSkillFiles(projectRoot: string, skill: Extension) {
+export async function installSkillFiles(projectRoot: string, skill: Extension, download = false, fetchSource: typeof fetch = fetch) {
   if (!skill.slug || !/^[a-z0-9-]+$/.test(skill.slug))
     throw Error("SKILL_NOT_INSTALLABLE");
+  if (!existsSync(projectRoot)) throw Error("PROJECT_FOLDER_MISSING");
   const project = realpathSync.native(projectRoot);
   const skills = safeDirectory(safeDirectory(project, ".agents"), "skills");
   const destination = join(skills, skill.slug),
@@ -76,6 +78,20 @@ export async function installSkillFiles(projectRoot: string, skill: Extension) {
     }
   }
   collect(source);
+  if (download && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/tree\/[a-f0-9]{40}\/.+/.test(skill.source)) {
+    const match = skill.source.match(/^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/tree\/([a-f0-9]{40})\/(.+)$/);
+    if (!match) throw Error("SKILL_SOURCE_UNPINNED");
+    const url = `https://raw.githubusercontent.com/${match[1]}/${match[2]}/${match[3]}/${match[4]}/SKILL.md`;
+    const response=await fetchSource(url,{redirect:"error",signal:AbortSignal.timeout(20000)});
+    if(!response.ok)throw Error("SKILL_DOWNLOAD_FAILED");
+    const chunks:Uint8Array[]=[];let size=0;
+    if(!response.body)throw Error("SKILL_DOWNLOAD_FAILED");
+    for await(const chunk of response.body){size+=chunk.length;if(size>1000000)throw Error("SKILL_DOWNLOAD_TOO_LARGE");chunks.push(chunk);}
+    const body=Buffer.concat(chunks), bundled=files.find(f=>f.relative === "SKILL.md")!;
+    const digest=(b:Buffer)=>createHash("sha256").update(b.toString("utf8").replace(/\r\n/g,"\n")).digest("hex");
+    if(digest(body)!==digest(bundled.body))throw Error("SKILL_SOURCE_MISMATCH");
+    bundled.body=body;
+  }
   const staging = mkdtempSync(join(skills, `.agenting-install-${skill.slug}-`));
   try {
     for (const file of files) {

@@ -93,14 +93,15 @@ export function SkillsHub({
     try {
       for (const s of targets) {
         if (!s.installed && s.slug) {
-          await api.skillInstall!({ projectId: project, id: s.id });
+          await api.skillInstall!({ projectId: project, id: s.id, download:true });
         }
       }
       await load();
     } catch {
+      await load();
       setError(
         pl
-          ? "Nie udało się zainstalować wszystkich skilli z pakietu."
+          ? "Nie wszystkie skille zostały dodane. Sprawdź, czy folder projektu istnieje; ukończone instalacje są już widoczne."
           : "Could not install all skills in the batch.",
       );
     } finally {
@@ -219,7 +220,7 @@ export function SkillsHub({
         }}
       >
         {[
-          { id: "all", label: pl ? "Wszystkie (20)" : "All (20)" },
+          { id: "all", label: pl ? `Wszystkie (${items.filter(s=>s.kind === "skill").length})` : `All (${items.filter(s=>s.kind === "skill").length})` },
           { id: "engineering", label: pl ? "Inżynieria & SDLC" : "Engineering & SDLC" },
           { id: "design", label: pl ? "UI, Taste & Archify" : "UI, Taste & Archify" },
           { id: "gws", label: "Google Workspace (GWS)" },
@@ -239,7 +240,7 @@ export function SkillsHub({
       </div>
       <p className="helper">
         {pl
-          ? "Wybierz projekt i dodaj skill jednym przyciskiem. Pełny pakiet trafi do .agents/skills, a agenci dostaną go w kontekście. Instalacja zapisuje źródło w pamięci projektu; skrypty nie uruchamiają się automatycznie."
+          ? "Wybierz projekt i dodaj skill jednym przyciskiem. Instrukcja zostanie pobrana z przypiętej wersji GitHub i sprawdzona. Pełny pakiet z dołączonymi zasobami trafi do .agents/skills, a agenci dostaną go w kontekście. Instalacja zapisuje źródło w pamięci projektu; skrypty nie uruchamiają się automatycznie."
           : "Choose a project and add a skill with one click. The full package goes to .agents/skills and becomes available to its agents. Installation records its source in project memory; scripts do not run automatically."}
       </p>
       {error && (
@@ -294,12 +295,12 @@ export function SkillsHub({
               onClick={() => {
                 setBusy(true);
                 setError("");
-                void api.skillInstall!({ projectId: project, id: skill.id })
+                void api.skillInstall!({ projectId: project, id: skill.id, download:true })
                   .then(load)
                   .catch(() =>
                     setError(
                       pl
-                        ? "Nie udało się dodać skilla. Sprawdź folder projektu; istniejących plików nie nadpisujemy."
+                        ? "Nie udało się dodać skilla. Folder wybranego projektu musi istnieć. Wybierz poprawny projekt; istniejących skilli nie nadpisujemy."
                         : "Could not install skill. Check the project folder; existing files are preserved.",
                     ),
                   )

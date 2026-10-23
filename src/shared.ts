@@ -653,8 +653,10 @@ export interface API {
     rows: number;
   }): Promise<void>;
   terminalClose?(input: { id: string }): Promise<void>;
+  voiceBegin?(): Promise<boolean>;
+  voiceTranscribe?(input:{audio:string;language:"pl"|"en"}):Promise<string>;
   scheduleList?(): Promise<{jobs:ScheduleJob[];runs:ScheduleRun[]}>;
-  scheduleCreate?(input: {title:string;prompt:string;projectId:string;agent:Agent;time:string;consent:true}): Promise<ScheduleJob>;
+  scheduleCreate?(input: {title:string;prompt:string;projectId:string;agent:Agent;time:string;weekdays?:number[];date?:string;consent:true}): Promise<ScheduleJob>;
   scheduleAction?(input: {id:string;action:"pause"|"resume"|"delete"|"run"}): Promise<void>;
   projectRename?(input: { id: string; name: string }): Promise<Project>;
   chatRename?(input: { id: string; title: string }): Promise<ChatSession>;
@@ -727,7 +729,7 @@ export interface API {
     pinned: boolean;
   }): Promise<void>;
   skillCatalog?(): Promise<Extension[]>;
-  skillInstall?(input: { projectId: string; id: string }): Promise<Extension>;
+  skillInstall?(input: { projectId: string; id: string; download?:boolean }): Promise<Extension>;
   skillImportFile?(input: { projectId: string }): Promise<Extension | null>;
   providerCheck?(input: { agent: Agent }): Promise<ProviderHealth>;
   providerSignIn?(input: {
@@ -1318,6 +1320,7 @@ export function explainError(value: string, pl: boolean): ErrorExplanation {
 
 export interface ScheduleJob {
   id:string; title:string; prompt:string; projectId:string; agent:Agent; time:string;
+  weekdays?:number[]; date?:string;
   enabled:boolean; requested?:boolean; nextRunAt:number; createdAt:number;
 }
 export interface ScheduleRun {

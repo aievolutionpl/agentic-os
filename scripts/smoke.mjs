@@ -99,6 +99,21 @@ try {
   assert.deepEqual(
     (await page.evaluate(() => Object.keys(window.agenting))).sort(),
     [
+      "createDemoProject",
+      "extensionToggle",
+      "gitRepoHealth",
+      "githubIssueImport",
+      "githubIssuesList",
+      "harnessGet",
+      "harnessSave",
+      "localModelDiscover",
+      "localModelPing",
+      "memoryExport",
+      "pluginCatalog",
+      "pluginInstall",
+      "runExportBranch",
+      "runVerify",
+      "skillCreateCustom",
       "snapshot",
       "terminalList",
       "terminalOpen",
@@ -578,7 +593,7 @@ try {
     );
     assert.equal(
       await page
-        .locator(".task-panel")
+        .locator(".task-panel[open]")
         .evaluate((el) => el.scrollWidth > el.clientWidth),
       false,
       `panel content at ${width}`,

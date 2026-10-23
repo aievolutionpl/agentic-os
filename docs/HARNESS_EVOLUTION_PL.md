@@ -22,7 +22,7 @@ Subskrypcje są obsługiwane przez oficjalne mechanizmy danego CLI. API korzysta
 
 `HarnessPanel → preload allowlist → kontrola zaufanego nadawcy IPC → Harness / Knowledge → SQLite`
 
-`Knowledge.build → rdzeń + preferencje → workflow → przypięta/wybrana pamięć → skille → przywołania w pozostałym budżecie → manifest + hash`
+`Knowledge.build → nagłówek workflow → rdzeń + preferencje → przypięta/wybrana pamięć → skille → przywołania w pozostałym budżecie → manifest + hash`
 
 Nowy moduł `src/main/harness.ts` odpowiada za migrację, walidację, redakcję i zapis ustawień. `src/main/knowledge.ts` pozostaje jedynym miejscem składania wspólnego kontekstu. Główne API: `harnessGet`, `harnessSave`, `contextPreview`, `memoryExport`. Nie dodano zależności ani kluczy środowiskowych. Instrukcje i pamięć są zwykłym tekstem użytkownika, nie magazynem sekretów.
 

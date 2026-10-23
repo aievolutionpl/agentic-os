@@ -819,6 +819,7 @@ function App() {
               <button
                 className={`nav-item ${view === "center" ? "selected" : ""}`}
                 aria-current={view === "center" ? "page" : undefined}
+                aria-label={ccWords[prefs.language].nav}
                 data-badge="HUB"
                 onClick={() => {
                   setProjectsExpanded(false);
@@ -855,6 +856,7 @@ function App() {
                     key={item.id}
                     className={`nav-item ${view === item.id ? "selected" : ""}`}
                     aria-current={view === item.id ? "page" : undefined}
+                    aria-label={prefs.language === "pl" ? item.pl : item.en}
                     data-badge={item.badge}
                     onClick={() => {
                       setProjectsExpanded(false);
@@ -928,7 +930,8 @@ function App() {
                       key={item.id}
                       className={`nav-item ${view === item.id ? "selected" : ""}`}
                       aria-current={view === item.id ? "page" : undefined}
-                      data-badge={item.badge}
+                      aria-label={prefs.language === "pl" ? item.pl : item.en}
+                    data-badge={item.badge}
                       onClick={() => {
                         setProjectsExpanded(false);
                         setView(item.id);
@@ -950,6 +953,7 @@ function App() {
               <button
                 className={`nav-item ${view === "connections" ? "selected" : ""}`}
                 aria-current={view === "connections" ? "page" : undefined}
+                aria-label={prefs.language === "pl" ? "Połączenia i modele" : "Connections & models"}
                 data-badge="MCP"
                 onClick={() => {
                   setProjectsExpanded(false);

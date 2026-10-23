@@ -6,11 +6,32 @@ Built by [AI Evolution Polska](https://www.aievolutionpolska.pl). [Polski](READM
 
 [![CI — main](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml)
 
-![Agenting OS workspace](docs/images/classic-start.png)
+![Agenting OS workspace](docs/images/rc2/chat.png)
 
-*Screenshots show earlier interface versions. This README describes the current branch; published installers may contain an earlier feature set. The CI badge refers to main.*
 
 Agenting OS is a desktop application for AI conversations, project memory and supervised implementation workflows. Choose an agent and model, organize context, schedule work and inspect results in one window. Coding tasks use a separate implementation and review workflow.
+
+
+## 🖼️ Interface gallery
+
+Current 0.5.0-rc.2 screenshots captured in Electron with a sample project. Account states and data shown are test fixtures.
+
+| Chat | Agents |
+| --- | --- |
+| ![Chat](docs/images/rc2/chat.png) | ![Agents](docs/images/rc2/agents.png) |
+| Skills | Plugins |
+| ![Skills](docs/images/rc2/skills.png) | ![Plugins](docs/images/rc2/plugins.png) |
+| Memory | ScheduleJob |
+| ![Memory](docs/images/rc2/memory.png) | ![ScheduleJob](docs/images/rc2/schedule.png) |
+
+<details>
+<summary>Settings / Mobile</summary>
+
+![Settings](docs/images/rc2/settings.png)
+
+<img src="docs/images/rc2/mobile.png" width="320" alt="Chat at 390 pixels">
+
+</details>
 
 ## Getting started
 

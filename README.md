@@ -8,13 +8,34 @@ Zbudowane przez [AI Evolution Polska](https://www.aievolutionpolska.pl).
 
 [Start](#start) · [Możliwości](#możliwości) · [Skille](#skille) · [Pluginy](#pluginy) · [Ograniczenia](#ograniczenia) · [English](README.en.md)
 
-![Agenting OS — widok rozmowy](docs/images/classic-start.png)
+![Agenting OS — widok rozmowy](docs/images/rc2/chat.png)
 
-*Zrzuty pokazują wcześniejsze wersje interfejsu. Układ i nazwy motywów w bieżącej gałęzi mogą się różnić.*
 
 Agenting OS to aplikacja desktopowa z lokalną bazą rozmów, pamięcią projektów i połączeniami z narzędziami AI. W jednym oknie wybierasz agenta i model, porządkujesz kontekst, planujesz zadania oraz przeglądasz wyniki pracy. Wykonywanie zmian w kodzie ma osobny proces implementacji i recenzji.
 
 README opisuje kod w tej gałęzi. Gotowy instalator może zawierać wcześniejszy zestaw funkcji. Badge CI dotyczy `main`, nie bieżącej gałęzi.
+
+
+## 🖼️ Galeria Interfejsu
+
+Aktualne zrzuty wersji 0.5.0-rc.2, wykonane w aplikacji Electron na przykładowym projekcie. Statusy i dane na obrazach są testowe.
+
+| Chat | Agents |
+| --- | --- |
+| ![Chat](docs/images/rc2/chat.png) | ![Agents](docs/images/rc2/agents.png) |
+| Skills | Plugins |
+| ![Skills](docs/images/rc2/skills.png) | ![Plugins](docs/images/rc2/plugins.png) |
+| Memory | ScheduleJob |
+| ![Memory](docs/images/rc2/memory.png) | ![ScheduleJob](docs/images/rc2/schedule.png) |
+
+<details>
+<summary>Settings / Mobile</summary>
+
+![Settings](docs/images/rc2/settings.png)
+
+<img src="docs/images/rc2/mobile.png" width="320" alt="Chat at 390 pixels">
+
+</details>
 
 ## Start
 

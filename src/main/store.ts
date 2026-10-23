@@ -2,6 +2,7 @@ import { Artifacts } from "./artifacts.js";
 import { Approvals } from "./approvals.js";
 import { Lifecycle } from "./lifecycle.js";
 import { Runs } from "./runs.js";
+import { Harness } from "./harness.js";
 import { Knowledge } from "./knowledge.js";
 import { Extensions } from "./extensions.js";
 import { migrateWorkspace } from "./workspace-migration.js";
@@ -42,7 +43,7 @@ function agent(input: unknown): Agent {
   return input as Agent;
 }
 /** Highest schema this build reads; newer databases are refused. */
-export const SCHEMA_VERSION = 16;
+export const SCHEMA_VERSION = 17;
 export class Store {
   private db: DatabaseSync;
   readonly lifecycle: Lifecycle;
@@ -50,6 +51,7 @@ export class Store {
   readonly artifacts: Artifacts;
   readonly runs: Runs;
   readonly knowledge: Knowledge;
+  readonly harness: Harness;
   readonly extensions: Extensions;
   readonly missions: Missions;
   readonly chats: ChatStore;
@@ -130,6 +132,7 @@ export class Store {
       this.capabilities = new CapabilityChecks(this.db);
       this.policies = new Policies(this.db);
       this.usage = new UsageLedger(this.db, clock);
+      this.harness = new Harness(this.db);
     } catch (error) {
       this.db.close();
       throw error;

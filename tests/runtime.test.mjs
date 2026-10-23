@@ -21,7 +21,9 @@ import { exportRunToBranch } from "../dist/main/github-integration.js";
 import { gitText, git } from "../dist/main/git.js";
 const fixture = resolve("tests/fixtures/codex-server.mjs");
 const wait = async (fn) => {
-  for (let i = 0; i < 300; i++) {
+  // Native Git worktree and review operations are slower on Windows hosts.
+  const deadline = Date.now() + (process.platform === "win32" ? 45000 : 12000);
+  while (Date.now() < deadline) {
     const value = fn();
     if (value) return value;
     await new Promise((r) => setTimeout(r, 40));

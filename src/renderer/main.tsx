@@ -40,6 +40,7 @@ import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { OrchestrationPanel } from "./OrchestrationPanel";
 import { MasterPanel } from "./MasterPanel";
 import { ChatWorkspace, startNewChat } from "./ChatWorkspace";
+import { HarnessPanel } from "./HarnessPanel";
 import { MemoryHub, SkillsHub } from "./KnowledgeHub";
 import { READ_ONLY_AGENTS } from "../shared";
 import { ccWords } from "./cc-i18n";
@@ -81,6 +82,7 @@ function App() {
     | "chat"
     | "skills"
     | "shared-memory"
+    | "harness"
     | "inbox"
     | "terminal"
   >(api?.chatList ? "chat" : api?.connectorScan ? "center" : "project");
@@ -513,6 +515,7 @@ function App() {
         "Alt+7",
       ],
       ["quota", "layers", "Limity i tokeny", "OpenQuota", !!api?.connectorScan, "Alt+8"],
+      ["harness", "layers", "Harness", "Harness", !!api?.harnessGet, ""],
     ];
     const list: Command[] = views
       .filter((v) => v[4])
@@ -889,6 +892,11 @@ function App() {
                   )}
                 </button>
               )}
+              {api.harnessGet && <button
+                className={`nav-item ${view === "harness" ? "selected" : ""}`}
+                aria-current={view === "harness" ? "page" : undefined}
+                onClick={() => { setProjectsExpanded(false); setView("harness"); }}
+              ><Icon name="layers" /><span>Harness</span></button>}
               {api.chatList && (
                 <>
                   <div className="nav-group-label" aria-hidden="true">
@@ -1107,7 +1115,7 @@ function App() {
             <span>{w.workspace}</span>
             <Icon name="chevron" />
             <strong title={view === "center" ? undefined : project?.name}>
-              {view === "terminal"
+              {view === "harness" ? "Harness" : view === "terminal"
                 ? "Terminal"
                 : view === "chat"
                   ? prefs.language === "pl"
@@ -1269,6 +1277,9 @@ function App() {
                   projects={snapshot?.projects ?? []}
                 />
               </React.Suspense>
+            ) : view === "harness" ? (
+              <HarnessPanel language={prefs.language} projects={snapshot?.projects ?? []}
+                onNavigate={setView} onProjectTools={(id) => { void selectProject(id); setTab("extensions"); setView("project"); }} />
             ) : view === "skills" ? (
               <SkillsHub
                 language={prefs.language}

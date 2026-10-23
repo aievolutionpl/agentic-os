@@ -1,0 +1,390 @@
+.harness-studio {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 28px;
+  display: grid;
+  gap: 24px;
+  color: var(--text);
+}
+.harness-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.harness-eyebrow {
+  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  font-weight: 600;
+}
+.harness-heading h1 {
+  font-size: clamp(25px, 2.4vw, 34px);
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+  margin: 10px 0;
+}
+.harness-heading p,
+.harness-help {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 8px 0 16px;
+}
+.harness-heading > button {
+  flex-shrink: 0;
+}
+.harness-cycle {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 16px 0;
+  border-block: 1px solid var(--border);
+  gap: 12px;
+}
+.harness-cycle li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.harness-cycle li > span {
+  font:
+    12px ui-monospace,
+    monospace;
+  color: var(--accent);
+}
+.harness-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+  gap: 24px;
+  align-items: start;
+}
+.harness-section {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 24px;
+}
+.harness-section h2 {
+  font-size: 19px;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.harness-section h3 {
+  font-size: 14px;
+  margin: 12px 0;
+}
+.harness-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+}
+.harness-section-title > span {
+  color: var(--text-muted);
+  font:
+    13px ui-monospace,
+    monospace;
+}
+.harness-section form,
+.harness-section fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.harness-section label {
+  display: grid;
+  gap: 8px;
+  color: var(--text);
+  font-size: 14px;
+}
+.harness-section textarea {
+  width: 100%;
+  min-width: 0;
+  resize: vertical;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px;
+  background: var(--bg-subtle);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+}
+.harness-section select {
+  max-width: 100%;
+  min-width: 0;
+  width: 100%;
+  min-height: 42px;
+  font-size: 14px;
+}
+.harness-section button,
+.harness-heading > button {
+  min-height: 40px;
+  white-space: normal;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.harness-section #harness-instructions {
+  margin-top: 8px;
+  min-height: 220px;
+}
+.harness-field-note {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 8px 0 24px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.harness-field-note > span:last-child {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.harness-section .harness-checkbox {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  padding: 7px 0;
+  line-height: 1.5;
+}
+.harness-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.harness-limit {
+  margin-top: 12px;
+}
+.harness-limit select {
+  max-width: 100px;
+}
+.harness-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.harness-actions > span,
+.harness-notice {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.harness-notice {
+  line-height: 1.5;
+}
+.harness-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+.harness-query {
+  margin-bottom: 16px;
+}
+.harness-disclosure {
+  border-top: 1px solid var(--border);
+  padding: 14px 0 0;
+  margin: 18px 0;
+  font-size: 13px;
+}
+.harness-disclosure summary {
+  cursor: pointer;
+  line-height: 1.6;
+  min-height: 28px;
+  color: var(--text);
+}
+.harness-disclosure pre {
+  font:
+    12px/1.65 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 12px;
+  background: var(--bg-subtle);
+  border-radius: 6px;
+}
+.harness-choices {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px 4px;
+}
+.harness-choices small,
+.harness-manifest small,
+.harness-providers small {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-weight: 400;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.harness-preview {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+.harness-budget {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.harness-budget > span {
+  color: var(--text-muted);
+}
+.harness-preview progress {
+  width: 100%;
+  height: 7px;
+  margin: 12px 0;
+  accent-color: var(--accent);
+}
+.harness-manifest {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.harness-manifest li {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+  font-size: 13px;
+}
+.harness-manifest li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.harness-manifest li > span:last-child {
+  flex-shrink: 0;
+  text-align: right;
+  color: var(--text-muted);
+}
+.harness-hash {
+  display: block;
+  word-break: break-all;
+  color: var(--text-muted);
+  margin-top: 12px;
+  font-size: 11px;
+}
+.harness-empty {
+  color: var(--text-muted);
+  padding: 24px 0;
+  line-height: 1.7;
+}
+.harness-providers {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 28px;
+}
+.harness-providers li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding: 16px 0;
+  min-width: 0;
+  font-size: 13px;
+}
+.harness-providers .provider-glyph {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.harness-providers li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.harness-providers li > span:last-child {
+  margin-left: auto;
+  text-align: right;
+}
+.harness-tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+.harness-tools button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-subtle);
+  padding: 12px;
+  text-align: left;
+}
+.harness-tools button > .icon:last-child {
+  margin-left: auto;
+}
+@media (max-width: 1100px) {
+  .harness-columns {
+    grid-template-columns: 1fr;
+  }
+  .harness-providers {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .harness-studio {
+    padding: 16px;
+    gap: 16px;
+  }
+  .harness-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .harness-section {
+    padding: 16px;
+  }
+  .harness-cycle {
+    flex-wrap: wrap;
+    row-gap: 16px;
+  }
+  .harness-cycle li {
+    flex: 1 0 40%;
+    font-size: 13px;
+  }
+  .harness-fields {
+    grid-template-columns: 1fr;
+  }
+  .harness-section-title {
+    flex-wrap: wrap;
+  }
+  .harness-providers li {
+    flex-wrap: wrap;
+  }
+  .harness-providers li > span:last-child {
+    flex: 1 0 100%;
+    margin-left: 36px;
+    text-align: left;
+  }
+  .harness-tools {
+    grid-template-columns: 1fr;
+  }
+  .harness-field-note {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}

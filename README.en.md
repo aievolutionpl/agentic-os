@@ -21,6 +21,14 @@
 
 </div>
 
+## Harness — team instructions, memory and context
+
+The **Harness** workspace adds editable shared instructions, configurable automatic memory recall, a source and budget inspector, and recorded agent connection status. `AGENTS.md` export requires an explicit project and includes only its private notes plus explicitly shared workspace memory.
+
+See the [product concept, development plan and implementation prompt (Polish)](docs/HARNESS_EVOLUTION_PL.md). Run `npm run qa:harness-studio` for the native UI journey.
+![Harness — shared instructions and context inspector](docs/images/harness-context.png)
+
+
 ---
 
 ## 🌟 What is Agenting OS?

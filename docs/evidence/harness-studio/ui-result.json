@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "checks": [
+    "saved-instructions-and-scoped-retrieval-over-real-ipc",
+    "keyboard-access-to-settings",
+    "project-change-invalidates-preview-and-does-not-leak-memory",
+    "concurrent-save-conflict-preserves-draft-and-recovers",
+    "explicit-project-export-and-clipboard",
+    "English-labels-persistence-and-tools-navigation"
+  ],
+  "screens": [
+    {
+      "name": "harness-classic-1440",
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "harness-classic-768",
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "harness-classic-390",
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "harness-classic-320",
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "harness-providers-classic-1440",
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "harness-dark-1440",
+      "overflow": false,
+      "failures": []
+    },
+    {
+      "name": "harness-en-dark-1440",
+      "overflow": false,
+      "failures": []
+    }
+  ],
+  "errors": [],
+  "scope": "Native Electron, real IPC and SQLite, synthetic data; no model inference."
+}

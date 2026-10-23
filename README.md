@@ -23,6 +23,14 @@
 
 ---
 
+## Harness — instrukcja, pamięć i kontekst zespołu
+
+Nowy widok **Harness** łączy edycję instrukcji głównej, ustawienia automatycznego przywoływania pamięci, podgląd źródeł i budżetu kontekstu oraz zapisane połączenia agentów. Eksport `AGENTS.md` wymaga wyboru projektu i zawiera tylko jego prywatne wpisy oraz pamięć jawnie udostępnioną workspace.
+
+[Pomysł produktu, plan rozwoju i gotowy prompt implementacyjny](docs/HARNESS_EVOLUTION_PL.md). Test nowego przepływu: `npm run qa:harness-studio`.
+
+![Harness — shared instructions and context inspector](docs/images/harness-context.png)
+
 ## 🌟 Czym jest Agenting OS?
 
 **Agenting OS** to flagowe, lokalne środowisko inżynierskie (*Local-First Agentic Workbench & Harness Studio*) stworzone przez zespół **[AI Evolution Polska](https://www.aievolutionpolska.pl)**. Łączy w jednym, ultraszybkim oknie desktopowym:

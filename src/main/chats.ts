@@ -37,9 +37,11 @@ export async function githubRepositories(
       [
         "api",
         "user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member",
-        // Only the two fields used; full repository objects can exceed the buffer.
+        // Follow all pages; keep only the two fields used by the picker.
+        "--paginate",
+        "--slurp",
         "--jq",
-        "[.[] | {full_name, private}]",
+        "[.[][] | {full_name, private}]",
       ],
       {
         windowsHide: true,

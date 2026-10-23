@@ -95,6 +95,7 @@ export class Supervisor {
     readonly dataDir: string,
     factory?: AdapterFactory,
     providerEnvironment: (agent: Agent) => NodeJS.ProcessEnv = () => ({}),
+    resolveModel: (agent: Agent, model: string | null) => string | null = (_agent, model) => model,
   ) {
     this.injected = !!factory;
     const oldGemini = store.runs.provider("gemini");
@@ -121,7 +122,7 @@ export class Supervisor {
       ((agent, cwd, model) => {
         const saved = store.runs.provider(agent);
         if (!saved?.consent) throw Error("PROVIDER_NOT_CONFIGURED");
-        const config = { ...saved, model: model ?? saved.model };
+        const config = { ...saved, model: resolveModel(agent, model ?? saved.model) };
         const home = join(dataDir, "providers", agent);
         mkdirSync(home, { recursive: true });
         if (

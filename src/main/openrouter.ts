@@ -198,6 +198,18 @@ export class OpenRouterConnection {
       : this.key();
     return this.requestJson("/credits", key).catch(() => null);
   }
+  /** Resolve once at the runtime boundary; UI filtering is not authorization. */
+  resolveModel(selected?: string | null): string | null {
+    const row = this.read();
+    if (!row) return selected ?? null;
+    const id = selected?.trim() || row.model;
+    const raw = id.startsWith("openrouter/") ? id.slice("openrouter/".length) : id;
+    // The native OpenRouter router ID itself also begins with openrouter/.
+    const model = id === row.model || id === "openrouter/free" || id === "openrouter/auto" ? id : raw;
+    if ((row.disabledModels ?? []).includes(model)) throw Error("MODEL_DISABLED");
+    if (!/^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:/-]+$/.test(model)) throw Error("INVALID_MODEL");
+    return `openrouter/${model}`;
+  }
   /** Whether the selected model is free, so no balance can stop it. */
   freeModel() {
     const model = this.read()?.model ?? "";

@@ -24,6 +24,7 @@ export function ModelPicker({
     provider?.args,
     provider?.profile,
     provider?.model,
+    provider?.lastCheck?.observedAt,
   ]);
   const [models, setModels] = useState(catalogs.get(key) ?? []);
   const [loading, setLoading] = useState(false),

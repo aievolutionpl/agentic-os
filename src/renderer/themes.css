@@ -217,3 +217,28 @@ html[data-theme] .skill-library article {padding:16px;gap:10px;border-radius:12p
 @media(max-width:900px) {.overview-projects {grid-template-columns:minmax(0,1fr);}.workspace-content .panel-grid {grid-template-columns:minmax(0,1fr);}}
 @media(max-width:480px) {.overview-projects article {grid-template-columns:24px minmax(0,1fr);}.overview-projects article > .secondary {grid-column:2;justify-self:start;}.project-overview > header {flex-wrap:wrap;gap:12px;}.settings-about {align-items:flex-start;flex-direction:column;}.workspace-settings-dialog {max-width:calc(100vw - 24px);}}
 .company-logo {width:76px;height:64px;object-fit:contain;flex-shrink:0;}
+/* Short, interruptible motion; native dialogs retain focus and Escape handling. */
+@keyframes workspace-dialog-enter {from {opacity:0;transform:translateY(12px) scale(.975);} to {opacity:1;transform:translateY(0) scale(1);}}
+@keyframes workspace-menu-enter {from {opacity:0;transform:translateY(-5px);} to {opacity:1;transform:translateY(0);}}
+@keyframes workspace-backdrop-enter {from {background-color:transparent;backdrop-filter:blur(0);} to {background-color:rgb(4 9 20 / .45);backdrop-filter:blur(6px);}}
+@media(prefers-reduced-motion:no-preference) {
+ dialog[open] {animation:workspace-dialog-enter 240ms cubic-bezier(.2,.8,.2,1);}
+ dialog[open]::backdrop {animation:workspace-backdrop-enter 220ms ease-out both;}
+ [role="listbox"],.nav-more[open] > .nav-item {animation:workspace-menu-enter 170ms ease-out;}
+ .primary-nav .nav-item,.workspace-settings,.settings-links button,.top-bar .icon-button {transition:background-color 160ms ease,border-color 160ms ease,box-shadow 160ms ease,transform 160ms ease;}
+ .settings-links button:hover,.workspace-settings:hover {transform:translateX(2px);box-shadow:inset 3px 0 var(--accent);}
+ .settings-links button:active,.top-bar .icon-button:active {transform:scale(.97);}
+}
+@media(prefers-reduced-motion:reduce) {dialog,[role="listbox"],.nav-item,.settings-links button {animation:none!important;transition:none!important;}}
+.sidebar-resize {width:6px;flex:0 0 6px;cursor:col-resize;touch-action:none;background:transparent;z-index:20;}.sidebar-resize:hover,.sidebar-resize:focus-visible {background:var(--accent);}
+.project-sidebar {width:var(--sidebar-width)!important;}.project-tree {resize:vertical;overflow:auto;min-height:120px;}
+.workspace-settings-dialog {width:min(760px,calc(100vw - 32px));}.workspace-customization {border:1px solid var(--border);border-radius:14px;padding:16px;margin:20px 0;display:grid;gap:14px;}.workspace-customization label {display:flex;align-items:center;gap:12px;}.workspace-customization input[type=checkbox]{width:18px;}.workspace-customization input[type=range]{flex:1;min-width:70px;}
+html.hideQuotas .quota-strip {display:none;}html.quietMotion *,html.quietMotion *::before,html.quietMotion *::after {animation:none!important;transition:none!important;}
+html[data-theme] .body {background:radial-gradient(ellipse at 85% 10%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 55%),radial-gradient(ellipse at 5% 90%,color-mix(in srgb,var(--secondary-accent) 7%,transparent),transparent 60%),var(--bg);}
+html.plainBackground .body {background:var(--bg);}
+html[data-theme] .chat-message.assistant {background:linear-gradient(125deg,color-mix(in srgb,var(--surface) 96%,var(--accent)),var(--surface));border:1px solid var(--border);border-radius:18px;padding:20px;margin-block:14px;box-shadow:0 8px 24px #00000008;}
+.composer-tools {border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:color-mix(in srgb,var(--surface) 85%,transparent);backdrop-filter:blur(12px);}.composer-tools summary {cursor:pointer;padding:5px;}.composer-tools .harness-slash-bar {padding-top:10px;gap:8px;flex-wrap:wrap;}
+.schedule-calendar {margin:22px 0;padding:16px;border:1px solid var(--border);border-radius:16px;background:var(--surface);}.schedule-calendar header {display:flex;align-items:center;justify-content:space-between;}.calendar-grid {display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;}.calendar-grid>strong {text-align:center;padding:10px;font-size:12px;}.calendar-grid>button {min-height:72px;display:flex;flex-direction:column;align-items:flex-start;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:0;}.calendar-grid small {display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--accent);}.weekday-picker {display:flex;gap:10px;flex-wrap:wrap;}.weekday-picker label {display:flex;gap:5px;}.weekday-picker input{width:16px;}
+@media(max-width:600px){.calendar-grid>button{min-height:46px;padding:4px;}.calendar-grid small{font-size:9px;}.schedule-calendar{padding:8px;}.workspace-customization label{flex-wrap:wrap;}}
+.command-menu{display:flex;align-items:center;gap:12px;margin:10px 0;font-size:13px;}.command-menu select{min-width:0;flex:1;}
+.voice-input{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-block:12px;}.voice-input small{font-size:11px;max-width:320px;color:var(--text-muted);}.project-new-chat{flex-shrink:0;width:26px;height:26px;}

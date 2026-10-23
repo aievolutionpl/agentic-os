@@ -189,6 +189,8 @@ try {
       "setPreferences",
       "scheduleAction",
       "scheduleCreate",
+      "voiceBegin",
+      "voiceTranscribe",
       "scheduleList",
       "setMaster",
       "runtimeView",

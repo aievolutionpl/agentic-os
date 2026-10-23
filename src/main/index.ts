@@ -1,3 +1,4 @@
+import {voiceAvailable,transcribeVoice} from "./voice.js";
 import { ScheduleRunner, executeScheduledChat } from "./schedules.js";
 import { ClaudeUsage } from "./claude-usage.js";
 import {
@@ -164,6 +165,7 @@ app
           : agent === "opencode"
             ? router.environment()
             : {},
+      (agent, model) => agent === "opencode" ? router.resolveModel(model) : model,
     );
     orchestrator = new Orchestrator(store, supervisor);
     const quotaSources = () =>
@@ -360,10 +362,11 @@ app
       (taskId) => supervisor.starts(taskId),
     );
     await applications.reconcile();
+    let voicePermissionUntil=0;
     session.defaultSession.setPermissionRequestHandler(
-      (_wc, _permission, callback) => callback(false),
+      (wc, permission, callback, details) => callback(permission === "media" && wc === window?.webContents && Date.now()<voicePermissionUntil && "mediaTypes" in details && details.mediaTypes?.every((t:string)=>t === "audio") === true),
     );
-    session.defaultSession.setPermissionCheckHandler(() => false);
+    session.defaultSession.setPermissionCheckHandler((wc,permission,_origin,details)=>permission === "media" && wc === window?.webContents && Date.now()<voicePermissionUntil && details.mediaType === "audio");
     session.defaultSession.webRequest.onBeforeRequest((details, callback) =>
       callback({
         cancel: !details.url.startsWith(
@@ -438,12 +441,14 @@ app
           throw Error("FOLDER_REQUIRED");
       },
       memoryUpdate: (input) => store.updateMemory(input),
+      voiceBegin:()=>{if(!voiceAvailable())return false;voicePermissionUntil=Date.now()+10000;return true;},
+      voiceTranscribe:transcribeVoice,
       skillCatalog: () => store.extensions.catalog(),
       skillInstall: async (input) => {
-        const p = exact(input, ["projectId", "id"]),
+        const p = exact(input, ["projectId", "id", "download"]),
           projectId = text(p.projectId),
           id = text(p.id);
-        const skill = await store.extensions.install(projectId, id);
+        const skill = await store.extensions.install(projectId, id, p.download === true, quotaNetwork.fetch.bind(quotaNetwork) as typeof fetch);
         const source = `skill:${id}`;
         if (
           !store

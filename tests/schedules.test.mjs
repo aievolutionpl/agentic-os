@@ -34,3 +34,12 @@ test('Scheduled chat keeps the selected project when its folder spelling is non-
   assert.equal(f.store.projects().length,2);
   await chats.close();
 });
+test('weekly recurrence chooses selected weekdays and once-only jobs do not repeat',async t=>{
+ const {nextScheduled}=await import('../dist/main/schedules.js');
+ const monday=new Date(2026,9,19,10).getTime();
+ assert.equal(new Date(nextScheduled({time:'09:00',weekdays:[3]},monday)).getDay(),3);
+ assert.throws(()=>nextScheduled({time:'09:00',weekdays:[]},monday));
+ assert.throws(()=>nextScheduled({time:'09:00',date:'2020-01-01'},monday));
+ const f=fixture(t);const date=new Date(f.clock()+86400000);const day=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+ const job=f.store.schedules.save({...f.input,date:day});f.store.schedules.action({id:job.id,action:'run'});assert.ok(f.store.schedules.claim());assert.equal(f.store.schedules.list().find(j=>j.id===job.id).enabled,false);assert.equal(f.store.schedules.claim(),null);
+});

@@ -1,3 +1,5 @@
+import {VoiceInput} from "./VoiceInput";
+import {CommandMenu} from "./CommandMenu";
 import React, { useEffect, useRef, useState } from "react";
 import type {
   Agent,
@@ -554,7 +556,7 @@ export function ChatWorkspace({
                   className={`chat-composer start-composer${drop.over ? " drop-over" : ""}`}
                   {...drop.props}
                 >
-                  <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><div className="harness-slash-bar">
+                  <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><VoiceInput pl={pl} onText={text=>setMessage(current=>`${current}${current ? "\n" : ""}${text}`)}/><div className="harness-slash-bar">
                     <span className="harness-slash-label">
                       {pl ? "Komendy:" : "Commands:"}
                     </span>
@@ -1189,6 +1191,7 @@ export function ChatWorkspace({
                               ? `Przeprowadź niezależny przegląd (Second Opinion) poniższej propozycji od agenta ${agentName(chat.agent)}. Wskaż słabe punkty, luki architektoniczne oraz lepsze alternatywy:\n\n---\n${excerpt}`
                               : `Provide an independent Second Opinion review of the following proposal from ${agentName(chat.agent)}. Identify blind spots, architectural trade-offs, and better alternatives:\n\n---\n${excerpt}`;
                             setAgent(nextAgent);
+                            setModel("");
                             setMode(
                               READ_ONLY_AGENTS.includes(nextAgent)
                                 ? "plan"
@@ -1333,7 +1336,7 @@ export function ChatWorkspace({
                     {message.length.toLocaleString(language)} / 12 000
                   </span>
                 </div>
-                <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><div className="harness-slash-bar">
+                <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><VoiceInput pl={pl} onText={text=>setMessage(current=>`${current}${current ? "\n" : ""}${text}`)}/><div className="harness-slash-bar">
                   <span className="harness-slash-label">
                     {pl ? "Komendy:" : "Commands:"}
                   </span>

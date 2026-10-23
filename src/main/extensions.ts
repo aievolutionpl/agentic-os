@@ -367,7 +367,7 @@ export class Extensions {
         ...this.installed(projectId).map((s) => s.catalogId),
         ...activePlugins,
       ]),
-    ].slice(0, 10);
+    ].slice(0, 50);
     return selected
       .map((id) => {
         const item = this.get(projectId, text(id));
@@ -415,7 +415,7 @@ export class Extensions {
       await installSkillFiles(workspace, skill);
     }
   }
-  async install(projectId: string, id: string) {
+  async install(projectId: string, id: string, download = false, fetchSource: typeof fetch = fetch) {
     this.project(projectId);
     const skill = this.catalog().find((s) => s.id === id);
     if (!skill) throw Error("EXTENSION_NOT_FOUND");
@@ -423,7 +423,7 @@ export class Extensions {
       .prepare("SELECT root FROM projects WHERE id=?")
       .get(projectId)!;
     if (!project.root) throw Error("FOLDER_REQUIRED");
-    const installPath = await installSkillFiles(String(project.root), skill);
+    const installPath = await installSkillFiles(String(project.root), skill, download, fetchSource);
     const rowId = `installed:${projectId}:${id}`;
     this.db
       .prepare(

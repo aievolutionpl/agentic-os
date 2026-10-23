@@ -1,3 +1,4 @@
+import {WorkspaceCustomization,SidebarResize,applyWorkspaceLayout} from "./WorkspaceCustomization";
 import { THEME_CHOICES } from "./theme-catalog";
 import { QuotaStrip } from "./QuotaStrip";
 import { ScheduleJobs } from "./ScheduleJobs";
@@ -741,7 +742,7 @@ function App() {
       </main>
     );
   return (
-    <div className="shell">
+    <div className="shell" ref={() => applyWorkspaceLayout()}>
       {narrow ? (
         <Modal
           open={projectsExpanded}
@@ -758,6 +759,7 @@ function App() {
           {sidebar()}
         </aside>
       )}
+      {!narrow && <SidebarResize/>}
       <div className="body">
         <header className="top-bar">
           {narrow && (
@@ -1657,8 +1659,10 @@ function App() {
               className="language-select"
             />
 </div>
+        <WorkspaceCustomization/>
         <div className="settings-links">{([
           ["connections", "connections", "Agenci i modele", "Agents and models"],
+          ["harness", "layers", "Instrukcja agenta i pamięć", "Agent instructions and memory"],
         ] as const).map(([id, icon, pl, en]) => <button className="secondary" key={id} onClick={() => { setView(id); setSettingsOpen(false); }}><Icon name={icon} />{prefs.language === "pl" ? pl : en}<Icon name="chevron" /></button>)}</div>
         <section className="settings-about" aria-label="O aplikacji">
           <img className="company-logo" src={companyLogo} alt="AI Evolution Polska" /><div><h3>Agenting OS</h3><p>{prefs.language === "pl" ? "Stworzone przez AI Evolution Polska. Rozmowy, projekty i pamięć agentów w jednej lokalnej przestrzeni pracy." : "Built by AI Evolution Polska. Conversations, projects and agent memory in one local workspace."}</p>

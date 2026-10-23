@@ -13,6 +13,21 @@ export function nextDaily(time: string, now: number) {
   if (date.getTime() <= now) date.setDate(date.getDate() + 1);
   return date.getTime();
 }
+export function nextScheduled(job: {time:string; weekdays?:number[]; date?:string}, now:number):number {
+  nextDaily(job.time,now);
+  if (job.date) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(job.date)) throw Error("INVALID_INPUT");
+    const at=new Date(`${job.date}T${job.time}:00`).getTime();
+    const parsed=new Date(at);
+    if (`${parsed.getFullYear()}-${String(parsed.getMonth()+1).padStart(2,"0")}-${String(parsed.getDate()).padStart(2,"0")}` !== job.date) throw Error("INVALID_INPUT");
+    if (!Number.isFinite(at) || at <= now) throw Error("SCHEDULE_DATE_PAST");
+    return at;
+  }
+  if (job.weekdays && (!job.weekdays.length || job.weekdays.some(d=>!Number.isInteger(d)||d<0||d>6))) throw Error("INVALID_INPUT");
+  let next=nextDaily(job.time,now);
+  while(job.weekdays && !job.weekdays.includes(new Date(next).getDay())) next=nextDaily(job.time,next);
+  return next;
+}
 export class Schedules {
   constructor(private db: DatabaseSync, private clock = Date.now) {
     if (Number(db.prepare("PRAGMA user_version").get()!.user_version) !== 17) return;
@@ -28,7 +43,7 @@ export class Schedules {
   runs(): ScheduleRun[] { return this.db.prepare("SELECT state FROM schedule_runs ORDER BY rowid DESC LIMIT 100").all().map(r => JSON.parse(String(r.state))); }
   private put(job: ScheduleJob) { this.db.prepare("INSERT OR REPLACE INTO schedule_jobs VALUES (?,?)").run(job.id, JSON.stringify(job)); return job; }
   save(input: unknown) {
-    const p = exact(input, ["title", "prompt", "projectId", "agent", "time", "consent"]);
+    const p = exact(input, ["title", "prompt", "projectId", "agent", "time", "consent", "weekdays", "date"]);
     if (p.consent !== true) throw Error("EXPLICIT_CONSENT_REQUIRED");
     const agent = text(p.agent) as ScheduleJob["agent"];
     if (agent === "gemini" || !READ_ONLY_AGENTS.includes(agent)) throw Error("READ_ONLY_PROVIDER_REQUIRED");
@@ -37,7 +52,11 @@ export class Schedules {
     if (!project?.root) throw Error("PROJECT_NOT_FOUND");
     if (this.list().length >= 50) throw Error("INVALID_INPUT");
     const time = text(p.time, 5);
-    return this.put({id:randomUUID(),title:text(p.title,120),prompt:text(p.prompt,12000),projectId,agent,time,enabled:true,nextRunAt:nextDaily(time,this.clock()),createdAt:this.clock()});
+    const weekdays = p.weekdays === undefined ? undefined : p.weekdays;
+    if (weekdays !== undefined && !Array.isArray(weekdays)) throw Error("INVALID_INPUT");
+    const recurrence = {time, weekdays:weekdays as number[] | undefined, date:p.date === undefined ? undefined : text(p.date,10)};
+    const nextRunAt=nextScheduled(recurrence,this.clock());
+    return this.put({id:randomUUID(),title:text(p.title,120),prompt:text(p.prompt,12000),projectId,agent,enabled:true,...recurrence,nextRunAt,createdAt:this.clock()});
   }
   action(input: unknown) {
     const p = exact(input,["id","action"]), job = this.list().find(j => j.id === text(p.id));
@@ -45,7 +64,7 @@ export class Schedules {
     if (this.runs().some(r => r.jobId === job.id && r.status === "running")) throw Error("CHAT_BUSY");
     if (p.action === "delete") this.db.prepare("DELETE FROM schedule_jobs WHERE id=?").run(job.id);
     else if (p.action === "run") this.put({...job,requested:true});
-    else this.put({...job, requested:false, enabled:p.action !== "pause", nextRunAt:nextDaily(job.time,this.clock())});
+    else this.put({...job, requested:false, enabled:p.action !== "pause", nextRunAt:p.action === "pause" ? job.nextRunAt : nextScheduled(job,this.clock())});
   }
   /** Claim and advance durably BEFORE executing. No duplicate or catch-up storm after restart. */
   claim(): {job:ScheduleJob;run:ScheduleRun} | null {
@@ -54,7 +73,7 @@ export class Schedules {
     this.db.exec("BEGIN IMMEDIATE");
     try {
       const run: ScheduleRun = {id:randomUUID(),jobId:job.id,title:job.title,status:"running",startedAt:this.clock(),chatId:null,error:null};
-      this.put({...job,requested:false,nextRunAt:job.nextRunAt <= this.clock() ? nextDaily(job.time,this.clock()) : job.nextRunAt});
+      this.put({...job,requested:false,enabled:job.date ? false : job.enabled,nextRunAt:!job.date && job.nextRunAt <= this.clock() ? nextScheduled(job,this.clock()) : job.nextRunAt});
       this.record(run);
       this.db.exec("COMMIT"); return {job,run};
     } catch(e) { this.db.exec("ROLLBACK"); throw e; }

@@ -211,9 +211,9 @@ export class Chats {
       }
     }
     const project =
-      this.store.projects().find((item) => item.root === root) ??
+      this.store.projects().find((item) => p.projectId ? item.id === p.projectId : item.root === root) ??
       this.store.createProject({
-        name: source === "default" ? "Workspace czatu" : title,
+        name: source === "default" ? "Moje rozmowy" : title,
         root,
         master: READ_ONLY_AGENTS.includes(agent) ? agent : "codex",
       });
@@ -443,6 +443,7 @@ export class Chats {
       reviewer: p.reviewer,
     });
   }
+  async wait(id: string) { await this.active.get(id)?.promise; return this.store.chats.get(id); }
   async close() {
     for (const active of this.active.values()) active.controller.abort();
     await Promise.all([...this.active.values()].map((a) => a.promise));

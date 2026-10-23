@@ -101,8 +101,8 @@ export function LimitLink({
                 ? `Limity na żywo · odczyt ${relativeTime(new Date(status.lastReadingAt).toISOString(), "pl")}`
                 : `Live limits · read ${relativeTime(new Date(status.lastReadingAt).toISOString(), "en")}`
               : pl
-                ? `Połączono · otwórz ${name}, aby wysłać pierwszy odczyt`
-                : `Linked · open ${name} to send the first reading`}
+                ? status.agent === "claude" ? "Oczekiwanie na limit · Claude przekazuje go po odpowiedzi w sesji CLI" : `Oczekiwanie na limit · otwórz ${name} i wpisz /usage`
+                : status.agent === "claude" ? "Waiting for limits · Claude reports them after a CLI response" : `Waiting for limits · open ${name} and enter /usage`}
           </span>
           <button
             className="text-action"

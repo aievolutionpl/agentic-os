@@ -244,8 +244,10 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
         .querySelector(".event-journal")
         .textContent.includes("Dodano do kolejki"),
     );
+    dom.window.document.querySelector('.settings button[aria-label="Ustawienia"]').click();
+    await wait(() => dom.window.document.querySelector('.settings-fields'));
     dom.window.document
-      .querySelector('.settings button[aria-label="Język"]')
+      .querySelector('.settings-fields button[aria-label="Język"]')
       .click();
     await wait(() => dom.window.document.querySelector('[role="listbox"]'));
     [...dom.window.document.querySelectorAll('[role="option"]')]

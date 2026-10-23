@@ -1,3 +1,4 @@
+import {chooseTheme} from "./workspace-navigation.mjs";
 import { _electron as electron } from "playwright";
 import assert from "node:assert/strict";
 import {
@@ -179,12 +180,16 @@ try {
       "limitBridgeInstall",
       "limitBridgeRemove",
       "projectData",
+      "projectRename",
       "createProject",
       "createTask",
       "taskAction",
       "createMemory",
       "deleteMemory",
       "setPreferences",
+      "scheduleAction",
+      "scheduleCreate",
+      "scheduleList",
       "setMaster",
       "runtimeView",
       "runtimeStart",
@@ -320,7 +325,7 @@ try {
       exact: true,
     })
     .waitFor();
-  await page.getByRole("button", { name: /Client A/, exact: false }).click();
+  await page.locator(".project-link", {hasText: "Client A"}).click();
   await page
     .locator(".tabs")
     .getByRole("button", { name: /^(Zadania|Tasks)/ })
@@ -364,6 +369,7 @@ try {
     .getByRole("status")
     .filter({ hasText: "Zapisano lokalnie" })
     .waitFor();
+  await page.getByRole("button", {name:"Ustawienia",exact:true}).first().click();
   await choose("Język", "English");
   assert.equal(
     await page
@@ -372,7 +378,8 @@ try {
     true,
     "language preference returns focus after saving",
   );
-  await page.getByRole("button", { name: "Theme", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await chooseTheme(page, "Pearl");
   await page.waitForFunction(
     () => document.documentElement.dataset.theme === "light",
   );
@@ -510,7 +517,7 @@ try {
   await page.reload();
   await page.locator("main[aria-busy=false]").waitFor();
   assert.equal(await page.locator(".info-callout").count(), 0);
-  await page.getByRole("button", { name: "Theme", exact: true }).click();
+  await chooseTheme(page, "Midnight");
   await page.waitForFunction(
     () => document.documentElement.dataset.theme === "dark",
   );
@@ -531,10 +538,7 @@ try {
     fullPage: true,
   });
   // The compact project picker is keyboard reachable and returns focus on selection.
-  const projectToggle = page.getByRole("button", {
-    name: "Projects",
-    exact: true,
-  });
+  const projectToggle = page.locator(".projects-toggle");
   await projectToggle.focus();
   await page.keyboard.press("Enter");
   assert.equal(await projectToggle.getAttribute("aria-expanded"), "true");

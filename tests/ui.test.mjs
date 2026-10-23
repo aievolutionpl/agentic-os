@@ -18,6 +18,7 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
   const dir = mkdtempSync(join(tmpdir(), "agenting-ui-"));
   const file = join(dir, "app.db");
   let store = new Store(file);
+  store.setPreferences({language:"pl",theme:"dark"});
   let dom;
   let rejectTask = false;
   let snapshotGate;
@@ -121,18 +122,19 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
       finishLoading = resolve;
     });
     boot();
-    await wait(() =>
-      dom.window.document.querySelector('.settings [aria-haspopup="listbox"]'),
-    );
+    await wait(() => dom.window.document.querySelector('.settings button[aria-label="Ustawienia"]'));
+    dom.window.document.querySelector('.settings button[aria-label="Ustawienia"]').click();
+    await wait(() => dom.window.document.querySelector('.settings-fields [aria-haspopup="listbox"]'));
     assert.equal(
-      dom.window.document.querySelector('.settings [aria-haspopup="listbox"]')
+      dom.window.document.querySelector('.settings-fields [aria-haspopup="listbox"]')
         .disabled,
       true,
     );
     assert.equal(
-      dom.window.document.querySelector(".settings .theme-toggle").disabled,
+      dom.window.document.querySelector(".top-theme-picker .select-trigger").disabled,
       true,
     );
+    dom.window.document.querySelector('.workspace-settings-dialog .dialog-close')?.click();
     finishLoading();
     snapshotGate = undefined;
     await wait(() => dom.window.document.querySelector(".empty"));
@@ -258,9 +260,12 @@ test("built React UI with real SQLite bridge: drafts, scoped memory, deletion an
         store.projects().find((p) => p.name === "Project B").master ===
         "claude",
     );
+    dom.window.document.querySelector('.settings button[aria-label="Ustawienia"]').click();
+    await wait(() => dom.window.document.querySelector('.settings-fields'));
     await choose("Język", "English");
     await wait(() => dom.window.document.documentElement.lang === "en");
-    dom.window.document.querySelector('[aria-label="Theme"]').click();
+    dom.window.document.querySelector('.workspace-settings-dialog .dialog-close')?.click();
+    await choose("Color palette", "Pearl");
     await wait(
       () => dom.window.document.documentElement.dataset.theme === "light",
     );

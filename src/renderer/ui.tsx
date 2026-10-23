@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import type { Agent, ProviderSetting } from "../shared";
 import { ProviderIcon } from "./ProviderIcon";
 import {
+  Settings,
   Layers3,
   Sparkles,
   Cable,
@@ -51,6 +52,7 @@ import {
   TerminalSquare,
 } from "lucide-react";
 const iconLibrary: Record<string, LucideIcon> = {
+  settings: Settings,
   layers: Layers3,
   spark: Sparkles,
   connections: Cable,

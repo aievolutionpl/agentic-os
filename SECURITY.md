@@ -18,3 +18,8 @@ Please use this repository's private GitHub vulnerability report if available. I
 - Agent changes stay in managed worktrees until an independent review, human approval of the exact artifact and a separate apply action. Approvals expire after 15 minutes; source changes, dirty worktrees and stale artifacts block apply. A provider calling a tool is not human approval.
 
 No hosted telemetry or account sync is implemented. Explicit agent runs send the selected task/context to the configured provider; MCP commands and browser navigation may use the network according to their own behavior. Do not treat “local-first” as “all operations offline.”
+
+
+## Claude quota account reader
+
+For a configured Claude connection, the main process may read the CLI's existing local OAuth access token to request only `https://api.anthropic.com/api/oauth/usage`. The token is never exposed to the renderer, logged or copied into Agenting OS storage. Redirects are rejected, requests are time-bounded and throttled, and no refresh-token exchange is performed. The in-memory Electron networking session uses the OS trust store without disabling TLS verification; the renderer's network block is unchanged. This account endpoint is undocumented and has a validated CLI-statusline fallback. Missing/expired credentials or provider errors must not fabricate a quota balance.

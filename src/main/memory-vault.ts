@@ -209,7 +209,9 @@ export class MemoryVault {
         label: p.name,
         kind: "project" as const,
         projectId: p.id,
-        content: "",
+        content: p.root,
+        path: p.root,
+        fileType: "folder" as const,
         source: "workspace",
       })),
       ...rows.map((m) => ({
@@ -218,6 +220,8 @@ export class MemoryVault {
         kind: "memory" as const,
         projectId: m.projectId,
         memoryId: m.id,
+        path: this.notePath(m.id),
+        fileType: "markdown" as const,
         content: m.content,
         source: m.source,
       })),
@@ -227,6 +231,19 @@ export class MemoryVault {
       to: `memory:${m.id}`,
       relation: m.scope === "workspace" ? "shares" : "remembers",
     }));
+    // Agent relationships come from real conversations, never simulated traffic.
+    const conversations = this.store.chats.list();
+    for (const chat of conversations) {
+      const id = `agent:${chat.projectId}:${chat.agent}`;
+      if (!nodes.some(n => n.id === id)) {
+        const related = conversations.filter(c => c.projectId === chat.projectId && c.agent === chat.agent);
+        nodes.push({ id, kind: "agent", projectId: chat.projectId, label: chat.agent === "claude" ? "Claude Code" : chat.agent,
+          active: related.some(c => c.status === "running"), source: "conversation history", content: `${related.length} conversations · ${related.filter(c => c.status === "running").length} running` });
+        edges.push({ from: id, to: `project:${chat.projectId}`, relation: "works_in" });
+      }
+      for (const note of rows.filter(m => m.projectId === chat.projectId && m.source === `auto:chat:${chat.id}`))
+        edges.push({ from: id, to: `memory:${note.id}`, relation: "contributed" });
+    }
     // Explicit wiki-links become real edges; ambiguous titles are deliberately not guessed.
     for (const row of rows)
       for (const match of row.content.matchAll(/\[\[([^\]\n]+)\]\]/g)) {

@@ -1,3 +1,6 @@
+import { THEME_CHOICES } from "./theme-catalog";
+import { QuotaStrip } from "./QuotaStrip";
+import { ScheduleJobs } from "./ScheduleJobs";
 import { copyText } from "./clipboard";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -18,14 +21,11 @@ import type {
 import { words } from "./i18n";
 import {
   agentName,
-  connectionLabel,
-  connectionState,
   Icon,
   Modal,
   SelectField,
   useNarrow,
 } from "./ui";
-import { ProviderIcon } from "./ProviderIcon";
 import { TaskBoard } from "./TaskBoard";
 import { ProviderSetup } from "./ProviderSetup";
 import { PolicyPanel } from "./PolicyPanel";
@@ -48,6 +48,10 @@ import "./style.css";
 import "./harness.css";
 import "./workbench.css";
 import "./premium.css";
+import "./calm.css";
+import "./themes.css";
+import { ProjectOverview } from "./ProjectOverview";
+import { WorkspaceNavigation } from "./WorkspaceNavigation";
 
 const TerminalPanel = React.lazy(() =>
   import("./TerminalPanel").then((module) => ({
@@ -64,6 +68,8 @@ const agentChoices = [
   { value: "antigravity", label: "Antigravity" },
 ];
 function App() {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [chatRequest, setChatRequest] = useState<{id: string; project?: string; nonce: number}>();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null),
     [projectId, setProjectId] = useState("");
   const [data, setData] = useState<ProjectData>({
@@ -81,6 +87,7 @@ function App() {
     | "connections"
     | "chat"
     | "skills"
+    | "schedule"
     | "shared-memory"
     | "harness"
     | "inbox"
@@ -685,51 +692,7 @@ function App() {
             theme: prefs.theme === "dark" ? "light" : "dark",
           }),
       },
-      {
-        id: "action-classic-theme",
-        label: pl
-          ? "Motyw Classic · kość słoniowa i terakota"
-          : "Classic theme · ivory and terracotta",
-        group: act,
-        icon: "palette",
-        run: () => void preferences({ theme: "classic" }),
-      },
-      {
-        id: "action-claude-theme",
-        label: pl
-          ? "Motyw Claude Code · Warm Carbon"
-          : "Claude Code theme · Warm Carbon",
-        group: act,
-        icon: "palette",
-        run: () => void preferences({ theme: "claude" }),
-      },
-      {
-        id: "action-codex-theme",
-        label: pl
-          ? "Motyw Codex CLI · Matrix Obsidian"
-          : "Codex CLI theme · Matrix Obsidian",
-        group: act,
-        icon: "palette",
-        run: () => void preferences({ theme: "codex" }),
-      },
-      {
-        id: "action-tokyo-theme",
-        label: pl
-          ? "Motyw Tokyo Night · Cyber Harness"
-          : "Tokyo Night theme · Cyber Harness",
-        group: act,
-        icon: "palette",
-        run: () => void preferences({ theme: "tokyo" }),
-      },
-      {
-        id: "action-nord-theme",
-        label: pl
-          ? "Motyw Nord · Arctic Studio"
-          : "Nord theme · Arctic Studio",
-        group: act,
-        icon: "palette",
-        run: () => void preferences({ theme: "nord" }),
-      },
+      ...THEME_CHOICES.map(theme => ({id:`action-theme-${theme.value}`,label:`${pl ? "Motyw" : "Theme"}: ${theme.label}`,group:act,icon:"palette",run:()=>void preferences({theme:theme.value})})),
       {
         id: "action-language",
         label: pl ? "Switch to English" : "Przełącz na polski",
@@ -764,320 +727,10 @@ function App() {
     );
   }
   function sidebar() {
-    return (
-      <>
-        <div className="brand">
-          <span className="brand-mark">
-            <Icon name="layers" />
-          </span>
-          <div>
-            <strong>Agenting OS</strong>
-            <small className="brand-byline">AI EVOLUTION POLSKA</small>
-          </div>
-          {narrow && (
-            <button
-              className="icon-button drawer-close"
-              title={w.close}
-              aria-label={w.close}
-              onClick={() => setProjectsExpanded(false)}
-            >
-              <Icon name="close" />
-            </button>
-          )}
-        </div>
-        {api?.connectorScan && (
-          <>
-            <div className="sidebar-harness-pill">
-              <span>
-                <strong>HARNESS</strong> ·{" "}
-                {agents.filter((a) => a.configured && a.id !== "gemini").length}{" "}
-                {prefs.language === "pl" ? "SILNIKÓW" : "ENGINES"}
-              </span>
-              <kbd
-                role="button"
-                tabIndex={0}
-                title="Command Palette (Ctrl+K)"
-                onClick={() => setPalette(true)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setPalette(true);
-                  }
-                }}
-              >
-                Ctrl K
-              </kbd>
-            </div>
-            <nav className="primary-nav" aria-label="Agenting OS">
-              <div className="nav-group-label" aria-hidden="true">
-                <span>
-                  {prefs.language === "pl"
-                    ? "HARNESS & SESJE"
-                    : "HARNESS & SESSIONS"}
-                </span>
-              </div>
-              <button
-                className={`nav-item ${view === "center" ? "selected" : ""}`}
-                aria-current={view === "center" ? "page" : undefined}
-                aria-label={ccWords[prefs.language].nav}
-                data-badge="HUB"
-                onClick={() => {
-                  setProjectsExpanded(false);
-                  setView("center");
-                }}
-              >
-                <Icon name="grid" />
-                <span>{ccWords[prefs.language].nav}</span>
-              </button>
-              {api.chatList &&
-                (
-                  [
-                    {
-                      id: "chat" as const,
-                      icon: "message",
-                      pl: "Czaty",
-                      en: "Chats",
-                      badge: "CLI",
-                    },
-                    ...(api.terminalList
-                      ? [
-                          {
-                            id: "terminal" as const,
-                            icon: "terminal",
-                            pl: "Terminal",
-                            en: "Terminal",
-                            badge: "PTY",
-                          },
-                        ]
-                      : []),
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.id}
-                    className={`nav-item ${view === item.id ? "selected" : ""}`}
-                    aria-current={view === item.id ? "page" : undefined}
-                    aria-label={prefs.language === "pl" ? item.pl : item.en}
-                    data-badge={item.badge}
-                    onClick={() => {
-                      setProjectsExpanded(false);
-                      setView(item.id);
-                    }}
-                  >
-                    <Icon name={item.icon} />
-                    <span>{prefs.language === "pl" ? item.pl : item.en}</span>
-                  </button>
-                ))}
-              {api.attention && (
-                <button
-                  className={`nav-item ${view === "inbox" ? "selected" : ""}`}
-                  aria-current={view === "inbox" ? "page" : undefined}
-                  onClick={() => {
-                    setProjectsExpanded(false);
-                    setView("inbox");
-                  }}
-                >
-                  <Icon name="inbox" />
-                  <span>{attentionWords[prefs.language].title}</span>
-                  {!!attention?.decisions.length && (
-                    <span
-                      className="nav-count"
-                      aria-label={
-                        prefs.language === "pl"
-                          ? `${attention.decisions.length} oczekuje`
-                          : `${attention.decisions.length} waiting`
-                      }
-                    >
-                      {attention.decisions.length > 99
-                        ? "99+"
-                        : attention.decisions.length}
-                    </span>
-                  )}
-                </button>
-              )}
-              {api.harnessGet && <button
-                className={`nav-item ${view === "harness" ? "selected" : ""}`}
-                aria-current={view === "harness" ? "page" : undefined}
-                onClick={() => { setProjectsExpanded(false); setView("harness"); }}
-              ><Icon name="layers" /><span>Harness</span></button>}
-              {api.chatList && (
-                <>
-                  <div className="nav-group-label" aria-hidden="true">
-                    <span>
-                      {prefs.language === "pl"
-                        ? "WIEDZA & SKILLE"
-                        : "KNOWLEDGE & SKILLS"}
-                    </span>
-                  </div>
-                  {(
-                    [
-                      {
-                        id: "skills" as const,
-                        icon: "skill",
-                        pl: "Biblioteka skilli",
-                        en: "Skill library",
-                        badge: "20",
-                      },
-                      {
-                        id: "shared-memory" as const,
-                        icon: "memory",
-                        pl: "Wspólna pamięć",
-                        en: "Shared memory",
-                        badge: "VAULT",
-                      },
-                    ] as const
-                  ).map((item) => (
-                    <button
-                      key={item.id}
-                      className={`nav-item ${view === item.id ? "selected" : ""}`}
-                      aria-current={view === item.id ? "page" : undefined}
-                      aria-label={prefs.language === "pl" ? item.pl : item.en}
-                      data-badge={item.badge}
-                      onClick={() => {
-                        setProjectsExpanded(false);
-                        setView(item.id);
-                      }}
-                    >
-                      <Icon name={item.icon} />
-                      <span>{prefs.language === "pl" ? item.pl : item.en}</span>
-                    </button>
-                  ))}
-                </>
-              )}
-              <div className="nav-group-label" aria-hidden="true">
-                <span>
-                  {prefs.language === "pl"
-                    ? "INFRASTRUKTURA"
-                    : "RUNTIME & INFRA"}
-                </span>
-              </div>
-              <button
-                className={`nav-item ${view === "connections" ? "selected" : ""}`}
-                aria-current={view === "connections" ? "page" : undefined}
-                aria-label={
-                  prefs.language === "pl"
-                    ? "Połączenia i modele"
-                    : "Connections & models"
-                }
-                data-badge="MCP"
-                onClick={() => {
-                  setProjectsExpanded(false);
-                  setView("connections");
-                }}
-              >
-                <Icon name="connections" />
-                <span>
-                  {prefs.language === "pl"
-                    ? "Połączenia i modele"
-                    : "Connections & models"}
-                </span>
-              </button>
-              <button
-                className={`nav-item ${view === "quota" ? "selected" : ""}`}
-                aria-current={view === "quota" ? "page" : undefined}
-                onClick={() => {
-                  setProjectsExpanded(false);
-                  setView("quota");
-                }}
-              >
-                <Icon name="layers" />
-                <span>
-                  {prefs.language === "pl" ? "Limity i tokeny" : "OpenQuota"}
-                </span>
-              </button>
-            </nav>
-          </>
-        )}
-        <div className="project-heading">
-          <h2 id="projects-title">{w.projects}</h2>
-          <button
-            className="icon-button"
-            disabled={busy}
-            aria-label={w.newProject}
-            title={w.newProject}
-            onClick={openProject}
-          >
-            <Icon name="plus" />
-          </button>
-        </div>
-        <nav aria-label={w.projects}>
-          {snapshot?.projects.map((item) => (
-            <button
-              className={`project-link ${item.id === projectId && view === "project" ? "selected" : ""}`}
-              key={item.id}
-              disabled={busy}
-              aria-current={
-                item.id === projectId && view === "project" ? "page" : undefined
-              }
-              onClick={() => {
-                setView("project");
-                void selectProject(item.id);
-              }}
-            >
-              <span className="project-avatar" aria-hidden="true">
-                {item.name
-                  .trim()
-                  .split(/\s+/)
-                  .filter(
-                    (_, index, parts) =>
-                      index === 0 || index === parts.length - 1,
-                  )
-                  .map((part) => part.slice(0, 1))
-                  .join("")
-                  .toLocaleUpperCase(prefs.language)}
-              </span>
-              <span>{item.name}</span>
-            </button>
-          ))}
-        </nav>
-        <div
-          className="agent-dock"
-          role="group"
-          aria-label={prefs.language === "pl" ? "Twoi agenci" : "Your agents"}
-        >
-          {agents.some((a) => a.configured) ? (
-            agents
-              .filter((a) => a.configured && a.id !== "gemini")
-              .map((a) => {
-                const state = connectionState(a),
-                  label = `${agentName(a.id)} · ${connectionLabel(state, prefs.language === "pl")}`;
-                return (
-                  <button
-                    key={a.id}
-                    className={`state-${state}`}
-                    title={label}
-                    aria-label={label}
-                    onClick={() => {
-                      setProjectsExpanded(false);
-                      setView("connections");
-                    }}
-                  >
-                    <span className="picker-glyph">
-                      <ProviderIcon provider={a.id} />
-                      <i className="connection-dot" aria-hidden="true" />
-                    </span>
-                  </button>
-                );
-              })
-          ) : (
-            <button
-              className="agent-dock-empty"
-              onClick={() => {
-                setProjectsExpanded(false);
-                setView("connections");
-              }}
-            >
-              <Icon name="connections" />
-              {prefs.language === "pl" ? "Podłącz agenta" : "Connect an agent"}
-            </button>
-          )}
-        </div>
-        <div className="sidebar-bottom">
-          <span className="local-indicator" aria-hidden="true" />
-          {w.local}
-          <p>{w.footer}</p>
-        </div>
-      </>
-    );
+    return <WorkspaceNavigation onRenamed={() => void refresh()} projects={snapshot?.projects ?? []} pl={prefs.language === "pl"} view={view}
+      navigate={(next, id) => { setView(next as typeof view); if (id) void selectProject(id); }}
+      openChat={(id, project) => { setChatRequest({id, project, nonce: Date.now()}); setView("chat"); }}
+      newProject={openProject} settings={() => { setSettingsOpen(true); setProjectsExpanded(false); }} close={() => setProjectsExpanded(false)} />;
   }
   if (!api)
     return (
@@ -1123,7 +776,7 @@ function App() {
             <span>{w.workspace}</span>
             <Icon name="chevron" />
             <strong title={view === "center" ? undefined : project?.name}>
-              {view === "harness" ? "Harness" : view === "terminal"
+              {view === "schedule" ? "ScheduleJob" : view === "harness" ? "Harness" : view === "terminal"
                 ? "Terminal"
                 : view === "chat"
                   ? prefs.language === "pl"
@@ -1153,6 +806,7 @@ function App() {
             </strong>
           </div>
           <div className="settings">
+            <SelectField label={prefs.language === "pl" ? "Kolorystyka" : "Color palette"} value={prefs.theme} options={THEME_CHOICES} icon="palette" className="top-theme-picker" disabled={busy || loading || !snapshot} onChange={theme => void preferences({theme:theme as Preferences["theme"]})} />
             <button
               className="palette-trigger"
               aria-keyshortcuts="Control+K Meta+K"
@@ -1182,72 +836,10 @@ function App() {
                         ? w.saved
                         : w.local}
             </span>
-            <SelectField
-              label={w.language}
-              value={prefs.language}
-              options={[
-                { value: "en", label: "English" },
-                { value: "pl", label: "Polski" },
-              ]}
-              disabled={busy || loading || !snapshot}
-              onChange={(value) =>
-                void preferences({ language: value as Preferences["language"] })
-              }
-              icon="globe"
-              className="language-select"
-            />
-            <SelectField
-              label={prefs.language === "pl" ? "Kolorystyka" : "Color palette"}
-              value={prefs.theme}
-              options={[
-                {
-                  value: "dark",
-                  label: prefs.language === "pl" ? "Grafit" : "Graphite",
-                },
-                {
-                  value: "claude",
-                  label: "Claude Code · Carbon",
-                },
-                {
-                  value: "codex",
-                  label: "Codex CLI · Matrix",
-                },
-                {
-                  value: "tokyo",
-                  label: "Tokyo Night · Cyber",
-                },
-                {
-                  value: "nord",
-                  label: "Nord · Arctic",
-                },
-                {
-                  value: "light",
-                  label: prefs.language === "pl" ? "Jasny" : "Light",
-                },
-                { value: "classic", label: "Classic · Terra" },
-              ]}
-              icon="palette"
-              className="theme-select"
-              disabled={busy || loading || !snapshot}
-              onChange={(theme) =>
-                void preferences({ theme: theme as Preferences["theme"] })
-              }
-            />
-            <button
-              className="icon-button theme-toggle"
-              disabled={busy || loading || !snapshot}
-              aria-label={w.theme}
-              title={prefs.theme === "dark" ? w.light : w.dark}
-              onClick={() =>
-                void preferences({
-                  theme: prefs.theme === "dark" ? "light" : "dark",
-                })
-              }
-            >
-              <Icon name={prefs.theme === "dark" ? "sun" : "moon"} />
-            </button>
+            <button className="icon-button" aria-label={prefs.language === "pl" ? "Ustawienia" : "Settings"} onClick={() => setSettingsOpen(true)}><Icon name="settings" /></button>
           </div>
         </header>
+        <QuotaStrip pl={prefs.language === "pl"} onOpen={() => setView("quota")} />
         <main ref={contentPane} aria-busy={busy || loading}>
           <div className="workspace-content">
             {error && (
@@ -1259,6 +851,7 @@ function App() {
             )}
             {view === "chat" ? (
               <ChatWorkspace
+                request={chatRequest}
                 language={prefs.language}
                 projects={snapshot?.projects ?? []}
                 onConfigure={() => setView("connections")}
@@ -1269,6 +862,8 @@ function App() {
                   void selectProject(id);
                 }}
               />
+            ) : view === "schedule" ? (
+              <ScheduleJobs projects={snapshot?.projects ?? []} pl={prefs.language === "pl"} onChat={id => { setChatRequest({id,nonce:Date.now()}); setView("chat"); }} />
             ) : view === "terminal" ? (
               <React.Suspense
                 fallback={
@@ -1327,6 +922,12 @@ function App() {
                 <UsageLedgerPanel language={prefs.language} />
               </>
             ) : view === "center" ? (
+              <>
+              <ProjectOverview projects={snapshot?.projects ?? []} pl={prefs.language === "pl"} onNew={openProject}
+                onOpen={id => { setView("project"); void selectProject(id); }}
+                onChat={id => { setChatRequest({ id: "", project: id, nonce: Date.now() }); setView("chat"); }}
+                onLimits={() => setView("quota")} />
+              <details className="system-details"><summary>{prefs.language === "pl" ? "Diagnostyka workspace" : "Workspace diagnostics"}</summary>
               <ControlCenter
                 language={prefs.language}
                 scan={scan}
@@ -1347,7 +948,7 @@ function App() {
                 onOpenAttention={openAttention}
                 onOpenSkills={() => setView("skills")}
                 agents={agents}
-              />
+              /></details></>
             ) : !snapshot && !error ? (
               <div className="loading-workspace" aria-label={w.loading}>
                 <div className="skeleton-title" />
@@ -2044,15 +1645,7 @@ function App() {
                     : "Cycle to next color theme"
                 }
                 onClick={() => {
-                  const order: Preferences["theme"][] = [
-                    "dark",
-                    "claude",
-                    "codex",
-                    "tokyo",
-                    "nord",
-                    "light",
-                    "classic",
-                  ];
+                  const order = THEME_CHOICES.map(theme => theme.value);
                   const idx = order.indexOf(prefs.theme);
                   const next = order[(idx + 1) % order.length]!;
                   void preferences({ theme: next });
@@ -2065,6 +1658,30 @@ function App() {
           </footer>
         )}
       </div>
+      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} titleId="workspace-settings-title" className="workspace-settings-dialog">
+        <h2 id="workspace-settings-title">{prefs.language === "pl" ? "Ustawienia" : "Settings"}</h2>
+        <p>{prefs.language === "pl" ? "Wygląd i język" : "Appearance and language"}</p>
+        <div className="settings-fields">            <SelectField
+              label={w.language}
+              value={prefs.language}
+              options={[
+                { value: "en", label: "English" },
+                { value: "pl", label: "Polski" },
+              ]}
+              disabled={busy || loading || !snapshot}
+              onChange={(value) =>
+                void preferences({ language: value as Preferences["language"] })
+              }
+              icon="globe"
+              className="language-select"
+            />
+</div>
+        <div className="settings-links">{([
+          ["connections", "connections", "Agenci i modele", "Agents and models"],
+          ["quota", "tokens", "Subskrypcje i limity", "Subscriptions and limits"],
+          ["harness", "layers", "Instrukcje i pamięć", "Instructions and memory"],
+        ] as const).map(([id, icon, pl, en]) => <button className="secondary" key={id} onClick={() => { setView(id); setSettingsOpen(false); }}><Icon name={icon} />{prefs.language === "pl" ? pl : en}<Icon name="chevron" /></button>)}</div>
+      </Modal>
       <Modal
         open={projectOpen}
         onClose={() => setProjectOpen(false)}

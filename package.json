@@ -31,7 +31,8 @@
     "release:audit": "node scripts/release-audit.mjs",
     "qa:premium": "node scripts/premium-qa.mjs && node scripts/harness-studio-qa.mjs",
     "lint": "eslint .",
-    "qa:harness-studio": "node scripts/harness-studio-qa.mjs"
+    "qa:harness-studio": "node scripts/harness-studio-qa.mjs",
+    "qa:calm": "node scripts/calm-qa.mjs"
   },
   "dependencies": {
     "@lobehub/icons-static-svg": "1.95.1",

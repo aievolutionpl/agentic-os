@@ -83,11 +83,11 @@ export function MemoryGraphPanel({
         y = 220 + Math.sin(angle) * radius;
       map.set(node.id, { x, y });
       const children = nodes.filter(
-        (n) => n.kind === "memory" && n.projectId === node.projectId,
+        (n) => n.kind !== "project" && n.projectId === node.projectId,
       );
       children.forEach((n, j) => {
         const a = (j * Math.PI * 2) / Math.max(children.length, 1);
-        const r = 64 + Math.floor(j / 16) * 26;
+        const r = (n.kind === "agent" ? 145 : 110) + Math.floor(j / 12) * 26;
         map.set(n.id, { x: x + Math.cos(a) * r, y: y + Math.sin(a) * r });
       });
     });
@@ -115,8 +115,8 @@ export function MemoryGraphPanel({
     >
       <header>
         <div>
-          <span className="section-eyebrow">KNOWLEDGE GRAPH</span>
-          <h2>{pl ? "Połączone myśli." : "Connected thinking."}</h2>
+          <span className="section-eyebrow">AGENTING OS</span>
+          <h2>{pl ? "Pamięć zespołu" : "Team memory"}</h2>
         </div>
         <div className="graph-tools">
           <input
@@ -182,6 +182,7 @@ export function MemoryGraphPanel({
             pl ? "Projekty i powiązane notatki" : "Projects and linked notes"
           }
         >
+          <defs><marker id="memory-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" /></marker></defs>
           {graph?.edges.map((edge, i) => {
             const from = points.get(edge.from),
               to = points.get(edge.to);
@@ -192,12 +193,9 @@ export function MemoryGraphPanel({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                className={
-                  edge.from === selected || edge.to === selected
-                    ? "selected"
-                    : ""
-                }
-              />
+                markerEnd="url(#memory-arrow)"
+                className={`${edge.from === selected || edge.to === selected ? "selected" : ""} ${nodes.find(n => n.id === edge.from)?.active && edge.relation === "works_in" ? "flow-active" : ""}`}
+              ><title>{edge.relation}</title></line>
             ) : null;
           })}
           {nodes.map((node) => {
@@ -219,8 +217,12 @@ export function MemoryGraphPanel({
                   }
                 }}
               >
-                <circle r={node.kind === "project" ? 13 : 6} />
-                <text y={node.kind === "project" ? 31 : 20} textAnchor="middle">
+                <title>{node.source}: {node.content.slice(0, 160)}</title>
+                <circle r={node.kind === "project" ? 23 : 18} />
+                <g className="node-symbol" transform="translate(-10,-10)" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  {node.kind === "project" ? <path d="M2 5h6l2 3h8v10H2ZM2 5V3h6l2 3h7v2"/> : node.kind === "agent" ? <><rect x="3" y="5" width="14" height="12" rx="4"/><path d="M10 2v3M7 10h.1M13 10h.1M7 14h6"/></> : <><path d="M5 2h7l4 4v12H5ZM12 2v5h4M8 10h5M8 13h5"/></>}
+                </g>
+                <text y={node.kind === "project" ? 39 : 33} textAnchor="middle">
                   {node.label.slice(0, node.kind === "project" ? 25 : 18)}
                 </text>
               </g>
@@ -266,9 +268,12 @@ export function MemoryGraphPanel({
             >
               <Icon name="close" />
             </button>
+            <div className={`inspector-type ${current.kind}`}><Icon name={current.kind === "project" ? "folder" : current.kind === "agent" ? "user" : "file"}/>{current.fileType === "folder" ? (pl ? "Folder projektu" : "Project folder") : current.fileType === "markdown" ? "Markdown · .md" : (pl ? "Agent" : "Agent")}</div>
             <small>{current.source}</small>
             <h3>{current.label}</h3>
-            <p>{current.content.slice(0, 450)}</p>
+            {current.path && <code className="memory-file-path">{current.path}</code>}
+            {current.kind === "memory" && <h4>{pl ? "Podgląd treści" : "Content preview"}</h4>}
+            <p>{current.content.slice(0, 450)}{current.content.length > 450 ? "…" : ""}</p>
             {neighborIds.size > 0 && (
               <small style={{ display: "block", marginBottom: "8px" }}>
                 {pl
@@ -328,6 +333,7 @@ export function MemoryGraphPanel({
         )}
       </div>
       <footer>
+        <span className="graph-legend">{pl ? "Agenci → projekty → notatki · Ruch oznacza trwającą rozmowę" : "Agents → projects → notes · Motion indicates a running conversation"}</span>
         <span>
           {graph?.nodes.filter((n) => n.kind === "memory").length ?? 0}{" "}
           {pl ? "notatek" : "notes"} · {graph?.edges.length ?? 0}{" "}

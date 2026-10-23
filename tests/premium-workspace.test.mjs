@@ -1,3 +1,4 @@
+import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -366,10 +367,17 @@ test("a per-conversation model survives a turn and reaches the Codex thread and 
 });
 test("Classic and Harness themes persist and active selectors retain Antigravity without Gemini CLI", (t) => {
   const { store } = setup(t);
-  for (const theme of ["claude", "codex", "tokyo", "nord", "classic"]) {
+  for (const theme of ["claude", "codex", "dark", "light", "classic"]) {
     store.setPreferences({ language: "pl", theme });
     assert.equal(store.preferences().theme, theme);
   }
+  const db = new DatabaseSync(store.file);
+  db.prepare("UPDATE preferences SET theme='tokyo' WHERE id=1").run();
+  assert.equal(store.preferences().theme,"codex");
+  db.prepare("UPDATE preferences SET theme='nord' WHERE id=1").run();
+  assert.equal(store.preferences().theme,"dark");
+  db.close();
+  assert.throws(()=>store.setPreferences({language:"pl",theme:"tokyo"}));
   assert.ok(AVAILABLE_AGENTS.includes("antigravity"));
   assert.ok(!AVAILABLE_AGENTS.includes("gemini"));
 });

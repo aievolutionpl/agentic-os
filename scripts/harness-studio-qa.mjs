@@ -1,3 +1,4 @@
+import {navigateWorkspace} from "./workspace-navigation.mjs";
 // Native Electron + real SQLite/IPC. Synthetic projects only; no model calls.
 import { _electron as electron } from "playwright";
 import assert from "node:assert/strict";
@@ -40,6 +41,7 @@ store.close();
 const env = { ...process.env, AGENTING_DATA_DIR: profile };
 delete env.ELECTRON_RUN_AS_NODE;
 const report = {
+  contrastScope: "Solid paint only. Gradient/glass text needs separate palette checks and visual review; not a WCAG certification.",
   status: "running",
   checks: [],
   screens: [],
@@ -63,14 +65,7 @@ try {
   page.setDefaultTimeout(15000);
   page.on("pageerror", (e) => report.errors.push(e.message));
   await page.locator('main[aria-busy="false"]').waitFor();
-  const nav = async (name) => {
-    if (await page.locator(".projects-toggle").isVisible())
-      await page.locator(".projects-toggle").click();
-    await page
-      .locator(".primary-nav")
-      .getByRole("button", { name, exact: true })
-      .click();
-  };
+  const nav = name => navigateWorkspace(page, name);
   await page.setViewportSize({ width: 1440, height: 1100 });
   await nav("Harness");
   await page
@@ -130,7 +125,7 @@ try {
       .filter(
         (r) =>
           !r.disabled &&
-          (r.unsupported.length || r.ratio < threshold(r.size, r.weight)),
+          (!r.unsupported.length && r.ratio < threshold(r.size, r.weight)),
       )
       .map((r) => ({
         text: r.text,
@@ -204,7 +199,7 @@ try {
   await page.locator("#harness-title").scrollIntoViewIfNeeded();
 
   await page.getByRole("button", { name: "Kolorystyka", exact: true }).click();
-  await page.getByRole("option", { name: "Grafit", exact: true }).click();
+  await page.getByRole("option", { name: "Midnight", exact: true }).click();
   await page.waitForFunction(
     () => document.documentElement.dataset.theme === "dark",
   );

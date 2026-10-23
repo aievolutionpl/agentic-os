@@ -586,8 +586,8 @@ export function MemoryHub({
           <span className="banner-kicker">AI EVOLUTION / SHARED MEMORY</span>
           <h1>
             {pl
-              ? "Jedna pamięć.\nCały zespół na bieżąco."
-              : "One memory.\nA team in context."}
+              ? "Wspólna pamięć"
+              : "Shared memory"}
           </h1>
           <p>
             {pl

@@ -86,8 +86,9 @@ function pick(j) {
   for (const [id, q] of Object.entries(j?.quota ?? {}).slice(0, 20)) {
     if (!/^[A-Za-z0-9._:-]{1,80}$/.test(id)) continue;
     const rest = num(q?.remaining_fraction, 1);
-    if (rest === null) continue;
-    const reset = typeof q?.reset_time === "string" ? Date.parse(q.reset_time) : NaN;
+    if (rest === null || q?.disabled === true) continue;
+    const reset = typeof q?.reset_time === "string" ? Date.parse(q.reset_time)
+      : num(q?.reset_in_seconds, 1e9) !== null ? Date.now() + q.reset_in_seconds * 1000 : NaN;
     buckets[id] = { remainingFraction: rest, resetsAt: Number.isFinite(reset) ? reset : null };
   }
   if (!Object.keys(buckets).length) return null;
@@ -193,14 +194,16 @@ export class LimitBridge {
   private wrapper() {
     return join(this.dir, this.platform === "win32" ? "relay.ps1" : "relay.sh");
   }
-  /** The exact command written into the CLI's settings. On Windows the CLI
-   * may run it through Git Bash or PowerShell; invoking `powershell -File`
-   * with forward slashes works in both, a bare quoted path only in Bash. */
+  /** The exact command written into CLI settings. Encoding keeps Windows
+   * shell/argv parsing from splitting quoted paths at spaces. */
   command(agent: BridgeAgent) {
     if (this.platform !== "win32")
       return `${shellQuote(this.wrapper())} ${agent}`;
     const path = this.wrapper().replace(/\\/g, "/");
-    return `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${path}" ${agent}`;
+    // A single encoded argument survives both shell execution and Windows
+    // argv splitting, including spaces/non-ASCII characters in the profile.
+    const script = `& '${path.replace(/'/g, "''")}' '${agent}'`;
+    return `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand ${Buffer.from(script, "utf16le").toString("base64")}`;
   }
   private read(agent: BridgeAgent): Settings {
     const path = this.settingsPath(agent);
@@ -302,10 +305,21 @@ export class LimitBridge {
   }
   /** Rewrites the relay files for linked CLIs, e.g. after an app update. */
   refresh() {
-    try {
-      if (BRIDGE_AGENTS.some((agent) => this.status(agent).installed))
-        this.files();
-    } catch { /* best effort: failure here must not mask the primary result */ }
+    let linked = false;
+    for (const agent of BRIDGE_AGENTS) {
+      try {
+        const settings = this.read(agent);
+        const legacy = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${this.wrapper().replace(/\\/g, "/")}" ${agent}`;
+        if (this.platform === "win32" && settings.statusLine?.command === legacy) {
+          settings.statusLine.command = this.command(agent);
+          this.write(agent, settings);
+        }
+        linked ||= this.ours(settings, agent);
+      } catch { /* One malformed CLI config must not disable the other relay. */ }
+    }
+    if (linked) {
+      try { this.files(); } catch { /* Keep the CLI's own execution independent. */ }
+    }
   }
   install(input: unknown): LimitBridgeStatus {
     const p = exact(input, ["agent", "consent"]);

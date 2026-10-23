@@ -34,8 +34,11 @@ const REQUIRED_TABLES: [number, string[]][] = [
   [15, ["workspace_policy"]],
   [16, ["usage_ledger"]],
   [17, ["harness_settings"]],
+  [18, ["schedule_jobs", "schedule_runs"]],
 ];
 const REQUIRED_COLUMNS: [number, string, string[]][] = [
+  [18, "schedule_jobs", ["id", "state"]],
+  [18, "schedule_runs", ["id", "jobId", "state"]],
   [9, "memory", ["scope"]],
   [9, "provider_settings", ["profile"]],
   [11, "memory", ["pinned", "updatedAt"]],

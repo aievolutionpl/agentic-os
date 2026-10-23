@@ -198,6 +198,7 @@ export function OpenQuotaPanel({
     !card.isCustom &&
     !providers.some((p) => p.id === card.id && p.configured);
   const link = (card: ProviderQuotaCard) => {
+    if (card.source === "claude-account") return <small className="helper">{pl ? "Odczyt z istniejącego logowania Claude. Token pozostaje w procesie lokalnym i trafia wyłącznie do Anthropic." : "Uses existing Claude sign-in. The token stays in the local process and is sent only to Anthropic."}</small>;
     const status = links.find((l) => l.agent === card.id);
     return status ? (
       <LimitLink
@@ -225,6 +226,7 @@ export function OpenQuotaPanel({
           ? pl
             ? "Zgłoszone przez CLI"
             : "Reported by the CLI"
+          : card.source === "claude-account" ? (pl ? "Konto Claude · odczyt co 5 min" : "Claude account · refreshed every 5 min")
           : card.source === "cli-statusline"
             ? pl
               ? "Pasek statusu CLI"

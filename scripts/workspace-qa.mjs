@@ -65,7 +65,8 @@ store.close();
 const env = { ...process.env, AGENTING_DATA_DIR: profile };
 delete env.ELECTRON_RUN_AS_NODE;
 let app;
-const result = { status: "running", screenshots: [], errors: [], checks: [] };
+const result = {
+  contrastScope: "Solid paint only. Gradient/glass text needs separate palette checks and visual review; not a WCAG certification.", status: "running", screenshots: [], errors: [], checks: [] };
 try {
   app = await electron.launch({
     args: [

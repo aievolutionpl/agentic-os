@@ -23,7 +23,8 @@ store.createMemory({ projectId: project.id, content: "Plan wydania\nZweryfikuj [
 store.close();
 const env = { ...process.env, AGENTING_DATA_DIR: profile }; delete env.ELECTRON_RUN_AS_NODE;
 const output = resolve(process.env.AGENTING_QA_OUTPUT || ".runtime/premium-qa/new"); mkdirSync(output,{recursive:true});
-const report = { status:"running", checks:[], screens:[], errors:[], scope:"Native Electron + local protocol fixture; sample data, no live inference." };
+const report = {
+  contrastScope: "Solid paint only. Gradient/glass text needs separate palette checks and visual review; not a WCAG certification.", status:"running", checks:[], screens:[], errors:[], scope:"Native Electron + local protocol fixture; sample data, no live inference." };
 let app, page;
 try {
   app=await electron.launch({args:[resolve("."),...(process.env.AGENTING_TEST_NO_SANDBOX === "1" ? ["--no-sandbox","--no-zygote"] : [])],env,timeout:30000});

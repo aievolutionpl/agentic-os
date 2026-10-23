@@ -24,6 +24,7 @@ const output = resolve(
 );
 mkdirSync(output, { recursive: true });
 const report = {
+  contrastScope: "Solid paint only. Gradient/glass text needs separate palette checks and visual review; not a WCAG certification.",
   status: "running",
   checks: [],
   screenshots: [],
@@ -201,18 +202,18 @@ try {
             .click();
         await page.evaluate(async () => {
           await document.fonts.ready;
-          await Promise.all(
+          await Promise.race([new Promise(resolve => setTimeout(resolve, 1000)), Promise.all(
             document
               .getAnimations()
               .filter(
                 (a) => a.effect?.getComputedTiming().iterations !== Infinity,
               )
               .map((a) => a.finished.catch(() => {})),
-          );
+          )]);
         });
         await page.mouse.move(0, 0);
         const file = `${key}-${theme}-${width}.png`;
-        await page.screenshot({ path: join(output, file), fullPage: true });
+        await page.screenshot({ path: join(output, file), fullPage: true, animations: "disabled" });
         const overflow = await page.evaluate(
           () => document.documentElement.scrollWidth > innerWidth,
         );

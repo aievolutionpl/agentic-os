@@ -41,6 +41,7 @@ store.close();
 const env = { ...process.env, AGENTING_DATA_DIR: profile };
 delete env.ELECTRON_RUN_AS_NODE;
 const report = {
+  contrastScope: "Solid paint only. Gradient/glass text needs separate palette checks and visual review; not a WCAG certification.",
   status: "running",
   checks: [],
   screens: [],

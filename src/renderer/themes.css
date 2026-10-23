@@ -22,7 +22,7 @@ html[data-theme="light"] {
   --secondary-accent: #597e9c;
   --nav-border: #b7c8d9;
   --success: #276c51;
-  --warning: #946011;
+  --warning: #80500a;
   --danger: #b63439;
 }
 html[data-theme="classic"] {
@@ -46,7 +46,7 @@ html[data-theme="classic"] {
   --secondary-accent: #9b663f;
   --nav-border: #d4bfa9;
   --success: #306e51;
-  --warning: #946011;
+  --warning: #80500a;
   --danger: #b63439;
 }
 html[data-theme="dark"] {
@@ -146,6 +146,7 @@ html[data-theme] .project-sidebar .nav-item,html[data-theme] .project-sidebar .p
 html[data-theme] .project-sidebar .nav-item.selected {color:var(--nav-text);background:color-mix(in srgb,var(--nav-accent) 14%,transparent);box-shadow:inset 2px 0 var(--nav-accent);}
 html[data-theme] .project-sidebar .nav-item:hover {color:var(--nav-text);background:var(--surface-hover);}
 html[data-theme] .project-sidebar .nav-more summary,html[data-theme] .project-sidebar .project-heading h2 {color:var(--nav-muted);}
+html[data-theme] .project-sidebar .nav-more[open] summary {color:var(--nav-text);}
 html[data-theme] .project-sidebar .project-branch > summary > .icon {color:var(--nav-accent);}
 .project-tree {scrollbar-color:var(--nav-border) transparent;}
 .top-bar,.quota-strip {background:color-mix(in srgb,var(--surface) 82%,transparent);}

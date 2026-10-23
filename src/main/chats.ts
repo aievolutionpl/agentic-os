@@ -211,7 +211,7 @@ export class Chats {
       }
     }
     const project =
-      this.store.projects().find((item) => item.root === root) ??
+      this.store.projects().find((item) => p.projectId ? item.id === p.projectId : item.root === root) ??
       this.store.createProject({
         name: source === "default" ? "Moje rozmowy" : title,
         root,

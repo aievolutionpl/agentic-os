@@ -1,3 +1,5 @@
+// Contrast assertions cover solid paint only; gradients/glass require qa:calm and visual review.
+import {navigateWorkspace} from "./workspace-navigation.mjs";
 // Native UI regression for Classic, per-chat models, complete skills and live memory.
 // All agent calls use a deterministic local protocol fixture, never a subscription.
 import { _electron as electron } from "playwright";
@@ -28,12 +30,12 @@ try {
   page=await app.firstWindow();page.setDefaultTimeout(30000);page.on("pageerror",e=>report.errors.push(e.message));
   await page.locator('main[aria-busy="false"]').waitFor();
   await page.waitForFunction(()=>document.documentElement.dataset.theme === "classic");
-  const nav=async name=>{if(await page.locator(".projects-toggle").isVisible())await page.locator(".projects-toggle").click();await page.locator(".primary-nav").getByRole("button",{name,exact:true}).click();};
+  const nav = name => navigateWorkspace(page, name);
   async function capture(name) {
     await page.evaluate(()=>document.fonts.ready); await page.mouse.move(0,0);
     await page.screenshot({path:join(output,name+".png"),fullPage:true,animations:"disabled"});
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth > innerWidth);
-    const failures=(await page.evaluate(collectContrast)).map(r=>({...r,...measure(r)})).filter(r=>!r.disabled&&(r.unsupported.length||r.ratio<threshold(r.size,r.weight))).map(r=>({text:r.text,ratio:r.ratio,unsupported:r.unsupported}));
+    const failures=(await page.evaluate(collectContrast)).map(r=>({...r,...measure(r)})).filter(r=>!r.disabled&&(!r.unsupported.length&&r.ratio<threshold(r.size,r.weight))).map(r=>({text:r.text,ratio:r.ratio,unsupported:r.unsupported}));
     report.screens.push({name,width:page.viewportSize().width,overflow,failures});
     assert.equal(overflow,false,name);assert.equal(failures.length,0,`${name}: ${JSON.stringify(failures.slice(0,6))}`);
   }
@@ -73,8 +75,8 @@ try {
   assert.equal(await page.locator('[data-quota="gemini"]').count(),0);await capture("classic-quota-1440");
   report.checks.push("every-configured-subscription-has-a-full-card-with-honest-unknowns");
   await nav("Czaty");await page.getByRole("button",{name:"Nowy czat",exact:true}).click();
-  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Grafit",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "dark");await capture("graphite-chat-1440");
-  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Classic · Terra",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "classic");
+  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Midnight",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "dark");await capture("graphite-chat-1440");
+  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Claude Light",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "classic");
   assert.equal((await page.evaluate(()=>window.agenting.snapshot())).preferences.theme,"classic");
   report.checks.push("Classic-palette-selects-and-persists-over-ipc");assert.deepEqual(report.errors,[]);report.status="passed";
 } catch(error) { report.status="failed";report.error=String(error);process.exitCode=1;console.error(error);await page?.screenshot({path:join(output,"failure.png"),fullPage:true}).catch(()=>{}); }

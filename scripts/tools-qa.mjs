@@ -125,7 +125,7 @@ try {
     .getByRole("button", { name: "Cancel", exact: true })
     .click();
   await page.getByRole("button", { name: "Extensions", exact: true }).click();
-  await page.getByRole("button", { name: b.name, exact: true }).click();
+  await page.locator(".project-link", {hasText:b.name}).click();
   await page.getByRole("heading", { name: b.name, exact: true }).waitFor();
   await page.getByRole("button", { name: "Extensions", exact: true }).click();
   assert.equal(

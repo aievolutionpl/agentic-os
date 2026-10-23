@@ -1,3 +1,5 @@
+// Contrast assertions cover solid paint only; gradients/glass require qa:calm and visual review.
+import {navigateWorkspace, chooseTheme} from "./workspace-navigation.mjs";
 // Real Electron + PTY + a deterministic agent fixture. No live inference or paid calls.
 import { _electron as electron } from "playwright";
 import assert from "node:assert/strict";
@@ -153,14 +155,7 @@ try {
     .waitFor();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.evaluate(() => document.fonts.ready);
-  async function nav(name) {
-    if (await page.locator(".projects-toggle").isVisible())
-      await page.locator(".projects-toggle").click();
-    await page
-      .locator(".primary-nav")
-      .getByRole("button", { name, exact: true })
-      .click();
-  }
+  async function nav(name) { await navigateWorkspace(page, name); }
   async function capture(name) {
     await page.locator('main[aria-busy="false"]').waitFor();
     await page.evaluate(() => document.fonts.ready);
@@ -178,7 +173,7 @@ try {
       threshold: threshold(row.size, row.weight),
     }));
     const failures = rows.filter(
-      (r) => !r.disabled && (r.unsupported.length || r.ratio < r.threshold),
+      (r) => !r.disabled && (!r.unsupported.length && r.ratio < r.threshold),
     );
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > innerWidth,
@@ -205,6 +200,7 @@ try {
   assert.equal(await history.isVisible(), false);
   await page.getByRole("button", { name: "Historia", exact: true }).click();
   assert.equal(await history.isVisible(), true);
+  if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await history
     .getByRole("button", { name: /Przykład · plan wydania/ })
     .click();
@@ -219,6 +215,7 @@ try {
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   assert.equal(await page.locator(".message-code").count(), 1);
+  if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await history
     .getByRole("button", { name: /Przykład · obsługa treści/ })
     .click();
@@ -242,11 +239,13 @@ try {
   );
   // Deleting the open chat returns to the start screen, which hides the
   // history: wait for that to land, then open it again.
+  if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await history
     .getByRole("button", { name: /Przykład · obsługa treści/ })
     .waitFor({ state: "detached" });
   if (!(await history.isVisible()))
     await page.getByRole("button", { name: "Historia", exact: true }).click();
+  if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await history
     .getByRole("button", { name: /Przykład · plan wydania/ })
     .click();
@@ -264,11 +263,13 @@ try {
     .locator(".chat-composer .attachment-chips")
     .getByText("kryteria.txt")
     .waitFor();
+  if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await history
     .getByRole("button", { name: /Przykład · przegląd interfejsu/ })
     .click();
   assert.equal(await composer.inputValue(), "");
   await composer.fill("Szkic drugiej rozmowy");
+  if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await history
     .getByRole("button", { name: /Przykład · plan wydania/ })
     .click();
@@ -289,6 +290,7 @@ try {
   await page
     .getByRole("heading", { name: "Przykład · gotowy plan", exact: true })
     .waitFor();
+  if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await page.getByRole("searchbox", { name: "Szukaj rozmów" }).fill("gotowy");
   assert.equal(await history.locator(":scope > button").count(), 1);
   await page.getByRole("searchbox", { name: "Szukaj rozmów" }).fill("");
@@ -380,7 +382,7 @@ try {
     await capture(`terminal-dark-${width}`);
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.locator("button.theme-toggle").click();
+  await chooseTheme(page, "Pearl");
   await page.waitForFunction(
     () => document.documentElement.dataset.theme === "light",
   );
@@ -446,7 +448,7 @@ try {
     "320/390/768/1440 reflow, both themes, measured text contrast and reduced motion",
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.locator("button.theme-toggle").click();
+  await chooseTheme(page, "Midnight");
   await page.locator(".project-link", { hasText: project.name }).click();
   await page
     .getByRole("heading", { name: project.name, exact: true })

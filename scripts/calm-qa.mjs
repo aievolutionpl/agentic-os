@@ -10,7 +10,7 @@ const profile=mkdtempSync(join(tmpdir(),'agenting-calm-'));const root=join(profi
 const store=new Store(join(profile,'agenting.sqlite'));store.setPreferences({language:'pl',theme:'light'});
 const project=store.createProject({name:'Studio produktu',root,master:'codex'});store.createMemory({projectId:project.id,content:'Kierunek projektu\nCzytelna rozmowa i spokojny interfejs.',source:'Decyzja projektowa',scope:'project'});const chatId=randomUUID();store.chats.save({id:chatId,title:'Plan interfejsu',projectId:project.id,agent:'claude',mode:'chat',source:'local',root,workspace:root,status:'idle',messages:[{id:randomUUID(),role:'user',content:'Uporządkuj widok',at:Date.now(),status:'complete'},{id:randomUUID(),role:'assistant',content:'Rozmowa jest głównym elementem.',at:Date.now(),status:'complete'}],contextIds:[],skillIds:[],activity:[],error:null,updatedAt:Date.now()});store.close();
 const env={...process.env,AGENTING_DATA_DIR:profile,CLAUDE_CONFIG_DIR:join(profile,'claude')};delete env.ELECTRON_RUN_AS_NODE;
-const app=await electron.launch({args:[resolve('.')],env});
+const app=await electron.launch({args:[resolve('.'),...(process.env.AGENTING_TEST_NO_SANDBOX==='1'?['--no-sandbox','--no-zygote']:[])],env});
 try {const page=await app.firstWindow();const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.locator('main[aria-busy="false"]').waitFor();
 for(const width of [1440,768,390,320]) {await page.setViewportSize({width,height:1000});await page.screenshot({path:resolve('.runtime/calm-'+width+'.png'),animations:'disabled'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);}
 await page.setViewportSize({width:1440,height:1000});await page.getByRole('button',{name:'Ustawienia',exact:true}).first().click();await page.getByRole('heading',{name:'Ustawienia'}).waitFor();await page.keyboard.press('Escape');
@@ -41,6 +41,7 @@ await page.screenshot({path:resolve('.runtime/studio-schedule.png')});
 await page.locator('.primary-nav').getByRole('button',{name:'Pamięć',exact:true}).click();
 await page.locator('.graph-node.memory').first().click();
 await page.locator('.memory-file-path').waitFor();
+assert.equal(await page.locator('.graph-inspector').evaluate(el=>el.getBoundingClientRect().bottom <= el.parentElement.getBoundingClientRect().bottom),true,'Memory inspector stays inside its graph');
 await page.screenshot({path:resolve('.runtime/studio-memory-detail.png')});
 await page.setViewportSize({width:390,height:1000});
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
@@ -58,11 +59,13 @@ for(const theme of ['light','classic','dark','claude','codex']) {
   await page.getByRole('option',{name:({light:'Pearl',classic:'Claude Light',dark:'Midnight',claude:'Graphite',codex:'AI Evolution'})[theme],exact:true}).click();
   await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);
   await page.reload();await page.locator('main[aria-busy="false"]').waitFor();
+  await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);
+  await page.screenshot({path:resolve('.runtime/studio-theme-'+theme+'.png'),animations:'disabled'});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   navBackgrounds.add(await page.locator('.project-sidebar').evaluate(el=>getComputedStyle(el).backgroundImage));
   const navColors=await page.locator('.project-sidebar .nav-item').first().evaluate(el=>({fg:getComputedStyle(el).color,bg:getComputedStyle(el).getPropertyValue('--nav-end').trim()}));
-  const channels=navColors.fg.match(/[\d.]+/g).map(Number),hex=navColors.bg.match(/[0-9a-f]{2}/gi).map(x=>parseInt(x,16));
-  assert.ok(contrast(channels,hex)>=4.5,`${theme}: actual navigation text contrast`);
+  const channels=navColors.fg.match(/[\d.]+/g).map(Number).map(v=>navColors.fg.startsWith('color(')?v*255:v),hex=navColors.bg.match(/[0-9a-f]{2}/gi).map(x=>parseInt(x,16));
+  assert.ok(contrast(channels,hex)>=4.5,`${theme}: actual navigation text contrast ${JSON.stringify(navColors)}`);
   await page.screenshot({path:resolve('.runtime/studio-theme-'+theme+'.png')});
 }
 assert.equal(navBackgrounds.size,5);

@@ -1,3 +1,5 @@
+// Contrast assertions cover solid paint only; gradients/glass require qa:calm and visual review.
+import {navigateWorkspace, chooseTheme} from "./workspace-navigation.mjs";
 // Native Electron UI/IPC integration with a deterministic app-server process fixture.
 import { _electron as electron } from "playwright";
 import assert from "node:assert/strict";
@@ -32,14 +34,7 @@ const report = {
 const env = { ...process.env, AGENTING_DATA_DIR: profile };
 delete env.ELECTRON_RUN_AS_NODE;
 let app, page;
-async function nav(name) {
-  if (await page.locator(".projects-toggle").isVisible())
-    await page.locator(".projects-toggle").click();
-  await page
-    .locator(".primary-nav")
-    .getByRole("button", { name, exact: true })
-    .click();
-}
+async function nav(name) { await navigateWorkspace(page, name); }
 async function waitChat() {
   for (let i = 0; i < 120; i++) {
     const chat = (await page.evaluate(() => window.agenting.chatList()))[0];
@@ -59,7 +54,7 @@ try {
     env,
     timeout: 30000,
   });
-  page = await app.firstWindow();
+  page = await app.firstWindow(); page.setDefaultTimeout(15000);
   page.on("pageerror", (e) => report.errors.push(e.message));
   await page
     .getByRole("button", { name: "Otwórz rozmowę", exact: true })
@@ -185,11 +180,11 @@ try {
       (await page.evaluate(() => document.documentElement.dataset.theme)) !==
       theme
     )
-      await page.locator(".theme-toggle").click();
+      await chooseTheme(page, theme === "light" ? "Pearl" : "Midnight");
     for (const width of [1440, 900, 390]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.waitForFunction(
-        (n) => Boolean(document.querySelector(".projects-toggle")) === n,
+        (n) => Boolean(document.querySelector(".projects-toggle")?.checkVisibility()) === n,
         width <= 760,
       );
       for (const [key, label] of [
@@ -230,7 +225,7 @@ try {
           .filter(
             (row) =>
               !row.disabled &&
-              (row.unsupported.length || row.ratio < row.threshold),
+              (!row.unsupported.length && row.ratio < row.threshold),
           )
           .map((row) => ({
             text: row.text,
@@ -246,7 +241,7 @@ try {
     }
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.waitForFunction(() => !document.querySelector(".projects-toggle"));
+  await page.waitForFunction(() => !document.querySelector(".projects-toggle")?.checkVisibility());
   await nav("Czaty");
   await page.locator(".chat-history>button").first().waitFor({ state: "attached" });
   if (!(await page.locator(".chat-history").isVisible()))

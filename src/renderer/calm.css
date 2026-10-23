@@ -18,6 +18,7 @@ html[data-theme="light"] {
 .primary-nav .nav-item::after { display: none; }
 .nav-more summary { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; color: var(--text-muted); }
 .nav-more[open] { background: var(--bg-subtle); border-radius: 10px; }
+.nav-more[open] summary { color: var(--text); }
 .project-heading { margin-top: 24px; }
 .project-tree { overflow: auto; flex: 1; min-height: 60px; }
 .project-branch > summary { display: flex; gap: 9px; align-items: center; padding: 10px 8px; cursor: pointer; font-size: 14px; }
@@ -33,10 +34,24 @@ html[data-theme="light"] {
 .top-bar { min-height: 60px; background: var(--glass); backdrop-filter: blur(20px); }
 .save-status { font-size: 12px; }
 .harness-statusbar,.harness-telemetry-strip { display: none; }
-.chat-topline { display: none; }
+.chat-topline { display: flex; justify-content: flex-end; margin: 0 auto 12px; max-width: 900px; }
+.chat-topline > div:first-child { display: none; }
+.chat-workspace .chat-topline .history-toggle { display: inline-flex; }
 .chat-layout { display: block !important; }
 .chat-history { display: none !important; }
+.chat-workspace.history-open .chat-history { display: block !important; max-width: 900px; max-height: 260px; margin: 0 auto 16px; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
 .chat-stage { max-width: 900px; margin: auto; width: 100%; }
+/* Size an active conversation to the space left by the header and quotas. */
+@media(min-height:650px) {
+  main:has(.chat-workspace.has-conversation) { display:flex; overflow:hidden; }
+  .workspace-content:has(.chat-workspace.has-conversation) { display:flex; flex:1; min-height:0; width:100%; margin:0 auto; }
+  .chat-workspace.has-conversation { display:flex; flex-direction:column; width:100%; height:auto; min-height:0; flex:1; }
+  .chat-workspace.has-conversation .chat-topline { flex-shrink:0; width:100%; }
+  .chat-workspace.has-conversation .chat-layout { display:flex !important; flex-direction:column; flex:1; min-height:0; gap:0; }
+  .chat-workspace.has-conversation .chat-history { position:static; width:100%; flex-shrink:0; max-height:180px; }
+  .chat-workspace.has-conversation .chat-stage { display:flex; flex-direction:column; flex:1; min-height:0; margin:0 auto; }
+  .chat-workspace.has-conversation .chat-transcript { flex:1; min-height:60px; overflow-y:auto; }
+}
 .conversation-welcome { min-height: 0; margin: 7vh 0 30px; padding: 24px 12px; background: none !important; border: 0; }
 .conversation-welcome h2 { font-family: inherit; font-size: clamp(26px, 3vw, 38px); font-weight: 500; letter-spacing: -1.2px; }
 .conversation-welcome p { font-size: 16px; color: var(--text-muted); }
@@ -65,7 +80,7 @@ html[data-theme="light"] {
 .graph-node:focus { outline: none; }
 .graph-node:focus circle { stroke: var(--text); stroke-width: 4px; }
 .graph-node text { font-size: 12px; fill: var(--text); }
-.graph-inspector { background: var(--glass); backdrop-filter: blur(16px); }
+.graph-inspector { background: var(--glass); backdrop-filter: blur(16px); max-height: calc(100% - 28px); overflow-y: auto; overscroll-behavior: contain; }
 @media(min-width: 801px) { .brand .drawer-close { display: none; } }
 @media(max-width: 800px) { .conversation-welcome { margin-top: 20px; padding: 10px; } .settings .save-status { display: none; } .conversation-welcome h2 { letter-spacing: -.6px; } }
 @media(prefers-reduced-motion: reduce) { .graph-node,.graph-node * { animation: none !important; transition: none !important; } }
@@ -206,7 +221,7 @@ html[data-theme="light"] { --bg:#f7f6f3; --bg-subtle:#efefed; --surface:#fffefa;
 .graph-inspector p {font-size:13px;}
 .graph-inspector small {font-size:11px;}
 .thinking i {display:none;}
-@media(max-width:600px) { .graph-inspector {position:relative;top:auto;right:auto;width:auto;max-width:none;margin:12px;}.graph-stage > svg {height:300px;}.graph-tools {flex-wrap:wrap;} }
+@media(max-width:600px) { .graph-inspector {position:relative;top:auto;right:auto;width:auto;max-width:none;max-height:none;margin:12px;}.graph-stage > svg {height:300px;}.graph-tools {flex-wrap:wrap;} }
 .body {background:radial-gradient(ellipse at 90% 0%,#438ea514,transparent 50%),radial-gradient(ellipse at 5% 100%,#b9875d0c,transparent 45%),var(--bg);}
 .project-sidebar {overflow:hidden;}
 .project-sidebar > .brand,.project-sidebar > .primary-nav,.project-sidebar > .project-heading,.project-sidebar > .new-conversation,.project-sidebar > .workspace-settings {flex-shrink:0;}

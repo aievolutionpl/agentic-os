@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Store,SCHEMA_VERSION} from '../dist/main/store.js';
 import {ScheduleRunner,nextDaily,executeScheduledChat} from '../dist/main/schedules.js';
-import {mkdtempSync,rmSync} from 'node:fs';
+import {mkdtempSync,rmSync,realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 function fixture(t){const dir=mkdtempSync(join(tmpdir(),'schedule-'));let now=new Date(2026,9,23,8,0).getTime();let store=new Store(join(dir,'db'),()=>now);const project=store.createProject({name:'Project',root:dir,master:'codex'});t.after(()=>{store.close();rmSync(dir,{recursive:true,force:true});});return {get store(){return store;},project,clock:()=>now,advance:n=>{now+=n;},reopen:()=>{store.close();store=new Store(join(dir,'db'),()=>now);},input:{title:'Review',prompt:'Inspect code read-only',projectId:project.id,agent:'codex',time:'09:00',consent:true}};}
@@ -15,11 +15,22 @@ test('Project rename preserves root, chats and identity and rejects invalid inpu
 
 test('Scheduled run uses real Chats, persists output and respects quota gate',async t=>{
   const f=fixture(t),job=f.store.schedules.save(f.input);let calls=0,exhausted=false;
-  const supervisor={settings:()=>[{id:'codex',configured:true}],conversation:async(agent,root,prompt,readOnly)=>{calls++;assert.equal(readOnly,true);assert.equal(root,f.project.root);assert.match(prompt,/Inspect code read-only/);return 'Reviewed successfully';}};
+  const supervisor={settings:()=>[{id:'codex',configured:true}],conversation:async(agent,root,prompt,readOnly)=>{calls++;assert.equal(readOnly,true);assert.equal(root,realpathSync.native(f.project.root));assert.match(prompt,/Inspect code read-only/);return 'Reviewed successfully';}};
   const chats=new Chats(f.store,supervisor,f.project.root,async()=>exhausted?[{id:'codex',source:'cli-stream',status:'exhausted',updatedAt:new Date().toISOString()}]:[]);
   const runner=new ScheduleRunner(f.store.schedules,(job,onChat,stopped)=>executeScheduledChat(chats,job,onChat,stopped),f.clock);
   f.store.schedules.action({id:job.id,action:'run'});await runner.tick();
-  let run=f.store.schedules.runs()[0];assert.equal(run.status,'complete');assert.equal(f.store.chats.get(run.chatId).messages.at(-1).content,'Reviewed successfully');
+  let run=f.store.schedules.runs()[0];assert.equal(run.status,'complete',JSON.stringify(run));assert.equal(f.store.chats.get(run.chatId).messages.at(-1).content,'Reviewed successfully');assert.equal(f.store.chats.get(run.chatId).projectId,f.project.id);assert.equal(f.store.projects().length,1);
   exhausted=true;f.store.schedules.action({id:job.id,action:'run'});await runner.tick();run=f.store.schedules.runs()[0];assert.equal(run.status,'failed');assert.equal(run.error,'QUOTA_EXHAUSTED');assert.equal(calls,1);
   await runner.close();await chats.close();
+});
+
+test('Scheduled chat keeps the selected project when its folder spelling is non-canonical',async t=>{
+  const f=fixture(t);
+  const alias=f.store.createProject({name:'Alias',root:f.project.root+'/.',master:'codex'});
+  const chats=new Chats(f.store,{},f.project.root,async()=>[]);
+  const chat=await chats.create({agent:'codex',mode:'chat',source:'local',projectId:alias.id});
+  assert.equal(chat.projectId,alias.id);
+  assert.equal(chat.root,realpathSync.native(alias.root));
+  assert.equal(f.store.projects().length,2);
+  await chats.close();
 });

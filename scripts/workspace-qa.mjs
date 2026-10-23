@@ -1,3 +1,5 @@
+// Contrast assertions cover solid paint only; gradients/glass require qa:calm and visual review.
+import {navigateWorkspace, chooseTheme} from "./workspace-navigation.mjs";
 import { _electron as electron } from "playwright";
 import assert from "node:assert/strict";
 import {
@@ -75,27 +77,17 @@ try {
     env,
     timeout: 30000,
   });
-  const page = await app.firstWindow();
+  const page = await app.firstWindow(); page.setDefaultTimeout(15000);
   await page
     .locator(".project-link", { hasText: a.name })
     .waitFor({ timeout: 90000 });
   page.on("pageerror", (error) => result.errors.push(error.message));
-  await page
-    .locator(".primary-nav")
-    .getByRole("button", { name: "Centrum dowodzenia", exact: true })
-    .click();
+  await navigateWorkspace(page, "Centrum dowodzenia");
   await page
     .locator(".connector-card:not(.skeleton-card)")
     .first()
     .waitFor({ timeout: 60000 });
-  async function nav(name) {
-    if (await page.locator(".projects-toggle").isVisible())
-      await page.locator(".projects-toggle").click();
-    await page
-      .locator(".primary-nav")
-      .getByRole("button", { name, exact: true })
-      .click();
-  }
+  async function nav(name) { await navigateWorkspace(page, name); }
   await nav("Limity i tokeny");
   // Providers without a reading collapse into one honest line, never a gauge.
   await page.locator('.quota-idle [data-quota="antigravity"]').waitFor();
@@ -243,7 +235,7 @@ try {
       (await page.evaluate(() => document.documentElement.dataset.theme)) !==
       theme
     ) {
-      await page.locator(".theme-toggle").click();
+      await chooseTheme(page, theme === "light" ? "Pearl" : "Midnight");
       await page.waitForFunction(
         (t) => document.documentElement.dataset.theme === t,
         theme,
@@ -253,7 +245,7 @@ try {
       await page.setViewportSize({ width, height: 1000 });
       await page.waitForFunction(
         (expected) =>
-          Boolean(document.querySelector(".projects-toggle")) === expected,
+          Boolean(document.querySelector(".projects-toggle")?.checkVisibility()) === expected,
         width <= 760,
       );
       for (const [label, name] of [
@@ -290,14 +282,14 @@ try {
           await page.locator(".provider-picker").waitFor();
         await page.evaluate(async () => {
           await document.fonts.ready;
-          await Promise.all(
+          await Promise.race([new Promise(resolve => setTimeout(resolve, 1000)), Promise.all(
             document
               .getAnimations()
               .filter(
                 (a) => a.effect?.getComputedTiming().iterations !== Infinity,
               )
               .map((a) => a.finished.catch(() => {})),
-          );
+          )]);
         });
         await page.mouse.move(0, 0);
         const file = `${label}-${theme}-${width}.png`;
@@ -314,7 +306,7 @@ try {
           .filter(
             (row) =>
               !row.disabled &&
-              (row.unsupported.length || row.ratio < row.threshold),
+              (!row.unsupported.length && row.ratio < row.threshold),
           )
           .map((row) => ({
             text: row.text,

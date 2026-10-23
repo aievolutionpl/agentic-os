@@ -76,6 +76,11 @@ export function collectContrast() {
           background: parse(s.backgroundColor),
           opacity: Number(s.opacity),
         });
+        // An opaque surface covers ancestor gradients/glass. Do not mark
+        // readable text on that surface unsupported because of hidden paint.
+        if (parse(s.backgroundColor)[3] === 1 && Number(s.opacity) === 1 &&
+            s.backgroundImage === "none" && s.filter === "none" &&
+            s.mixBlendMode === "normal") break;
       }
       if (kind === "placeholder" && Number(style.opacity) !== 1)
         layers.unshift({

@@ -90,6 +90,7 @@ export class OpenRouterConnection {
     encryptedKey: string;
     model: string;
     encryptedManagementKey?: string;
+    disabledModels?: string[];
   } | null {
     if (!existsSync(this.path)) return null;
     const row = JSON.parse(readFileSync(this.path, "utf8"));
@@ -111,10 +112,11 @@ export class OpenRouterConnection {
       model: row?.model ?? "",
       encryptionAvailable: this.secrets.available(),
       balanceKey: !!row?.encryptedManagementKey,
+      disabledModels: row?.disabledModels ?? [],
     };
   }
   save(input: unknown): OpenRouterSetting {
-    const p = exact(input, ["apiKey", "managementKey", "model", "consent"]);
+    const p = exact(input, ["apiKey", "managementKey", "model", "consent", "disabledModels"]);
     if (p.consent !== true) throw Error("EXPLICIT_CONSENT_REQUIRED");
     if (!this.secrets.available()) throw Error("SECURE_STORAGE_UNAVAILABLE");
     const model = text(p.model, 200);
@@ -133,6 +135,9 @@ export class OpenRouterConnection {
     if (management && !/^[A-Za-z0-9_-]{20,4096}$/.test(management))
       throw Error("INVALID_API_KEY");
     const previous = this.read();
+    const disabledModels = p.disabledModels ?? previous?.disabledModels ?? [];
+    if (!Array.isArray(disabledModels) || disabledModels.length > 3000 || disabledModels.some(id => typeof id !== "string" || id.length > 200 || !/^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:/-]+$/.test(id))) throw Error("INVALID_MODELS");
+    if (disabledModels.includes(model)) throw Error("DEFAULT_MODEL_DISABLED");
     const encryptedKey = key
       ? this.secrets.encrypt(key).toString("base64")
       : previous?.encryptedKey;
@@ -148,6 +153,7 @@ export class OpenRouterConnection {
       JSON.stringify({
         encryptedKey,
         model,
+        disabledModels: [...new Set(disabledModels)],
         ...(encryptedManagementKey && { encryptedManagementKey }),
       }),
       { mode: 0o600 },
@@ -205,6 +211,7 @@ export class OpenRouterConnection {
       OPENROUTER_API_KEY: this.key(),
       OPENCODE_CONFIG_CONTENT: JSON.stringify({
         model: `openrouter/${row.model}`,
+        provider: { openrouter: { blacklist: row.disabledModels ?? [] } },
         permission: {
           external_directory: "deny",
           bash: "deny",

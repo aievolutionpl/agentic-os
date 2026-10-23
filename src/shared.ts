@@ -460,6 +460,7 @@ export interface OpenRouterModel {
   contextLength: number | null;
 }
 export interface OpenRouterSetting {
+  disabledModels?: string[];
   configured: boolean;
   model: string;
   encryptionAvailable: boolean;
@@ -791,6 +792,7 @@ export interface API {
   }): Promise<OrchestrationState>;
   openRouterSettings?(): Promise<OpenRouterSetting>;
   openRouterSave?(input: {
+    disabledModels?: string[];
     apiKey?: string;
     /** Optional management key for the account balance; "" removes it. */
     managementKey?: string;

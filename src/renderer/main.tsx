@@ -51,6 +51,7 @@ import "./premium.css";
 import "./calm.css";
 import "./themes.css";
 import { ProjectOverview } from "./ProjectOverview";
+import companyLogo from "./assets/ai-evolution.png";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 
 const TerminalPanel = React.lazy(() =>
@@ -117,7 +118,7 @@ function App() {
   const [error, setError] = useState(false),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
-    [saved, setSaved] = useState(false);
+    [, setSaved] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     error?: boolean;
@@ -816,26 +817,6 @@ function App() {
               <span>{prefs.language === "pl" ? "Szukaj" : "Search"}</span>
               <kbd>Ctrl K</kbd>
             </button>
-            <span
-              className={`save-status ${error ? "is-error" : ""}`}
-              title={error ? w.error : w.saveHint}
-            >
-              <span
-                className={`status-dot ${busy || loading ? "is-pending" : ""}`}
-                aria-hidden="true"
-              />
-              {error
-                ? w.saveFailed
-                : busy
-                  ? w.saving
-                  : loading
-                    ? w.loading
-                    : draft
-                      ? w.unsaved
-                      : saved
-                        ? w.saved
-                        : w.local}
-            </span>
             <button className="icon-button" aria-label={prefs.language === "pl" ? "Ustawienia" : "Settings"} onClick={() => setSettingsOpen(true)}><Icon name="settings" /></button>
           </div>
         </header>
@@ -1678,9 +1659,11 @@ function App() {
 </div>
         <div className="settings-links">{([
           ["connections", "connections", "Agenci i modele", "Agents and models"],
-          ["quota", "tokens", "Subskrypcje i limity", "Subscriptions and limits"],
-          ["harness", "layers", "Instrukcje i pamięć", "Instructions and memory"],
         ] as const).map(([id, icon, pl, en]) => <button className="secondary" key={id} onClick={() => { setView(id); setSettingsOpen(false); }}><Icon name={icon} />{prefs.language === "pl" ? pl : en}<Icon name="chevron" /></button>)}</div>
+        <section className="settings-about" aria-label="O aplikacji">
+          <img className="company-logo" src={companyLogo} alt="AI Evolution Polska" /><div><h3>Agenting OS</h3><p>{prefs.language === "pl" ? "Stworzone przez AI Evolution Polska. Rozmowy, projekty i pamięć agentów w jednej lokalnej przestrzeni pracy." : "Built by AI Evolution Polska. Conversations, projects and agent memory in one local workspace."}</p>
+          <div className="about-links">{[["GitHub", "https://github.com/aievolutionpl/agentic-os"], ["AI Evolution Polska", "https://www.aievolutionpolska.pl"]].map(([label, url]) => <button key={url} className="text-action" onClick={() => void api.openExternalLink?.({url: url!}).catch(() => setError(true))}>{label}<Icon name="arrow" /></button>)}</div></div>
+        </section>
       </Modal>
       <Modal
         open={projectOpen}

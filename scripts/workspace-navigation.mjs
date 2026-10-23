@@ -5,6 +5,7 @@ export async function navigateWorkspace(page, name) {
     await page.getByRole('button', {name:'Agenci i modele',exact:true}).click();
     return;
   }
+  if (name === 'Centrum dowodzenia') { await page.locator('.project-heading button').first().click(); await page.locator('.system-details > summary').click(); return; }
   const names = {'Czaty':'Rozmowy','Centrum dowodzenia':'Projekty','Wspólna pamięć':'Pamięć','Biblioteka skilli':'Skille','Praca i pytania':'Zadania','Limity i tokeny':'Limity'};
   const target = page.locator('.primary-nav').getByRole('button',{name:names[name] || name,exact:true});
   if (!(await target.isVisible())) await page.locator('.nav-more > summary').click();

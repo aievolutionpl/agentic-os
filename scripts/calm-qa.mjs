@@ -19,7 +19,7 @@ await page.locator('.primary-nav').getByRole('button',{name:'Pamięć',exact:tru
 await page.locator('.primary-nav').getByRole('button',{name:'Rozmowy',exact:true}).click();assert.equal(await page.getByRole('textbox',{name:'Pierwsza wiadomość',exact:true}).inputValue(),'Zachowaj mój szkic');
 await page.getByRole('button',{name:'Plan interfejsu',exact:true}).click();await page.getByText('Rozmowa jest głównym elementem.',{exact:true}).waitFor();
 await page.locator('.project-shortcuts').getByRole('button',{name:'Rozmowa',exact:true}).click();await page.getByRole('textbox',{name:'Pierwsza wiadomość',exact:true}).waitFor();
-await page.locator('.primary-nav').getByRole('button',{name:'Projekty',exact:true}).click();await page.getByRole('heading',{name:'Twoje projekty'}).waitFor();await page.screenshot({path:resolve('.runtime/calm-projects.png')});
+await page.locator('.project-heading button').first().click();await page.getByRole('heading',{name:'Twoje projekty'}).waitFor();await page.screenshot({path:resolve('.runtime/calm-projects.png')});
 await page.locator('.project-branch > summary').first().dblclick();
 await page.getByRole('textbox',{name:'Nazwa projektu',exact:true}).fill('Nie zapisuj');
 await page.keyboard.press('Escape');

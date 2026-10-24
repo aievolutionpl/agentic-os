@@ -205,6 +205,9 @@ html[data-theme] .project-sidebar .nav-item > .icon {color:var(--nav-accent);}
 .brand .drawer-close {position:absolute;right:0;top:0;}
 .app-logo-crop {display:block;width:112px;height:48px;overflow:hidden;position:relative;flex-shrink:0;}
 .app-logo-crop img {position:absolute;width:112px;height:112px;max-width:none;left:0;top:-33px;}
+.app-logo-crop .app-logo-dark {display:none;}
+html:is([data-theme="dark"],[data-theme="claude"],[data-theme="codex"]) .app-logo-light {display:none;}
+html:is([data-theme="dark"],[data-theme="claude"],[data-theme="codex"]) .app-logo-dark {display:block;}
 .brand .brand-mark {width:auto;height:auto;background:none;border:0;}
 .brand strong {font-size:15px;letter-spacing:.02em;}
 html[data-theme="light"] .glyph-codex,html[data-theme="classic"] .glyph-codex {color:#19385b;}
@@ -472,7 +475,7 @@ html[data-theme="white"] .chat-composer {background:#fff;box-shadow:0 8px 28px #
 html[data-theme="white"] .chat-workspace .chat-composer textarea {background:#f7f9fc;}
 html[data-theme="white"] .chat-message.assistant {background:#f7f9fc;}
 /* One adaptive header; account chips wrap instead of becoming a scroll strip. */
-.compact-workspace-header {display:flex;flex-wrap:wrap;align-items:center;gap:0;container-type:inline-size;}
+.compact-workspace-header {position:relative;z-index:10;display:flex;flex-wrap:wrap;align-items:center;gap:0;container-type:inline-size;}
 .compact-workspace-header .top-bar {flex:1 1 420px;width:auto;min-width:0;height:auto;min-height:48px;padding:8px 16px;gap:12px;flex-wrap:nowrap;border:0;}
 .compact-workspace-header .settings {display:flex;align-items:center;gap:8px;flex-shrink:0;}
 .compact-workspace-header .palette-trigger {height:32px;min-height:32px;padding:5px 9px;gap:6px;font-size:12px;}

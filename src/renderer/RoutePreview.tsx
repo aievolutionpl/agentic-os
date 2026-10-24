@@ -26,6 +26,7 @@ const REASONS: Record<string, [string, string]> = {
   NEEDS_APPROVAL: ["wymaga zgody", "needs approval"],
   TASK_PREFERENCE: ["preferowany dla tego zadania", "preferred for this task"],
   PAID_REQUIRES_MANUAL_CHOICE: ["płatne API wymaga ręcznego wyboru", "paid API requires manual choice"],
+  BILLING_UNVERIFIED: ["niepotwierdzony typ rozliczenia — sprawdź połączenie lub wybierz ręcznie", "billing unverified — check connection or choose manually"],
 };
 /** "+3 CONNECTION_VERIFIED" → "+3 połączenie sprawdzone". */
 export function reasonText(reason: string, pl: boolean) {
@@ -186,6 +187,7 @@ export function RoutePreview({
           {pl ? "Pokaż propozycję" : "Show proposal"}
         </button>
       </div>
+      {busy && jevEnabled && <button type="button" className="secondary" onClick={() => { void api.routingCancel?.(); }}>{pl ? "Anuluj decyzję Jev" : "Cancel Jev decision"}</button>}
       <details className="route-options">
         <summary>{pl ? "Preferencje zadania i model Jev" : "Task preferences and Jev decision model"}</summary>
         <label>{pl ? "Rodzaj pracy" : "Task type"}
@@ -226,6 +228,7 @@ export function RoutePreview({
             JEV_VALIDATED_CHOICE: pl ? "Jev: wybór sprawdzony względem dostępnych agentów." : "Jev: choice validated against eligible agents.",
             JEV_RULE_FALLBACK: pl ? "Jev niedostępny lub odpowiedź niepoprawna — zastosowano reguły." : "Jev unavailable or invalid response — rules applied.",
             JEV_CLARIFICATION_REQUIRED: pl ? "Jev potrzebuje dokładniejszego opisu. Doprecyzuj zadanie lub wybierz agenta ręcznie." : "Jev needs more context. Refine the task or choose an agent manually.",
+            JEV_CANCELLED: pl ? "Decyzja anulowana. Nie wybrano wykonawcy." : "Decision cancelled. No executor selected.",
           } as Record<string, string>)[result.implementer.reason]}</p>}
           {row(pl ? "Wykonawca" : "Implementer", result.implementer)}
           {row(pl ? "Recenzent" : "Reviewer", result.reviewer)}

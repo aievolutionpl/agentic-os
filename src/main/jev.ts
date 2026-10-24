@@ -19,10 +19,13 @@ export async function decideWithJev(
   task: string,
   run: (prompt: string, signal: AbortSignal) => Promise<string>,
   timeoutMs = 45_000,
+  signal?: AbortSignal,
 ): Promise<RoutingDecision> {
   if (!fallback.ranked.length) return fallback;
   const controller = new AbortController();
+  if (signal?.aborted) return { ...fallback, choice: null, reason: "JEV_CANCELLED" };
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let abort = () => controller.abort();
   try {
     const prompt = [
       "You are Jev, a routing decision model. Do not use tools, inspect files, or execute the task.",
@@ -33,14 +36,18 @@ export async function decideWithJev(
     ].join("\n");
     const timeout = new Promise<never>((_, reject) => {
       timer = setTimeout(() => { controller.abort(); reject(Error("JEV_TIMEOUT")); }, timeoutMs);
+      abort = () => { controller.abort(); reject(Error("JEV_CANCELLED")); };
+      signal?.addEventListener("abort", abort, { once: true });
     });
     const answer = await Promise.race([run(prompt, controller.signal), timeout]);
     const choice = parseJevChoice(answer, fallback.ranked.map(row => row.agent));
     return { ...fallback, choice, reason: choice ? "JEV_VALIDATED_CHOICE" : "JEV_CLARIFICATION_REQUIRED" };
   } catch {
+    if (signal?.aborted) return { ...fallback, choice: null, reason: "JEV_CANCELLED" };
     return { ...fallback, reason: "JEV_RULE_FALLBACK" };
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
     controller.abort();
   }
 }

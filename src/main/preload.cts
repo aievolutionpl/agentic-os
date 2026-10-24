@@ -44,6 +44,7 @@ const api: API = {
   policyApprove: (input) => ipcRenderer.invoke("app:policyApprove", input),
   routePreview: (input) => ipcRenderer.invoke("app:routePreview", input),
   routingHistory: () => ipcRenderer.invoke("app:routingHistory"),
+  routingCancel: () => ipcRenderer.invoke("app:routingCancel"),
   usageReport: () => ipcRenderer.invoke("app:usageReport"),
   memoryList: () => ipcRenderer.invoke("app:memoryList"),
   memoryGraph: () => ipcRenderer.invoke("app:memoryGraph"),

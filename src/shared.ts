@@ -726,6 +726,7 @@ export interface API {
   /** Usage ledger: per-agent totals for 30 days and the latest entries. */
   usageReport?(): Promise<{ summary: UsageSummary[]; recent: UsageEntry[] }>;
   routingHistory?(): Promise<RoutingHistoryEntry[]>;
+  routingCancel?(): Promise<void>;
   /** Preview a choice. Optional Jev performs one explicitly consented reasoning call. */
   routePreview?(input: {
     mode: RoutingMode;

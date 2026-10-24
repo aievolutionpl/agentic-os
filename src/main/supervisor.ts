@@ -340,7 +340,7 @@ export class Supervisor {
           ],
           detail:
             body.loggedIn === true
-              ? "CLI_SIGN_IN_VERIFIED"
+              ? body.authMethod === "claude.ai" ? "SUBSCRIPTION_SIGN_IN_VERIFIED" : "CLI_SIGN_IN_VERIFIED"
               : "SIGN_IN_REQUIRED",
         };
       }
@@ -375,7 +375,9 @@ export class Supervisor {
         return {
           ...result,
           state: auth.account ? "connected" : "needs-auth",
-          detail: auth.account ? "CLI_SIGN_IN_VERIFIED" : "SIGN_IN_REQUIRED",
+          detail: auth.account
+            ? auth.account.type === "chatgpt" ? "SUBSCRIPTION_SIGN_IN_VERIFIED" : "CLI_SIGN_IN_VERIFIED"
+            : "SIGN_IN_REQUIRED",
           models: Array.isArray(catalog.data)
             ? catalog.data
                 .flatMap((m: any) =>

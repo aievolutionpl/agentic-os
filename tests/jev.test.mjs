@@ -33,12 +33,23 @@ test("no eligible candidate means no model call", async () => {
   const empty = { ...fallback, choice: null, ranked: [] };
   assert.equal(await decideWithJev(empty, "task", () => { throw Error("must not call"); }), empty);
 });
+test("cancelling Jev aborts inference and never applies rule fallback as a choice", async () => {
+  const controller = new AbortController();
+  let signal;
+  const pending = decideWithJev(fallback, "task", (_, s) => { signal = s; return new Promise(() => {}); }, 1000, controller.signal);
+  controller.abort();
+  const result = await pending;
+  assert.equal(signal.aborted, true);
+  assert.equal(result.choice, null);
+  assert.equal(result.reason, "JEV_CANCELLED");
+});
 test("strict automatic routing never falls back to unverified or paid agents", () => {
-  const fact = { configured: true, check: "connected", quota: "active", paid: false, policy: "allow", successes: 0, lastFailed: false };
+  const fact = { configured: true, check: "connected", quota: "active", paid: false, billing: "subscription", policy: "allow", successes: 0, lastFailed: false };
   const request = { mode: "balanced", role: "implementer", readOnly: false, strict: true, taskKind: "writing" };
   const facts = [{ ...fact, agent: "codex" }, { ...fact, agent: "claude" }];
   assert.equal(route(request, facts).choice, "claude");
   assert.equal(route(request, facts.map(f => ({ ...f, paid: true }))).choice, null);
   assert.equal(route(request, facts.map(f => ({ ...f, check: null }))).choice, null);
+  assert.equal(route(request, facts.map(f => ({ ...f, billing: "unknown" }))).choice, null);
   assert.equal(route(request, facts.map(f => ({ ...f, policy: "approve" }))).choice, null);
 });

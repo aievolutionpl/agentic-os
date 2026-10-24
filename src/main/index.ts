@@ -103,6 +103,8 @@ let integrations: Integrations | undefined;
 let browser: ProjectBrowser | undefined;
 let terminals: Terminals | undefined;
 let jevBusy = false;
+let jevController: AbortController | undefined;
+let jevRun: Promise<string> | undefined;
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 let window: BrowserWindow | null = null;
@@ -818,6 +820,9 @@ app
             })(),
             quota: quotaState(cards, agent),
             paid,
+            billing: agent === "local" ? "local" as const
+              : checks.find(c => c.agent === agent)?.detail === "SUBSCRIPTION_SIGN_IN_VERIFIED"
+                ? "subscription" as const : "unknown" as const,
             policy: verdict.verdict,
             policyReasons: verdict.reasons,
             successes: runs?.successes ?? 0,
@@ -842,11 +847,12 @@ app
         const decisionAgent = jev.agent as Agent;
         // A decision model cannot grant itself paid access or bypass policy.
         const source = facts.find(f => f.agent === decisionAgent);
-        if (!source?.configured || source.check !== "connected" || source.paid ||
+        if (!source?.configured || source.check !== "connected" || source.paid || source.billing === "unknown" ||
             source.policy !== "allow" || source.quota === "exhausted")
           return routingHistory.record({ ...decision, reason: "JEV_RULE_FALLBACK" });
         if (jevBusy) throw Error("JEV_BUSY");
         jevBusy = true;
+        jevController = new AbortController();
         try {
           const health = await supervisor.health({ agent: decisionAgent });
           if (health.state !== "connected" || !health.models.some(model => model.id === jev.model))
@@ -854,10 +860,17 @@ app
           const cwd = join(app.getPath("userData"), "routing-decision");
           mkdirSync(cwd, { recursive: true });
           return routingHistory.record(await decideWithJev(decision, p.task as string,
-            (prompt, signal) => supervisor.conversation(decisionAgent, cwd, prompt, true,
-              signal, () => {}, jev.model as string)));
-        } finally { jevBusy = false; }
+            (prompt, signal) => {
+              jevRun = supervisor.conversation(decisionAgent, cwd, prompt, true, signal, () => {}, jev.model as string);
+              return jevRun;
+            }, 45_000, jevController.signal));
+        } finally {
+          // Keep the guard until the aborted provider process has stopped.
+          await jevRun?.catch(() => {});
+          jevRun = undefined; jevController = undefined; jevBusy = false;
+        }
       },
+      routingCancel: () => { jevController?.abort(); },
       routingHistory: () => routingHistory.list(),
       policyApprove: (input) => {
         const p = exact(input, ["agent", "consent"]);
@@ -1170,8 +1183,10 @@ app.on("before-quit", (event) => {
   event.preventDefault();
   if (shuttingDown) return;
   shuttingDown = true;
+  jevController?.abort();
   orchestrator?.close();
   void Promise.all([
+    jevRun?.catch(() => {}),
     scheduleRunner?.close(),
     masterAgent?.close(),
     chats?.close(),

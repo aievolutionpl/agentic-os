@@ -31,6 +31,9 @@ Writing prefers Claude; coding prefers Codex; general uses evidence-based scores
 Automatic proposals require fresh connection checks and exclude exhausted,
 policy-blocked, approval-pending and paid API agents. Manual selection remains
 available and execution always passes through the existing workspace policy.
+Codex/Claude subscription authentication must be confirmed by a fresh provider
+check; a CLI signed in with an unknown billing method is not automatically selected.
+Other providers with unverified billing remain available through manual selection.
 
 Jev is a role, not a new provider or fabricated model. Enable it and select an
 existing read-only-capable provider and a model from its connection catalog.
@@ -44,6 +47,8 @@ Unknown IDs, extra permission fields, failures and timeouts use the deterministi
 fallback. A null answer asks the user to clarify; it does not launch work. The
 reviewer uses rules and cannot be the author. Applying the proposal still requires
 a click. Changing task/options invalidates the previous proposal.
+Cancel stops the decision call without applying a fallback choice; application
+shutdown also aborts the provider and waits for its process cleanup.
 
 The decision call uses a separate directory and the existing read-only adapter.
 The prompt forbids tools, but this is not a new universal tool-free sandbox:

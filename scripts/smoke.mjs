@@ -142,6 +142,7 @@ try {
       "policyApprove",
       "routePreview",
       "routingHistory",
+      "routingCancel",
       "providerInstallPlan",
       "providerInstallStart",
       "providerLoginStart",

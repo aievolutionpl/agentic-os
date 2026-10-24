@@ -267,7 +267,7 @@ try {
             .click();
           if (label === "skills") {
             await page.getByText("frontend design", { exact: true }).waitFor();
-            assert.equal(await page.locator(".extension-list > li").count(), 23);
+            assert.equal(await page.locator(".extension-list > li").count(), 33);
             await page
               .getByRole("searchbox", { name: "Szukaj skilla lub narzędzia" })
               .fill("verification before completion");

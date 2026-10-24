@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import type { ChatSession, Project } from "../shared";
 import appLogo from "./assets/agenting-logo.png";
+import appLogoDark from "./assets/agenting-logo-dark.png";
 import { Icon } from "./ui";
 
 export function BrandMark() {
-  return <span className="app-logo-crop"><img src={appLogo} alt="" /></span>;
+  return <span className="app-logo-crop"><img className="app-logo-light" src={appLogo} alt="" /><img className="app-logo-dark" src={appLogoDark} alt="" /></span>;
 }
 export function WorkspaceNavigation({ projects, pl, view, navigate, openChat, newProject, settings, close, onRenamed }: {
   projects: Project[]; pl: boolean; view: string; navigate: (view: string, project?: string) => void;

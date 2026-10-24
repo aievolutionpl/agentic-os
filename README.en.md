@@ -4,7 +4,7 @@
 
 # Agenting OS
 
-**Upcoming:** in-app CLI installation, official login and optional **Jev** decision
+**New in 0.5.0-rc.3:** in-app CLI installation, official login and optional **Jev** decision
 model. In a task, choose its type, enable Jev, select a model and click “Show
 proposal”. Jev chooses among verified agents without granting permissions.
 Rules handle failures/timeouts; paid API requires manual selection.
@@ -16,7 +16,7 @@ Built by [AI Evolution Polska](https://www.aievolutionpolska.pl). [Polski](READM
 
 [![CI — main](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml)
 
-![Agenting OS workspace](docs/images/rc2/chat.png)
+![Agenting OS workspace](docs/images/rc3/chat.png)
 
 
 Agenting OS is a desktop application for AI conversations, project memory and supervised implementation workflows. Choose an agent and model, organize context, schedule work and inspect results in one window. Coding tasks use a separate implementation and review workflow.
@@ -24,24 +24,36 @@ Agenting OS is a desktop application for AI conversations, project memory and su
 
 ## 🖼️ Interface gallery
 
-Current 0.5.0-rc.2 screenshots captured in Electron with a sample project. Account states and data shown are test fixtures.
+Current 0.5.0-rc.3 screenshots captured in Electron with a sample project. Account states and data shown are test fixtures.
 
 | Chat | Agents |
 | --- | --- |
-| ![Chat](docs/images/rc2/chat.png) | ![Agents](docs/images/rc2/agents.png) |
+| ![Chat](docs/images/rc3/chat.png) | ![Agents](docs/images/rc3/agents.png) |
 | Skills | Plugins |
-| ![Skills](docs/images/rc2/skills.png) | ![Plugins](docs/images/rc2/plugins.png) |
+| ![Skills](docs/images/rc3/skills.png) | ![Plugins](docs/images/rc3/plugins.png) |
 | Memory | ScheduleJob |
-| ![Memory](docs/images/rc2/memory.png) | ![ScheduleJob](docs/images/rc2/schedule.png) |
+| ![Memory](docs/images/rc3/memory.png) | ![ScheduleJob](docs/images/rc3/schedule.png) |
 
 <details>
 <summary>Settings / Mobile</summary>
 
-![Settings](docs/images/rc2/settings.png)
+![Settings](docs/images/rc3/settings.png)
 
-<img src="docs/images/rc2/mobile.png" width="320" alt="Chat at 390 pixels">
+<img src="docs/images/rc3/mobile.png" width="320" alt="Chat at 390 pixels">
 
 </details>
+
+### Dark and light themes
+
+Midnight, Graphite and AI Evolution use white logo lettering with the colored orbit. Light themes keep the navy variant. Switching the theme in the header updates the logo immediately.
+
+| Pure White | Light Orange |
+| --- | --- |
+| ![Pure White](docs/images/rc3/pure-white.png) | ![Light Orange](docs/images/rc3/light-orange.png) |
+
+![Current conversation — AI Evolution](docs/images/rc3/conversation.png)
+
+Captured on 24 October 2026. The [gallery capture script](scripts/release-gallery.mjs) uses a disposable profile and does not run provider tasks.
 
 ## Getting started
 
@@ -78,7 +90,7 @@ Select a specific branch with `git switch <branch>` before installing dependenci
 | ScheduleJob | One-time, daily and selected-weekday schedules, pause controls and links to results. |
 | Terminal and Git | Native PTY terminal, repository inspection, diff viewing and result export. |
 
-The five visible palettes are **Pearl**, **Light Orange**, **Midnight**, **Graphite** and **AI Evolution**. Themes include the sidebar. Settings control content width, chat text size, project density, motion and glass effects. Active conversations have a compact composer and wider transcript. Wide windows combine the header and quotas into one row; smaller windows wrap controls. `Ctrl+K` / `Cmd+K` opens the command palette.
+The six visible palettes are **Pure White**, **Pearl**, **Light Orange**, **Midnight**, **Graphite** and **AI Evolution**. Themes include the sidebar. Settings control content width, chat text size, project density, motion and glass effects. Active conversations have a compact composer and wider transcript. Wide windows combine the header and quotas into one row; smaller windows wrap controls. `Ctrl+K` / `Cmd+K` opens the command palette.
 
 ## Agents and quotas
 

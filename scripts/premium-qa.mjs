@@ -62,7 +62,10 @@ try {
   await page.waitForFunction(async()=> (await window.agenting.memoryGraph()).nodes.some(n=>n.source.startsWith("auto:chat:")));
   await nav("Biblioteka skilli");await page.getByLabel("Projekt dla skilli").selectOption(project.id);
   await page.getByRole("textbox",{name:"Szukaj skilli"}).fill("webapp testing");
-  await page.getByRole("button",{name:"Dodaj do workspace",exact:true}).click();await page.getByRole("button",{name:"Dodano do projektu",exact:true}).waitFor();
+  await page.getByRole("button",{name:"Dodaj do workspace",exact:true}).click();
+  const skillToggle=page.getByRole("switch",{name:"Włączony · wyłącz",exact:true});
+  await skillToggle.waitFor();
+  assert.equal(await skillToggle.getAttribute("aria-checked"),"true");
   assert.ok(existsSync(join(projectRoot,".agents/skills/webapp-testing/scripts/with_server.py")));
   const memories=await page.evaluate(()=>window.agenting.memoryList());assert.ok(memories.some(m=>m.projectId === project.id&&m.source === "skill:builtin:webapp-testing"));
   report.checks.push("one-click-full-skill-package-and-project-memory");

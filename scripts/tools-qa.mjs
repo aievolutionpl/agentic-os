@@ -69,7 +69,7 @@ try {
   page = await desktop.firstWindow();
   page.on("pageerror", (e) => errors.push(e.message));
   // The app opens on the Control Center; pick the project from the sidebar.
-  await page.locator(".project-link", { hasText: a.name }).click();
+  await page.getByRole("button", { name: `Open project: ${a.name}`, exact: true }).click();
   await page.getByRole("heading", { name: a.name, exact: true }).waitFor();
   await page.getByRole("button", { name: "Extensions", exact: true }).click();
   await page.getByText("verification before completion", { exact: true }).waitFor();
@@ -125,7 +125,7 @@ try {
     .getByRole("button", { name: "Cancel", exact: true })
     .click();
   await page.getByRole("button", { name: "Extensions", exact: true }).click();
-  await page.locator(".project-link", {hasText:b.name}).click();
+  await page.getByRole("button", { name: `Open project: ${b.name}`, exact: true }).click();
   await page.getByRole("heading", { name: b.name, exact: true }).waitFor();
   await page.getByRole("button", { name: "Extensions", exact: true }).click();
   assert.equal(
@@ -170,7 +170,7 @@ try {
     // A reload returns to the Control Center; reopen the project at desktop width.
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.waitForFunction(() => innerWidth >= 1000);
-    await page.locator(".project-link", { hasText: a.name }).click();
+    await page.getByRole("button", { name: `Open project: ${a.name}`, exact: true }).click();
     await page.getByRole("button", { name: "Extensions", exact: true }).click();
     await page.getByText("verification before completion", { exact: true }).waitFor();
     for (const width of [1440, 390]) {

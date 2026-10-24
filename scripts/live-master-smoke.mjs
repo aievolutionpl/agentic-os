@@ -63,9 +63,9 @@ try {
   page = await app.firstWindow();
   page.on("pageerror", (e) => report.errors.push(e.message));
   await page
-    .locator(".project-link", { hasText: project.name })
+    .getByRole("button", { name: `Otwórz projekt: ${project.name}`, exact: true })
     .waitFor({ timeout: 90000 });
-  await page.locator(".project-link", { hasText: project.name }).click();
+  await page.getByRole("button", { name: `Otwórz projekt: ${project.name}`, exact: true }).click();
   await page
     .locator(".tabs")
     .getByRole("button", { name: "Master Agent", exact: true })

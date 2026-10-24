@@ -450,7 +450,7 @@ try {
   );
   await page.setViewportSize({ width: 1440, height: 1000 });
   await chooseTheme(page, "Midnight");
-  await page.locator(".project-link", { hasText: project.name }).click();
+  await page.getByRole("button", { name: `Otwórz projekt: ${project.name}`, exact: true }).click();
   await page
     .getByRole("heading", { name: project.name, exact: true })
     .waitFor();

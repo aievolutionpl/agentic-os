@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { Extension, Memory, Project } from "../shared";
+import { skillSourceLabel } from "../shared";
 import { Icon, Modal } from "./ui";
 import { MemoryGraphPanel } from "./MemoryGraphPanel";
 import { skillBenefits } from "./skill-benefits";
@@ -266,13 +267,7 @@ export function SkillsHub({
             </span>
             <div>
               <span className="skill-origin">
-                {skill.source.includes("officialskills.sh/googleworkspace")
-                  ? "OFFICIALSKILLS.SH · GOOGLE WORKSPACE"
-                  : skill.source.includes("officialskills.sh/browserbase")
-                    ? "OFFICIALSKILLS.SH · BROWSERBASE"
-                    : skill.source.includes("github.com")
-                      ? "OPEN SOURCE · GITHUB"
-                      : "AI EVOLUTION POLSKA"}
+                {skillSourceLabel(skill.source)}
               </span>
               <h2>{skill.name}</h2>
               <p className="skill-benefit">{pl ? (skillBenefits[skill.slug ?? ""]?.[0] ?? "Własna instrukcja pracy agenta. Otwórz szczegóły, aby poznać jej zastosowanie.") : skill.description ?? skill.name}</p>

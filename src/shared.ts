@@ -8,6 +8,20 @@ export const AGENTS = [
   "antigravity",
 ] as const;
 export type Agent = (typeof AGENTS)[number];
+/** Source attribution is based on a parsed origin, never a substring in a URL. */
+export function skillSourceLabel(source: string): string {
+  try {
+    const url = new URL(source);
+    if (url.protocol !== "https:" || url.username || url.password || url.port) return "CUSTOM SOURCE";
+    if (url.hostname === "github.com") return "GITHUB";
+    if (url.hostname === "officialskills.sh") {
+      const owner = url.pathname.split("/")[1];
+      if (owner === "googleworkspace") return "OFFICIALSKILLS.SH · GOOGLE WORKSPACE";
+      if (owner === "browserbase") return "OFFICIALSKILLS.SH · BROWSERBASE";
+    }
+  } catch { /* Local/imported files have no remote publisher attribution. */ }
+  return "CUSTOM SOURCE";
+}
 export interface ProviderInstallPlan {
   agent: Agent; command: string; url: string; platform: string;
   missing: string[]; ready: boolean; executable: string | null;

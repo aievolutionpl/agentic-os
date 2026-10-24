@@ -15,6 +15,7 @@ const TERMINAL_THEMES: Record<
     selectionBackground: string;
   }
 > = {
+  white: {background:"#ffffff",foreground:"#202c3c",cursor:"#285fc1",selectionBackground:"#d8e6fc"},
   dark: {background:"#1b2b40",foreground:"#ecf3fc",cursor:"#a5d8f4",selectionBackground:"#355471"},
   claude: {background:"#282e33",foreground:"#edf1f5",cursor:"#bdcbd6",selectionBackground:"#45565f"},
   codex: {background:"#292039",foreground:"#f4effc",cursor:"#a9e6b4",selectionBackground:"#4b3c63"},
@@ -22,7 +23,7 @@ const TERMINAL_THEMES: Record<
   classic: {background:"#fffdfa",foreground:"#322b26",cursor:"#a74325",selectionBackground:"#ead0b6"},
 };
 
-function TerminalView({
+export function TerminalView({
   session,
   pl,
   theme,

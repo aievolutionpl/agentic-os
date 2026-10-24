@@ -80,7 +80,7 @@ try {
   });
   const page = await app.firstWindow(); page.setDefaultTimeout(15000);
   await page
-    .locator(".project-link", { hasText: a.name })
+    .getByRole("button", { name: `Otwórz projekt: ${a.name}`, exact: true })
     .waitFor({ timeout: 90000 });
   page.on("pageerror", (error) => result.errors.push(error.message));
   await navigateWorkspace(page, "Centrum dowodzenia");
@@ -90,10 +90,10 @@ try {
     .waitFor({ timeout: 60000 });
   async function nav(name) { await navigateWorkspace(page, name); }
   await nav("Limity i tokeny");
-  // Providers without a reading collapse into one honest line, never a gauge.
-  await page.locator('.quota-idle [data-quota="antigravity"]').waitFor();
+  // Unconnected subscriptions are hidden rather than advertised as active.
+  await page.getByRole("button", { name: "Dodaj budżet", exact: true }).waitFor();
   assert.equal(
-    await page.locator('[data-quota="antigravity"] .budget-gauge').count(),
+    await page.locator('[data-quota="antigravity"]').count(),
     0,
   );
   await page.getByRole("button", { name: "Dodaj budżet", exact: true }).click();
@@ -124,7 +124,7 @@ try {
   );
   result.checks.push("manual-budget-create-edit-persisted");
   await nav("Połączenia i modele");
-  assert.equal(await page.locator(".provider-picker > button").count(), 6);
+  assert.equal(await page.getByRole("group", { name: "Wybierz agenta", exact: true }).getByRole("button").count(), 6);
   await page
     .locator(".provider-picker")
     .getByRole("button", { name: /Claude Code/ })
@@ -260,14 +260,14 @@ try {
         if (["team", "skills", "master"].includes(label)) {
           if (await page.locator(".projects-toggle").isVisible())
             await page.locator(".projects-toggle").click();
-          await page.locator(".project-link", { hasText: a.name }).click();
+          await page.getByRole("button", { name: `Otwórz projekt: ${a.name}`, exact: true }).click();
           await page
             .locator(".tabs")
             .getByRole("button", { name: new RegExp(`^${name}`) })
             .click();
           if (label === "skills") {
             await page.getByText("frontend design", { exact: true }).waitFor();
-            assert.equal(await page.locator(".extension-list > li").count(), 23);
+            assert.equal(await page.locator(".extension-list > li").count(), 33);
             await page
               .getByRole("searchbox", { name: "Szukaj skilla lub narzędzia" })
               .fill("verification before completion");

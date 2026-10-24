@@ -62,7 +62,10 @@ try {
   await page.waitForFunction(async()=> (await window.agenting.memoryGraph()).nodes.some(n=>n.source.startsWith("auto:chat:")));
   await nav("Biblioteka skilli");await page.getByLabel("Projekt dla skilli").selectOption(project.id);
   await page.getByRole("textbox",{name:"Szukaj skilli"}).fill("webapp testing");
-  await page.getByRole("button",{name:"Dodaj do workspace",exact:true}).click();await page.getByRole("button",{name:"Dodano do projektu",exact:true}).waitFor();
+  await page.getByRole("button",{name:"Dodaj do workspace",exact:true}).click();
+  const skillToggle=page.getByRole("switch",{name:"Włączony · wyłącz",exact:true});
+  await skillToggle.waitFor();
+  assert.equal(await skillToggle.getAttribute("aria-checked"),"true");
   assert.ok(existsSync(join(projectRoot,".agents/skills/webapp-testing/scripts/with_server.py")));
   const memories=await page.evaluate(()=>window.agenting.memoryList());assert.ok(memories.some(m=>m.projectId === project.id&&m.source === "skill:builtin:webapp-testing"));
   report.checks.push("one-click-full-skill-package-and-project-memory");
@@ -77,7 +80,7 @@ try {
   report.checks.push("every-configured-subscription-has-a-full-card-with-honest-unknowns");
   await nav("Czaty");await page.getByRole("button",{name:"Nowy czat",exact:true}).click();
   await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Midnight",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "dark");await capture("graphite-chat-1440");
-  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Claude Light",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "classic");
+  await page.getByRole("button",{name:"Kolorystyka",exact:true}).click();await page.getByRole("option",{name:"Light Orange",exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme === "classic");
   assert.equal((await page.evaluate(()=>window.agenting.snapshot())).preferences.theme,"classic");
   report.checks.push("Classic-palette-selects-and-persists-over-ipc");assert.deepEqual(report.errors,[]);report.status="passed";
 } catch(error) { report.status="failed";report.error=String(error);process.exitCode=1;console.error(error);await page?.screenshot({path:join(output,"failure.png"),fullPage:true}).catch(()=>{}); }

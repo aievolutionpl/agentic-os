@@ -1,4 +1,5 @@
-import {voiceAvailable,transcribeVoice} from "./voice.js";
+import { Integrations } from "./integrations.js";
+import {voiceAvailable,transcribeVoice,prepareVoice} from "./voice.js";
 import { ScheduleRunner, executeScheduledChat } from "./schedules.js";
 import { ClaudeUsage } from "./claude-usage.js";
 import {
@@ -50,6 +51,9 @@ import { LocalModelConnection } from "./local-model.js";
 import { Chats, githubRepositories } from "./chats.js";
 import { evaluatePolicy, PaidApprovals } from "./policy.js";
 import { route } from "./router.js";
+import { decideWithJev } from "./jev.js";
+import { ProviderInstaller } from "./provider-install.js";
+import { RoutingHistory } from "./routing-history.js";
 import { QuotaMonitor } from "./quota-monitor.js";
 import { readSkillFile } from "./skill-files.js";
 import { MemoryVault } from "./memory-vault.js";
@@ -63,6 +67,7 @@ import {
 } from "./github-integration.js";
 import {
   AGENTS,
+  READ_ONLY_AGENTS,
   type Agent,
   type ProviderHealth,
   type RoutingMode,
@@ -94,8 +99,12 @@ let quotaMonitor: QuotaMonitor | undefined;
 let memoryVault: MemoryVault | undefined;
 let login: CodexAdapter | undefined;
 let mcp: McpTools | undefined;
+let integrations: Integrations | undefined;
 let browser: ProjectBrowser | undefined;
 let terminals: Terminals | undefined;
+let jevBusy = false;
+let jevController: AbortController | undefined;
+let jevRun: Promise<string> | undefined;
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
 let window: BrowserWindow | null = null;
@@ -140,6 +149,8 @@ app
       if (!project) throw Error("PROJECT_NOT_FOUND");
       return project.root;
     });
+    const installer = new ProviderInstaller(terminals);
+    const routingHistory = new RoutingHistory(app.getPath("userData"));
     const router = new OpenRouterConnection(app.getPath("userData"), {
       available: () =>
         safeStorage.isEncryptionAvailable() &&
@@ -151,6 +162,10 @@ app
     const localModel = new LocalModelConnection(app.getPath("userData"));
     // Isolated in-memory network session: renderer requests remain blocked.
     const quotaNetwork = session.fromPartition("quota-account");
+    integrations = new Integrations(app.getPath("userData"), {
+      available: () => safeStorage.isEncryptionAvailable() && (process.platform !== "linux" || safeStorage.getSelectedStorageBackend() !== "basic_text"),
+      encrypt: value => safeStorage.encryptString(value), decrypt: value => safeStorage.decryptString(value),
+    }, url => shell.openExternal(url), quotaNetwork.fetch.bind(quotaNetwork) as typeof fetch);
     const claudeUsage = new ClaudeUsage(undefined, quotaNetwork.fetch.bind(quotaNetwork) as typeof fetch);
     const limitBridge = new LimitBridge(app.getPath("userData"));
     // An app update moves the runtime; a linked status line keeps working.
@@ -443,6 +458,7 @@ app
       memoryUpdate: (input) => store.updateMemory(input),
       voiceBegin:()=>{if(!voiceAvailable())return false;voicePermissionUntil=Date.now()+10000;return true;},
       voiceTranscribe:transcribeVoice,
+      voicePrepare:prepareVoice,
       skillCatalog: () => store.extensions.catalog(),
       skillInstall: async (input) => {
         const p = exact(input, ["projectId", "id", "download"]),
@@ -680,6 +696,22 @@ app
         store.capabilities.clear((input as { agent: Agent }).agent);
         quotaMonitor!.invalidate();
       },
+      integrationList: () => integrations!.list(),
+      integrationSave: input => integrations!.save(input),
+      integrationConnect: input => integrations!.connect(input),
+      integrationDisconnect: input => integrations!.disconnect(input),
+      integrationTools: input => integrations!.listTools(input),
+      integrationCall: input => integrations!.call(input),
+      providerToggle: (input) => {
+        const p = exact(input, ["agent", "enabled"]);
+        if (!AGENTS.includes(p.agent as Agent) || typeof p.enabled !== "boolean") throw Error("INVALID_INPUT");
+        const agent = p.agent as Agent, saved = store.runs.provider(agent);
+        if (!saved) throw Error("PROVIDER_NOT_CONFIGURED");
+        if (p.enabled) supervisor.configure({agent, command:saved.command, args:saved.args, protocol:saved.protocol, profile:saved.profile, model:saved.model, consent:true});
+        else store.runs.disableProvider(agent);
+        store.capabilities.clear(agent);
+        quotaMonitor!.invalidate();
+      },
       providerSettings: () => {
         const checks = store.capabilities.list();
         return supervisor.settings().map((setting) => {
@@ -718,6 +750,7 @@ app
           "readOnly",
           "author",
           "preferred",
+          "taskKind", "strict", "task", "jev",
         ]);
         const mode = String(p.mode) as RoutingMode;
         if (
@@ -733,6 +766,15 @@ app
           (p.preferred !== undefined && !AGENTS.includes(p.preferred as Agent))
         )
           throw Error("INVALID_INPUT");
+        if ((p.taskKind !== undefined && !["general", "writing", "coding"].includes(String(p.taskKind))) ||
+            (p.strict !== undefined && typeof p.strict !== "boolean") ||
+            (p.task !== undefined && (typeof p.task !== "string" || p.task.length > 4000)))
+          throw Error("INVALID_INPUT");
+        const jev = p.jev === undefined ? null : exact(p.jev, ["agent", "model", "consent"]);
+        if (jev && (jev.consent !== true || !READ_ONLY_AGENTS.includes(jev.agent as Agent) ||
+            typeof jev.model !== "string" || !jev.model.trim() || jev.model.length > 200 ||
+            mode === "manual" || typeof p.task !== "string" || !p.task.trim()))
+          throw Error("JEV_INVALID_REQUEST");
         const settings = supervisor.settings(),
           checks = store.capabilities.list(),
           // History for the role being routed: reviews count for reviewers.
@@ -778,6 +820,9 @@ app
             })(),
             quota: quotaState(cards, agent),
             paid,
+            billing: agent === "local" ? "local" as const
+              : checks.find(c => c.agent === agent)?.detail === "SUBSCRIPTION_SIGN_IN_VERIFIED"
+                ? "subscription" as const : "unknown" as const,
             policy: verdict.verdict,
             policyReasons: verdict.reasons,
             successes: runs?.successes ?? 0,
@@ -786,17 +831,47 @@ app
               (runs.lastSuccessAt ?? 0) < runs.lastFailureAt,
           };
         });
-        return route(
+        const decision = route(
           {
             mode,
             role: p.role as "implementer" | "reviewer",
             readOnly: p.readOnly,
             author: p.author as Agent | undefined,
             preferred: p.preferred as Agent | undefined,
+            taskKind: p.taskKind as "general" | "writing" | "coding" | undefined,
+            strict: p.strict === true || !!jev,
           },
           facts,
         );
+        if (!jev || !decision.choice) return routingHistory.record(decision);
+        const decisionAgent = jev.agent as Agent;
+        // A decision model cannot grant itself paid access or bypass policy.
+        const source = facts.find(f => f.agent === decisionAgent);
+        if (!source?.configured || source.check !== "connected" || source.paid || source.billing === "unknown" ||
+            source.policy !== "allow" || source.quota === "exhausted")
+          return routingHistory.record({ ...decision, reason: "JEV_RULE_FALLBACK" });
+        if (jevBusy) throw Error("JEV_BUSY");
+        jevBusy = true;
+        jevController = new AbortController();
+        try {
+          const health = await supervisor.health({ agent: decisionAgent });
+          if (health.state !== "connected" || !health.models.some(model => model.id === jev.model))
+            return routingHistory.record({ ...decision, reason: "JEV_RULE_FALLBACK" });
+          const cwd = join(app.getPath("userData"), "routing-decision");
+          mkdirSync(cwd, { recursive: true });
+          return routingHistory.record(await decideWithJev(decision, p.task as string,
+            (prompt, signal) => {
+              jevRun = supervisor.conversation(decisionAgent, cwd, prompt, true, signal, () => {}, jev.model as string);
+              return jevRun;
+            }, 45_000, jevController.signal));
+        } finally {
+          // Keep the guard until the aborted provider process has stopped.
+          await jevRun?.catch(() => {});
+          jevRun = undefined; jevController = undefined; jevBusy = false;
+        }
       },
+      routingCancel: () => { jevController?.abort(); },
+      routingHistory: () => routingHistory.list(),
       policyApprove: (input) => {
         const p = exact(input, ["agent", "consent"]);
         if (p.consent !== true || !AGENTS.includes(p.agent as Agent))
@@ -941,6 +1016,10 @@ app
       },
       projectData: (id) => store.projectData(id),
       terminalList: () => terminals!.list(),
+      providerInstallPlan: input => installer.plan(input),
+      providerInstallStart: input => installer.start(input),
+      providerLoginStart: input => installer.login(input),
+      providerInstallStatus: input => installer.status(input),
       terminalOpen: (input) => terminals!.open(input),
       terminalRead: (input) => terminals!.read(input),
       terminalWrite: (input) => terminals!.write(input),
@@ -1028,6 +1107,7 @@ app
             throw Error(code);
           // Policy refusals are user-facing decisions on every channel.
           if (code.startsWith("POLICY_")) throw Error(code);
+          if (name.startsWith("integration") && /^PLUGIN_[A-Z_]+$/.test(code)) throw Error(code);
           if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
           if (name === "harnessSave" && code === "HARNESS_SETTINGS_CONFLICT") throw Error(code);
           if (["contextPreview", "memoryExport"].includes(name) &&
@@ -1103,14 +1183,17 @@ app.on("before-quit", (event) => {
   event.preventDefault();
   if (shuttingDown) return;
   shuttingDown = true;
+  jevController?.abort();
   orchestrator?.close();
   void Promise.all([
+    jevRun?.catch(() => {}),
     scheduleRunner?.close(),
     masterAgent?.close(),
     chats?.close(),
     quotaMonitor?.close(),
     supervisor?.close(),
     mcp?.close(),
+    integrations?.close(),
     terminals?.dispose(),
     memoryVault?.close(),
   ]).finally(() => {

@@ -1,0 +1,21 @@
+import {build} from 'esbuild';
+import {JSDOM} from 'jsdom';
+import React,{act,useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import assert from 'node:assert/strict';
+await build({entryPoints:['src/renderer/ModelPicker.tsx'],bundle:true,loader:{'.svg':'text'},platform:'node',format:'esm',external:['react','react-dom','lucide-react'],outfile:'.runtime/model-picker-test.mjs'});
+const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost'});
+Object.assign(globalThis,{window:dom.window,document:dom.window.document,IS_REACT_ACT_ENVIRONMENT:true});
+const {ModelPicker}=await import('../.runtime/model-picker-test.mjs');
+const root=createRoot(document.getElementById('root'));let current,check;
+window.agenting={providerCheck:()=>new Promise(resolve=>check=resolve)};
+function Harness({agent,provider}){const [value,setValue]=useState('');current=value;return React.createElement(ModelPicker,{agent,provider,value,pl:true,onChange:setValue});}
+await act(async()=>root.render(React.createElement(Harness,{key:'a',agent:'codex',provider:{configured:true,model:'configured/model',lastCheck:{models:[{id:'other',name:'Other'}]}}})));
+assert.equal(current,'configured/model');
+await act(async()=>root.render(React.createElement(Harness,{key:'c',agent:'antigravity',provider:{configured:true}})));
+assert.equal(current,'');
+await act(async()=>check({state:'connected',models:[{id:'discovered/model',name:'Discovered model'}]}));
+assert.equal(current,'discovered/model');
+assert.equal(document.querySelector('select').value,'discovered/model');
+await act(async()=>root.unmount());
+console.log('PASS: configured, cached, and asynchronously discovered models are explicitly selected');

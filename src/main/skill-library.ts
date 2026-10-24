@@ -39,7 +39,7 @@ function safeDirectory(parent: string, name: string) {
   mkdirSync(path, { recursive: true });
   return path;
 }
-/** Install only pinned, bundled packages; a click never downloads or executes scripts. */
+/** Install pinned packages; optional upstream verification never executes package scripts. */
 export async function installSkillFiles(projectRoot: string, skill: Extension, download = false, fetchSource: typeof fetch = fetch) {
   if (!skill.slug || !/^[a-z0-9-]+$/.test(skill.slug))
     throw Error("SKILL_NOT_INSTALLABLE");
@@ -136,4 +136,16 @@ export async function installSkillFiles(projectRoot: string, skill: Extension, d
       throw error;
   }
   return destination;
+}
+
+/** Keep disabled packages outside the agent discovery directory, preserving local edits. */
+export function setSkillFilesEnabled(projectRoot: string, slug: string, enabled: boolean) {
+  if (!/^[a-z0-9-]+$/.test(slug)) throw Error("SKILL_PATH_UNSAFE");
+  const project=realpathSync.native(projectRoot);
+  const agents=safeDirectory(project,".agents");
+  const active=safeDirectory(agents,"skills"), inactive=safeDirectory(agents,"disabled-skills");
+  const from=join(enabled?inactive:active,slug), to=join(enabled?active:inactive,slug);
+  if (!existsSync(from) || lstatSync(from).isSymbolicLink() || !lstatSync(from).isDirectory()) throw Error("SKILL_PATH_UNSAFE");
+  if (existsSync(to)) throw Error("SKILL_FOLDER_EXISTS");
+  renameSync(from,to);
 }

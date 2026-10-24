@@ -129,7 +129,7 @@ export function ChatWorkspace({
   onTask,
 }: {
   language: "pl" | "en";
-  request?: { id: string; project?: string; nonce: number };
+  request?: { id: string; project?: string; nonce: number; firstTaskAgent?: Agent };
   projects: Project[];
   onConfigure: () => void;
   onProjectsChanged: () => void;
@@ -315,6 +315,15 @@ export function ChatWorkspace({
     if (!request.id) {
       setExisting(request.project ?? "");
       setSource(request.project ? "local" : "default");
+      if (request.firstTaskAgent) {
+        setAgent(request.firstTaskAgent);
+        setModel("");
+        setSource("local");
+        setMode(READ_ONLY_AGENTS.includes(request.firstTaskAgent) ? "plan" : "chat");
+        if (!draft.message.trim()) setMessage(pl
+          ? "Sprawdź strukturę wybranego projektu. Wyjaśnij krótko, do czego służy i wskaż trzy kolejne kroki. Nie zmieniaj plików."
+          : "Inspect the selected project structure. Briefly explain its purpose and suggest three next steps. Do not change files.");
+      }
     }
   }, [request?.nonce]);
   async function create() {
@@ -556,86 +565,7 @@ export function ChatWorkspace({
                   className={`chat-composer start-composer${drop.over ? " drop-over" : ""}`}
                   {...drop.props}
                 >
-                  <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><VoiceInput pl={pl} onText={text=>setMessage(current=>`${current}${current ? "\n" : ""}${text}`)}/><div className="harness-slash-bar">
-                    <span className="harness-slash-label">
-                      {pl ? "Komendy:" : "Commands:"}
-                    </span>
-                    {[
-                      {
-                        cmd: "/plan",
-                        label: pl ? "Architektura" : "Architecture",
-                        action: () => {
-                          if (READ_ONLY_AGENTS.includes(agent)) setMode("plan");
-                          setMessage(
-                            pl
-                              ? "Przeanalizuj architekturę i przygotuj szczegółowy plan implementacji krok po kroku przed zmianą plików."
-                              : "Analyze the architecture and prepare a step-by-step implementation plan before modifying files.",
-                          );
-                        },
-                      },
-                      {
-                        cmd: "/review",
-                        label: "Code Review",
-                        action: () =>
-                          setMessage(
-                            pl
-                              ? "Przeprowadź rygorystyczny code review: wskaż błędy logiczne, luki bezpieczeństwa, regresje i brakujące testy."
-                              : "Run a rigorous code review: identify logic bugs, security issues, regressions, and missing tests.",
-                          ),
-                      },
-                      {
-                        cmd: "/test",
-                        label: "TDD & QA",
-                        action: () =>
-                          setMessage(
-                            pl
-                              ? "Napisz testy weryfikujące obecną funkcjonalność i krawędziowe przypadki zgodnie z TDD."
-                              : "Write tests verifying current functionality and edge cases following TDD.",
-                          ),
-                      },
-                      {
-                        cmd: "/archify",
-                        label: "C4 Docs",
-                        action: () =>
-                          setMessage(
-                            pl
-                              ? "Użyj skilla Archify: wygeneruj przegląd architektury systemu, granic modułów i diagramy Mermaid."
-                              : "Use Archify skill: generate system architecture overview, module boundaries, and Mermaid diagrams.",
-                          ),
-                      },
-                      {
-                        cmd: "/taste-ui",
-                        label: "Taste UI",
-                        action: () =>
-                          setMessage(
-                            pl
-                              ? "Zastosuj Taste-Skill: zaprojektuj i dopracuj UI o wysokim kunszcie (typografia, hierarchia, brak generycznych wzorców AI)."
-                              : "Apply Taste-Skill: design and refine high-craft UI (typography, hierarchy, zero generic AI slop).",
-                          ),
-                      },
-                      {
-                        cmd: "/humanize",
-                        label: "Humanizer",
-                        action: () =>
-                          setMessage(
-                            pl
-                              ? "Zastosuj Humanizer: usuń sztuczne sformułowania AI i nadaj tekstowi naturalny, precyzyjny ton."
-                              : "Apply Humanizer: strip AI writing tropes and rewrite with natural, precise human voice.",
-                          ),
-                      },
-                    ].map((item) => (
-                      <button
-                        key={item.cmd}
-                        type="button"
-                        className="slash-chip"
-                        disabled={busy}
-                        onClick={item.action}
-                      >
-                        <strong>{item.cmd}</strong>
-                        <span>{item.label}</span>
-                      </button>
-                    ))}
-                  </div></details>
+
                   <textarea
                     aria-label={pl ? "Pierwsza wiadomość" : "First message"}
                     value={message}
@@ -670,12 +600,13 @@ export function ChatWorkspace({
                       }
                     }}
                   />
-                  <AttachmentChips
+
+<AttachmentChips
                     files={attached.files}
                     pl={pl}
                     onRemove={attached.remove}
                   />
-                  <div className="composer-toolbar">
+                  <div className="composer-toolbar"><VoiceInput pl={pl} onText={text=>setMessage(current=>`${current}${current ? "\n" : ""}${text}`)}/>
                     <AttachButton
                       pl={pl}
                       disabled={busy}
@@ -742,8 +673,8 @@ export function ChatWorkspace({
                               (path.split(/[\\/]/).filter(Boolean).pop() ||
                                 (pl ? "Folder" : "Folder")))
                             : pl
-                              ? "Domyślny workspace"
-                              : "Default workspace"}
+                              ? "Moje rozmowy · nowy folder"
+                              : "My conversations · new folder"}
                         <Icon name="down" />
                       </summary>
                       <div className="composer-popover workspace-options">
@@ -918,6 +849,86 @@ export function ChatWorkspace({
                           : "Open conversation"}
                     </button>
                   </div>
+<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><div className="harness-slash-bar">
+                    <span className="harness-slash-label">
+                      {pl ? "Komendy:" : "Commands:"}
+                    </span>
+                    {[
+                      {
+                        cmd: "/plan",
+                        label: pl ? "Architektura" : "Architecture",
+                        action: () => {
+                          if (READ_ONLY_AGENTS.includes(agent)) setMode("plan");
+                          setMessage(
+                            pl
+                              ? "Przeanalizuj architekturę i przygotuj szczegółowy plan implementacji krok po kroku przed zmianą plików."
+                              : "Analyze the architecture and prepare a step-by-step implementation plan before modifying files.",
+                          );
+                        },
+                      },
+                      {
+                        cmd: "/review",
+                        label: "Code Review",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Przeprowadź rygorystyczny code review: wskaż błędy logiczne, luki bezpieczeństwa, regresje i brakujące testy."
+                              : "Run a rigorous code review: identify logic bugs, security issues, regressions, and missing tests.",
+                          ),
+                      },
+                      {
+                        cmd: "/test",
+                        label: "TDD & QA",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Napisz testy weryfikujące obecną funkcjonalność i krawędziowe przypadki zgodnie z TDD."
+                              : "Write tests verifying current functionality and edge cases following TDD.",
+                          ),
+                      },
+                      {
+                        cmd: "/archify",
+                        label: "C4 Docs",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Użyj skilla Archify: wygeneruj przegląd architektury systemu, granic modułów i diagramy Mermaid."
+                              : "Use Archify skill: generate system architecture overview, module boundaries, and Mermaid diagrams.",
+                          ),
+                      },
+                      {
+                        cmd: "/taste-ui",
+                        label: "Taste UI",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Zastosuj Taste-Skill: zaprojektuj i dopracuj UI o wysokim kunszcie (typografia, hierarchia, brak generycznych wzorców AI)."
+                              : "Apply Taste-Skill: design and refine high-craft UI (typography, hierarchy, zero generic AI slop).",
+                          ),
+                      },
+                      {
+                        cmd: "/humanize",
+                        label: "Humanizer",
+                        action: () =>
+                          setMessage(
+                            pl
+                              ? "Zastosuj Humanizer: usuń sztuczne sformułowania AI i nadaj tekstowi naturalny, precyzyjny ton."
+                              : "Apply Humanizer: strip AI writing tropes and rewrite with natural, precise human voice.",
+                          ),
+                      },
+                    ].map((item) => (
+                      <button
+                        key={item.cmd}
+                        type="button"
+                        className="slash-chip"
+                        disabled={busy}
+                        onClick={item.action}
+                      >
+                        <strong>{item.cmd}</strong>
+                        <span>{item.label}</span>
+                      </button>
+                    ))}
+                  </div></details>
                 </div>
                 {attached.problem && (
                   <p className="error" role="alert">
@@ -935,6 +946,7 @@ export function ChatWorkspace({
                   ].map((item) => (
                     <button
                       key={item.icon}
+                        data-intent={item.icon}
                       type="button"
                       onClick={() => {
                         setMessage(item.prompt);
@@ -1336,7 +1348,117 @@ export function ChatWorkspace({
                     {message.length.toLocaleString(language)} / 12 000
                   </span>
                 </div>
-                <details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><VoiceInput pl={pl} onText={text=>setMessage(current=>`${current}${current ? "\n" : ""}${text}`)}/><div className="harness-slash-bar">
+
+                <textarea
+                  aria-label={pl ? "Wiadomość do agenta" : "Message to agent"}
+                  value={message}
+                  maxLength={12000}
+                  placeholder={
+                    pl
+                      ? "Napisz, co chcesz zrobić…"
+                      : "What would you like to do?"
+                  }
+                  disabled={busy}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (
+                      e.key === "Enter" &&
+                      !e.shiftKey &&
+                      !e.nativeEvent.isComposing
+                    ) {
+                      e.preventDefault();
+                      void send();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    if (e.clipboardData.files.length) {
+                      e.preventDefault();
+                      void attached.add(e.clipboardData.files);
+                    }
+                  }}
+                />
+
+<AttachmentChips
+                  files={attached.files}
+                  pl={pl}
+                  onRemove={attached.remove}
+                />
+                {attached.problem && (
+                  <p className="error" role="alert">
+                    {explain(attached.problem)}
+                  </p>
+                )}
+                <div className="composer-toolbar"><VoiceInput pl={pl} onText={text=>setMessage(current=>`${current}${current ? "\n" : ""}${text}`)}/>
+                  <span className="composer-chip">
+                    <ProviderIcon provider={chat.agent} />
+                    {agentName(chat.agent)}
+                  </span>
+                  <ModelPicker
+                    agent={chat.agent}
+                    value={model}
+                    provider={providers.find((p) => p.id === chat.agent)}
+                    pl={pl}
+                    disabled={busy || running}
+                    onChange={setModel}
+                  />
+                  <AttachButton
+                    pl={pl}
+                    disabled={busy || running}
+                    onFiles={(f) => void attached.add(f)}
+                  />
+                  <span className="composer-chip" title={chat.root}>
+                    <Icon
+                      name={
+                        chat.source === "github"
+                          ? "github"
+                          : chat.source === "local"
+                            ? "folder"
+                            : "spark"
+                      }
+                    />
+                    {projects.find(project => project.id === chat.projectId)?.name || chat.repository || chat.root.split(/[\\/]/).filter(Boolean).pop()}
+                  </span>
+                  <span className="composer-chip">
+                    <Icon name={chat.mode === "plan" ? "plan" : "message"} />
+                    {chat.mode === "plan"
+                      ? pl
+                        ? "Planowanie"
+                        : "Planning"
+                      : pl
+                        ? "Rozmowa"
+                        : "Chat"}
+                  </span>
+                  <small>
+                    <Icon name="shield" />
+                    {READ_ONLY_AGENTS.includes(chat.agent)
+                      ? pl
+                        ? "Rozmowa i plan bez edycji plików"
+                        : "Chat and planning without file edits"
+                      : pl
+                        ? "Osobny workspace · zmiany nie trafiają do źródła"
+                        : "Separate workspace · changes are not applied to source"}
+                  </small>
+                  {running ? (
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => void action("stop")}
+                    >
+                      <Icon name="stop" />
+                      {pl ? "Zatrzymaj" : "Stop"}
+                    </button>
+                  ) : (
+                    <button
+                      className="primary"
+                      disabled={busy || attached.reading || !message.trim()}
+                    >
+                      <Icon name="send" />
+                      {pl ? "Wyślij" : "Send"}
+                    </button>
+                  )}
+                </div>
+<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><div className="harness-slash-bar">
                   <span className="harness-slash-label">
                     {pl ? "Komendy:" : "Commands:"}
                   </span>
@@ -1382,120 +1504,6 @@ export function ChatWorkspace({
                     </button>
                   ))}
                 </div></details>
-                <textarea
-                  aria-label={pl ? "Wiadomość do agenta" : "Message to agent"}
-                  value={message}
-                  maxLength={12000}
-                  placeholder={
-                    pl
-                      ? "Napisz, co chcesz zrobić…"
-                      : "What would you like to do?"
-                  }
-                  disabled={busy}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (
-                      e.key === "Enter" &&
-                      !e.shiftKey &&
-                      !e.nativeEvent.isComposing
-                    ) {
-                      e.preventDefault();
-                      void send();
-                    }
-                  }}
-                  onPaste={(e) => {
-                    if (e.clipboardData.files.length) {
-                      e.preventDefault();
-                      void attached.add(e.clipboardData.files);
-                    }
-                  }}
-                />
-                <AttachmentChips
-                  files={attached.files}
-                  pl={pl}
-                  onRemove={attached.remove}
-                />
-                {attached.problem && (
-                  <p className="error" role="alert">
-                    {explain(attached.problem)}
-                  </p>
-                )}
-                <div className="composer-toolbar">
-                  <span className="composer-chip">
-                    <ProviderIcon provider={chat.agent} />
-                    {agentName(chat.agent)}
-                  </span>
-                  <ModelPicker
-                    agent={chat.agent}
-                    value={model}
-                    provider={providers.find((p) => p.id === chat.agent)}
-                    pl={pl}
-                    disabled={busy || running}
-                    onChange={setModel}
-                  />
-                  <AttachButton
-                    pl={pl}
-                    disabled={busy || running}
-                    onFiles={(f) => void attached.add(f)}
-                  />
-                  <span className="composer-chip" title={chat.root}>
-                    <Icon
-                      name={
-                        chat.source === "github"
-                          ? "github"
-                          : chat.source === "local"
-                            ? "folder"
-                            : "spark"
-                      }
-                    />
-                    {chat.source === "default"
-                      ? pl
-                        ? "Domyślny workspace"
-                        : "Default workspace"
-                      : chat.source === "github"
-                        ? (chat.repository ?? "GitHub")
-                        : chat.root.split(/[\\/]/).filter(Boolean).pop()}
-                  </span>
-                  <span className="composer-chip">
-                    <Icon name={chat.mode === "plan" ? "plan" : "message"} />
-                    {chat.mode === "plan"
-                      ? pl
-                        ? "Planowanie"
-                        : "Planning"
-                      : pl
-                        ? "Rozmowa"
-                        : "Chat"}
-                  </span>
-                  <small>
-                    <Icon name="shield" />
-                    {READ_ONLY_AGENTS.includes(chat.agent)
-                      ? pl
-                        ? "Rozmowa i plan bez edycji plików"
-                        : "Chat and planning without file edits"
-                      : pl
-                        ? "Osobny workspace · zmiany nie trafiają do źródła"
-                        : "Separate workspace · changes are not applied to source"}
-                  </small>
-                  {running ? (
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() => void action("stop")}
-                    >
-                      <Icon name="stop" />
-                      {pl ? "Zatrzymaj" : "Stop"}
-                    </button>
-                  ) : (
-                    <button
-                      className="primary"
-                      disabled={busy || attached.reading || !message.trim()}
-                    >
-                      <Icon name="send" />
-                      {pl ? "Wyślij" : "Send"}
-                    </button>
-                  )}
-                </div>
               </form>
               <p className="composer-hint">
                 {pl

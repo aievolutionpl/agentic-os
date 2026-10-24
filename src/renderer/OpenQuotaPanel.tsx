@@ -1,3 +1,4 @@
+import { activeQuotaCards } from "../quota-visibility";
 import React, { useEffect, useRef, useState } from "react";
 import type {
   ProviderQuotaCard,
@@ -157,7 +158,7 @@ export function OpenQuotaPanel({
         ? await api.limitBridgeStatus().catch(() => [])
         : [];
       if (mounted.current) {
-        setCards(data.filter((c) => c.id !== "gemini"));
+        setCards(activeQuotaCards(data, connections));
         setProviders(connections);
         setLinks(bridges);
       }

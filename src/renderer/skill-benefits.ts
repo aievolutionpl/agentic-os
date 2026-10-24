@@ -1,4 +1,15 @@
 export const skillBenefits: Record<string, [string, string]> = {
+  "copywriting": ["Pisze strony, nagłówki i CTA na podstawie oferty oraz potrzeb odbiorcy.", "Jasny przekaz, który prowadzi do działania."],
+  "content-strategy": ["Planuje tematy, kanały publikacji i dystrybucję treści.", "Spójny plan komunikacji zamiast przypadkowych postów."],
+  "seo-audit": ["Analizuje widoczność strony i porządkuje poprawki według wpływu.", "Wiesz, co poprawić najpierw."],
+  "marketing-plan": ["Łączy cele, odbiorców, kanały i budżet w konkretny plan pracy.", "Kampania rozpisana na wykonalne kroki."],
+  "customer-research": ["Porządkuje wywiady, potrzeby, obiekcje i język klientów.", "Oferta oparta na potrzebach odbiorców."],
+  "social": ["Projektuje treści i harmonogram publikacji dopasowane do kanału.", "Pomysły na posty z konkretnym celem."],
+  "emails": ["Tworzy sekwencje wiadomości, segmentację i scenariusze kontaktu.", "Spójna komunikacja na całej ścieżce klienta."],
+  "ads": ["Planuje kampanie, testy kreacji, odbiorców i ocenę wyników.", "Budżet połączony z mierzalnym planem testów."],
+  "product-marketing": ["Ustala grupę odbiorców, wyróżniki i wspólny kontekst produktu.", "Jedna baza wiedzy dla całego marketingu."],
+  "sales-enablement": ["Przygotowuje argumenty, prezentacje i odpowiedzi na obiekcje.", "Zespół sprzedaży ma gotowe, spójne materiały."],
+
   "frontend-design": ["Projektuje czytelne strony i interfejsy dopasowane do marki.", "Od pomysłu do gotowego UI."],
   "webapp-testing": ["Sprawdza aplikację w przeglądarce, odtwarza błędy i zapisuje dowody.", "Wykrywasz usterki przed użytkownikami."],
   "mcp-builder": ["Buduje narzędzia MCP, które łączą agentów z Twoimi usługami.", "Agent może korzystać z własnych integracji."],

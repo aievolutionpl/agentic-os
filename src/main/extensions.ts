@@ -7,7 +7,7 @@ import type { ContextSkill } from "./knowledge.js";
 import { RpcProcess } from "./rpc.js";
 import type { Extension, McpTool } from "../shared.js";
 import { COMMUNITY_SKILLS } from "./community-skills.js";
-import { skillCatalog, installSkillFiles } from "./skill-library.js";
+import { skillCatalog, installSkillFiles, setSkillFilesEnabled } from "./skill-library.js";
 
 const BUILTINS: Extension[] = [
   {
@@ -190,6 +190,7 @@ export class Extensions {
       ...this.catalog().map((s) => ({
         ...s,
         installed: installed.has(s.id),
+        enabled: installed.get(s.id)?.enabled !== false,
         installPath: installed.get(s.id)?.installPath,
       })),
       ...this.db
@@ -318,7 +319,8 @@ export class Extensions {
   toggle(input: unknown): Extension {
     const p = exact(input, ["projectId", "id", "enabled"]);
     const projectId = this.project(p.projectId);
-    const id = text(p.id, 200);
+    const requestedId = text(p.id, 200);
+    const id = this.catalog().some(s => s.id === requestedId) ? `installed:${projectId}:${requestedId}` : requestedId;
     if (typeof p.enabled !== "boolean") throw Error("INVALID_INPUT");
     const row = this.db
       .prepare(
@@ -327,12 +329,23 @@ export class Extensions {
       .get(projectId, id) as { id: string; manifest: string } | undefined;
     if (!row) throw Error("EXTENSION_NOT_FOUND");
     const parsed = JSON.parse(String(row.manifest)) as Record<string, unknown>;
+    if ((parsed.enabled !== false) === p.enabled) return this.get(projectId, requestedId);
+    const skill = this.catalog().find(s => s.id === parsed.catalogId);
+    const root = String(this.db.prepare("SELECT root FROM projects WHERE id=?").get(projectId)?.root ?? "");
+    if (skill?.slug) setSkillFilesEnabled(root, skill.slug, p.enabled);
     parsed.enabled = p.enabled;
-    this.db
-      .prepare("UPDATE extensions SET manifest=? WHERE projectId=? AND id=?")
-      .run(JSON.stringify(parsed), projectId, id);
-    this.event(projectId, id, p.enabled ? "enabled" : "disabled");
-    return { ...(parsed as Omit<Extension, "id">), id: row.id };
+    try {
+      this.db.exec("SAVEPOINT toggle_extension");
+      this.db.prepare("UPDATE extensions SET manifest=? WHERE projectId=? AND id=?")
+        .run(JSON.stringify(parsed), projectId, id);
+      this.event(projectId, id, p.enabled ? "enabled" : "disabled");
+      this.db.exec("RELEASE toggle_extension");
+    } catch (error) {
+      try { this.db.exec("ROLLBACK TO toggle_extension; RELEASE toggle_extension"); } catch { /* Savepoint creation may have failed. */ }
+      if (skill?.slug) setSkillFilesEnabled(root, skill.slug, !p.enabled);
+      throw error;
+    }
+    return this.get(projectId, requestedId);
   }
   remove(projectId: string, id: string) {
     this.project(projectId);
@@ -364,7 +377,7 @@ export class Extensions {
     const selected = [
       ...new Set([
         ...ids,
-        ...this.installed(projectId).map((s) => s.catalogId),
+        ...this.installed(projectId).filter(s => s.enabled !== false).map((s) => s.catalogId),
         ...activePlugins,
       ]),
     ].slice(0, 50);
@@ -394,7 +407,7 @@ export class Extensions {
   }
   private installed(
     projectId: string,
-  ): { catalogId: string; installPath: string }[] {
+  ): { catalogId: string; installPath: string; enabled?:boolean }[] {
     return this.db
       .prepare("SELECT manifest FROM extensions WHERE projectId=?")
       .all(projectId)
@@ -409,7 +422,7 @@ export class Extensions {
   async prepareWorkspace(projectId: string, workspace: string) {
     this.project(projectId);
     const catalog = this.catalog();
-    for (const item of this.installed(projectId)) {
+    for (const item of this.installed(projectId).filter(s => s.enabled !== false)) {
       const skill = catalog.find((s) => s.id === item.catalogId);
       if (!skill) throw Error("EXTENSION_NOT_FOUND");
       await installSkillFiles(workspace, skill);
@@ -417,6 +430,7 @@ export class Extensions {
   }
   async install(projectId: string, id: string, download = false, fetchSource: typeof fetch = fetch) {
     this.project(projectId);
+    if (this.installed(projectId).some(s => s.catalogId === id)) return this.get(projectId,id);
     const skill = this.catalog().find((s) => s.id === id);
     if (!skill) throw Error("EXTENSION_NOT_FOUND");
     const project = this.db

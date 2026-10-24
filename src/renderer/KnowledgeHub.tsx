@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { Extension, Memory, Project } from "../shared";
+import { skillSourceLabel } from "../shared";
 import { Icon, Modal } from "./ui";
 import { MemoryGraphPanel } from "./MemoryGraphPanel";
 import { skillBenefits } from "./skill-benefits";
@@ -52,7 +53,7 @@ export function SkillsHub({
     const slug = s.slug ?? s.name;
     if (cat === "gws") return slug.startsWith("gws-");
     if (cat === "growth")
-      return slug === "marketingskills" || slug === "humanizer";
+      return s.category === "marketing" || slug === "marketingskills" || slug === "humanizer";
     if (cat === "design")
       return (
         slug === "taste-skill" ||
@@ -82,7 +83,7 @@ export function SkillsHub({
     (s) =>
       s.kind === "skill" &&
       matchCategory(s, category) &&
-      `${s.name} ${s.author} ${s.instructions}`
+      `${s.name} ${s.author} ${s.instructions} ${skillBenefits[s.slug ?? ""]?.join(" ") ?? ""}`
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
@@ -266,13 +267,7 @@ export function SkillsHub({
             </span>
             <div>
               <span className="skill-origin">
-                {skill.source.includes("officialskills.sh/googleworkspace")
-                  ? "OFFICIALSKILLS.SH · GOOGLE WORKSPACE"
-                  : skill.source.includes("officialskills.sh/browserbase")
-                    ? "OFFICIALSKILLS.SH · BROWSERBASE"
-                    : skill.source.includes("github.com")
-                      ? "OPEN SOURCE · GITHUB"
-                      : "AI EVOLUTION POLSKA"}
+                {skillSourceLabel(skill.source)}
               </span>
               <h2>{skill.name}</h2>
               <p className="skill-benefit">{pl ? (skillBenefits[skill.slug ?? ""]?.[0] ?? "Własna instrukcja pracy agenta. Otwórz szczegóły, aby poznać jej zastosowanie.") : skill.description ?? skill.name}</p>
@@ -290,12 +285,14 @@ export function SkillsHub({
               <Icon name="arrow" />
             </button>
             <button
-              className={skill.installed ? "secondary" : "primary"}
-              disabled={!project || busy || skill.installed || !skill.slug}
+              className={skill.installed ? "secondary skill-toggle" : "primary"}
+              role={skill.installed ? "switch" : undefined}
+              aria-checked={skill.installed ? skill.enabled !== false : undefined}
+              disabled={!project || busy || !skill.slug}
               onClick={() => {
                 setBusy(true);
                 setError("");
-                void api.skillInstall!({ projectId: project, id: skill.id, download:true })
+                void (skill.installed ? api.extensionToggle!({projectId:project,id:skill.id,enabled:skill.enabled === false}) : api.skillInstall!({ projectId: project, id: skill.id, download:true }))
                   .then(load)
                   .catch(() =>
                     setError(
@@ -310,8 +307,8 @@ export function SkillsHub({
               <Icon name={skill.installed ? "check" : "plus"} />
               {skill.installed
                 ? pl
-                  ? "Dodano do projektu"
-                  : "Added to project"
+                  ? (skill.enabled === false ? "Wyłączony · włącz" : "Włączony · wyłącz")
+                  : (skill.enabled === false ? "Disabled · enable" : "Enabled · disable")
                 : pl
                   ? "Dodaj do workspace"
                   : "Add to workspace"}

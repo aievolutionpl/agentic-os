@@ -92,7 +92,7 @@
   {
     "id": "builtin:taste-skill",
     "slug": "taste-skill",
-    "name": "taste skill \u00b7 anti-slop design",
+    "name": "taste skill · anti-slop design",
     "author": "Leonxlnx",
     "license": "MIT",
     "version": "6010f91a9935f1c167dfc500fb1a475681892e6b",
@@ -102,7 +102,7 @@
   {
     "id": "builtin:archify",
     "slug": "archify",
-    "name": "archify \u00b7 interactive diagrams",
+    "name": "archify · interactive diagrams",
     "author": "tt-a1i",
     "license": "MIT",
     "version": "25cf37080fc8b1dbe758a4efc3935b55f3327083",
@@ -112,7 +112,7 @@
   {
     "id": "builtin:awesome-claude-skills",
     "slug": "awesome-claude-skills",
-    "name": "awesome claude skills \u00b7 workflow & changelog",
+    "name": "awesome claude skills · workflow & changelog",
     "author": "ComposioHQ",
     "license": "Apache-2.0",
     "version": "be2a406907dbc61b73e6827ded415c96139d13a2",
@@ -122,7 +122,7 @@
   {
     "id": "builtin:humanizer",
     "slug": "humanizer",
-    "name": "humanizer \u00b7 clear human writing",
+    "name": "humanizer · clear human writing",
     "author": "blader",
     "license": "MIT",
     "version": "8c307f367c91bd974002f10f2be2965d642c13df",
@@ -152,7 +152,7 @@
   {
     "id": "builtin:gws-calendar",
     "slug": "gws-calendar",
-    "name": "google workspace \u00b7 calendar",
+    "name": "google workspace · calendar",
     "author": "Google Workspace / officialskills.sh",
     "license": "Apache-2.0",
     "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
@@ -162,7 +162,7 @@
   {
     "id": "builtin:gws-docs",
     "slug": "gws-docs",
-    "name": "google workspace \u00b7 docs",
+    "name": "google workspace · docs",
     "author": "Google Workspace / officialskills.sh",
     "license": "Apache-2.0",
     "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
@@ -172,7 +172,7 @@
   {
     "id": "builtin:gws-shared",
     "slug": "gws-shared",
-    "name": "google workspace \u00b7 shared core & auth",
+    "name": "google workspace · shared core & auth",
     "author": "Google Workspace / officialskills.sh",
     "license": "Apache-2.0",
     "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
@@ -182,7 +182,7 @@
   {
     "id": "builtin:gws-sheets",
     "slug": "gws-sheets",
-    "name": "google workspace \u00b7 sheets",
+    "name": "google workspace · sheets",
     "author": "Google Workspace / officialskills.sh",
     "license": "Apache-2.0",
     "version": "a3768d0e82ad83cca2da97724e46bea4ff0e6dbd",
@@ -192,7 +192,7 @@
   {
     "id": "builtin:browserbase-skills",
     "slug": "browserbase-skills",
-    "name": "browserbase \u00b7 cloud browser & web automation",
+    "name": "browserbase · cloud browser & web automation",
     "author": "Browserbase / officialskills.sh",
     "license": "MIT",
     "version": "6811ca31163332d9d60309cff48e77f09de37a17",
@@ -228,5 +228,125 @@
     "version": "dbd4588f9e1033efb41dad4bef2f7947c8993d44",
     "source": "https://github.com/anthropics/skills/tree/dbd4588f9e1033efb41dad4bef2f7947c8993d44/skills/brand-guidelines",
     "files": 2
+  },
+  {
+    "id": "builtin:copywriting",
+    "slug": "copywriting",
+    "name": "Teksty sprzedażowe",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/copywriting",
+    "files": 6,
+    "category": "marketing",
+    "description": "Pisze strony, nagłówki i CTA na podstawie oferty oraz potrzeb odbiorcy."
+  },
+  {
+    "id": "builtin:content-strategy",
+    "slug": "content-strategy",
+    "name": "Strategia treści",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/content-strategy",
+    "files": 5,
+    "category": "marketing",
+    "description": "Planuje tematy, kanały publikacji i dystrybucję treści."
+  },
+  {
+    "id": "builtin:seo-audit",
+    "slug": "seo-audit",
+    "name": "Audyt SEO",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/seo-audit",
+    "files": 10,
+    "category": "marketing",
+    "description": "Analizuje widoczność strony i porządkuje poprawki według wpływu."
+  },
+  {
+    "id": "builtin:marketing-plan",
+    "slug": "marketing-plan",
+    "name": "Plan marketingowy",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/marketing-plan",
+    "files": 17,
+    "category": "marketing",
+    "description": "Łączy cele, odbiorców, kanały i budżet w konkretny plan pracy."
+  },
+  {
+    "id": "builtin:customer-research",
+    "slug": "customer-research",
+    "name": "Badanie klientów",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/customer-research",
+    "files": 5,
+    "category": "marketing",
+    "description": "Porządkuje wywiady, potrzeby, obiekcje i język klientów."
+  },
+  {
+    "id": "builtin:social",
+    "slug": "social",
+    "name": "Social media",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/social",
+    "files": 12,
+    "category": "marketing",
+    "description": "Projektuje treści i harmonogram publikacji dopasowane do kanału."
+  },
+  {
+    "id": "builtin:emails",
+    "slug": "emails",
+    "name": "Kampanie e-mail",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/emails",
+    "files": 6,
+    "category": "marketing",
+    "description": "Tworzy sekwencje wiadomości, segmentację i scenariusze kontaktu."
+  },
+  {
+    "id": "builtin:ads",
+    "slug": "ads",
+    "name": "Reklamy i kampanie",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/ads",
+    "files": 19,
+    "category": "marketing",
+    "description": "Planuje kampanie, testy kreacji, odbiorców i ocenę wyników."
+  },
+  {
+    "id": "builtin:product-marketing",
+    "slug": "product-marketing",
+    "name": "Pozycjonowanie produktu",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/product-marketing",
+    "files": 4,
+    "category": "marketing",
+    "description": "Ustala grupę odbiorców, wyróżniki i wspólny kontekst produktu."
+  },
+  {
+    "id": "builtin:sales-enablement",
+    "slug": "sales-enablement",
+    "name": "Materiały sprzedażowe",
+    "author": "Corey Haines",
+    "license": "MIT",
+    "version": "e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b",
+    "source": "https://github.com/coreyhaines31/marketingskills/tree/e85f3cbc2e4a79bf33b2a12e9bdd9087d414735b/skills/sales-enablement",
+    "files": 9,
+    "category": "marketing",
+    "description": "Przygotowuje argumenty, prezentacje i odpowiedzi na obiekcje."
   }
 ]

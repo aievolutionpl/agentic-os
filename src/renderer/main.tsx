@@ -1,3 +1,5 @@
+import {VoiceSettings} from "./VoiceSettings";
+import { PluginsHub } from "./PluginsHub";
 import {WorkspaceCustomization,SidebarResize,applyWorkspaceLayout} from "./WorkspaceCustomization";
 import { THEME_CHOICES } from "./theme-catalog";
 import { QuotaStrip } from "./QuotaStrip";
@@ -71,7 +73,7 @@ const agentChoices = [
 ];
 function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [chatRequest, setChatRequest] = useState<{id: string; project?: string; nonce: number}>();
+  const [chatRequest, setChatRequest] = useState<{id: string; project?: string; nonce: number; firstTaskAgent?: Agent}>();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null),
     [projectId, setProjectId] = useState("");
   const [data, setData] = useState<ProjectData>({
@@ -90,6 +92,7 @@ function App() {
     | "chat"
     | "skills"
     | "schedule"
+    | "plugins"
     | "shared-memory"
     | "harness"
     | "inbox"
@@ -761,7 +764,7 @@ function App() {
       )}
       {!narrow && <SidebarResize/>}
       <div className="body">
-        <header className="top-bar">
+        <div className="compact-workspace-header"><header className="top-bar">
           {narrow && (
             <button
               ref={projectsToggle}
@@ -779,7 +782,7 @@ function App() {
             <span>{w.workspace}</span>
             <Icon name="chevron" />
             <strong title={view === "center" ? undefined : project?.name}>
-              {view === "schedule" ? "ScheduleJob" : view === "harness" ? "Harness" : view === "terminal"
+              {view === "plugins" ? (prefs.language === "pl" ? "Pluginy" : "Plugins") : view === "schedule" ? "ScheduleJob" : view === "harness" ? "Harness" : view === "terminal"
                 ? "Terminal"
                 : view === "chat"
                   ? prefs.language === "pl"
@@ -817,12 +820,11 @@ function App() {
             >
               <Icon name="search" />
               <span>{prefs.language === "pl" ? "Szukaj" : "Search"}</span>
-              <kbd>Ctrl K</kbd>
             </button>
             <button className="icon-button" aria-label={prefs.language === "pl" ? "Ustawienia" : "Settings"} onClick={() => setSettingsOpen(true)}><Icon name="settings" /></button>
           </div>
         </header>
-        <QuotaStrip pl={prefs.language === "pl"} onOpen={() => setView("quota")} />
+        <QuotaStrip pl={prefs.language === "pl"} onOpen={() => setView("quota")} /></div>
         <main ref={contentPane} aria-busy={busy || loading}>
           <div className="workspace-content">
             {error && (
@@ -891,9 +893,11 @@ function App() {
                   setView(target);
                 }}
               />
+            ) : view === "plugins" ? (
+              <PluginsHub projects={snapshot?.projects ?? []}/>
             ) : view === "connections" ? (
               <>
-                <ProviderSetup language={prefs.language} />
+                <ProviderSetup language={prefs.language} onFirstTask={agent => { setChatRequest({ id: "", nonce: Date.now(), firstTaskAgent: agent }); setView("chat"); }} />
                 <PolicyPanel language={prefs.language} />
               </>
             ) : view === "quota" ? (
@@ -1309,6 +1313,7 @@ function App() {
                           </div>
                         </div>
                         <RoutePreview
+                          task={draft}
                           language={prefs.language}
                           disabled={busy}
                           current={implementer}
@@ -1563,7 +1568,7 @@ function App() {
                         </article>
                       ))}
                     </div>
-                    <ProviderSetup language={prefs.language} />
+                    <ProviderSetup language={prefs.language} onFirstTask={agent => { setChatRequest({ id: "", nonce: Date.now(), firstTaskAgent: agent }); setView("chat"); }} />
                   </section>
                 )}
               </>
@@ -1659,9 +1664,11 @@ function App() {
               className="language-select"
             />
 </div>
-        <WorkspaceCustomization/>
+        <WorkspaceCustomization/><VoiceSettings/>
         <div className="settings-links">{([
           ["connections", "connections", "Agenci i modele", "Agents and models"],
+          ["plugins", "connections", "Pluginy i aplikacje", "Plugins and apps"],
+          ["skills", "skill", "Biblioteka skili", "Skills library"],
           ["harness", "layers", "Instrukcja agenta i pamięć", "Agent instructions and memory"],
         ] as const).map(([id, icon, pl, en]) => <button className="secondary" key={id} onClick={() => { setView(id); setSettingsOpen(false); }}><Icon name={icon} />{prefs.language === "pl" ? pl : en}<Icon name="chevron" /></button>)}</div>
         <section className="settings-about" aria-label="O aplikacji">

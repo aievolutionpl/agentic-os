@@ -26,17 +26,31 @@ export function ModelPicker({
     provider?.model,
     provider?.lastCheck?.observedAt,
   ]);
-  const [models, setModels] = useState(catalogs.get(key) ?? []);
+  const [storedModels, setModels] = useState(catalogs.get(key) ?? []);
+  const [modelKey, setModelKey] = useState(key);
+  const models = modelKey === key ? storedModels : (catalogs.get(key) ?? []);
   const [loading, setLoading] = useState(false),
     [problem, setProblem] = useState(false);
   const [custom, setCustom] = useState(false);
   const generation = useRef(0);
+  const attempted = useRef(new Set<string>());
+  const change = useRef(onChange); change.current = onChange;
+  useEffect(() => {
+    if (value || disabled || custom) return;
+    const selected = provider?.model || models[0]?.id;
+    if (selected) change.current(selected);
+  }, [value, disabled, custom, provider?.model, models]);
   useEffect(() => {
     generation.current++;
+    setModelKey(key);
     setModels(catalogs.get(key) ?? []);
     setCustom(false);
     setProblem(false);
     setLoading(false);
+    const connection = JSON.stringify([agent, provider?.command, provider?.args, provider?.profile]);
+    if (provider?.configured && !catalogs.has(key) && !provider.model && !attempted.current.has(connection)) {
+      attempted.current.add(connection); void refresh();
+    }
     return () => {
       generation.current++;
     };
@@ -86,7 +100,7 @@ export function ModelPicker({
           }}
         >
           <option value="">
-            {provider?.model || (pl ? "Domyślny model" : "Default model")}
+            {provider?.model || (loading ? (pl ? "Wczytuję modele…" : "Loading models…") : (pl ? "Wybierz model…" : "Choose a model…"))}
           </option>
           {value && !models.some((m) => m.id === value) && (
             <option value={value}>{value}</option>

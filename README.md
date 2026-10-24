@@ -1,207 +1,65 @@
-<div align="center">
+![Agenting OS — Chris i Jarvis przy wspólnym dashboardzie subskrypcji](docs/images/agenting-os-banner.png)
 
-# ⚡ Agenting OS — Multi-Agent Harness & Engineering Studio
+<sub>Wizualizacja produktu. Wartości limitów i salda są przykładowe; dostępność odczytów zależy od dostawcy.</sub>
 
-### **Profesjonalne środowisko klasy *Codex / Claude Code Harness* do orkiestracji agentów AI, pracy w terminalu, zarządzania wiedzą MCP i bezpiecznego wdrażania zmian w Git.**
+# Agenting OS
 
-**Zbudowane przez [AI EVOLUTION POLSKA](https://www.aievolutionpolska.pl) · [www.aievolutionpolska.pl](https://www.aievolutionpolska.pl)**
+**W przygotowaniu:** instalacja CLI z terminalem, oficjalne logowanie i opcjonalny
+model decyzyjny **Jev**. W zadaniu wybierz rodzaj pracy, włącz Jev, wskaż model
+i kliknij „Pokaż propozycję”. Jev wybiera spośród sprawdzonych agentów; nie nadaje
+uprawnień. Błędy i timeout obsługują reguły, a płatne API wymaga ręcznego wyboru.
+[Konfiguracja, przepływ i ograniczenia](docs/ONBOARDING-AND-JEV.md).
 
-[![Built by AI Evolution Polska](https://img.shields.io/badge/Built%20by-AI%20EVOLUTION%20POLSKA-FF5722?style=for-the-badge)](https://www.aievolutionpolska.pl)
-[![Website](https://img.shields.io/badge/WWW-aievolutionpolska.pl-0F172A?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.aievolutionpolska.pl)
-[![Commercial Contact](https://img.shields.io/badge/Licencja%20Komercyjna-kontakt%40aievolutionpolska.pl-10B981?style=for-the-badge&logo=gmail&logoColor=white)](mailto:kontakt@aievolutionpolska.pl)
+**Jeden workspace do rozmów z agentami, pracy nad projektami i wiedzy, która zostaje z Tobą.**
 
-[![CI](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/aievolutionpl/agentic-os?include_prereleases&color=4F46E5)](https://github.com/aievolutionpl/agentic-os/releases/latest)
-[![License](https://img.shields.io/badge/license-Open%20Source%20%2F%20Commercial-4F46E5)](#licencja-i-wykorzystanie-komercyjne)
-[![Node](https://img.shields.io/badge/Node.js-24%20%7C%2026-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
-[![Electron](https://img.shields.io/badge/Electron-43-47848F?logo=electron&logoColor=white)](#architektura-i-stack-technologiczny)
-[![Platform](https://img.shields.io/badge/platform-Windows%20x64%20%7C%20macOS%20%7C%20Linux-0078D6)](#pobranie-i-instalacja)
+Zbudowane przez [AI Evolution Polska](https://www.aievolutionpolska.pl).
 
-[**🚀 Pobierz**](#pobranie-i-instalacja) · [**🛠️ Uruchom ze źródeł**](#uruchomienie-ze-źródeł) · [**✨ Możliwości i funkcje**](#kompleksowy-przegląd-funkcji) · [**🧠 20 Wbudowanych Skilli**](#20-wbudowanych-pakietów-skilli--kreator-skillmd-studio) · [**🔌 Dostawcy AI**](docs/PROVIDERS.md) · [**💼 Licencja i Biznes**](#licencja-i-wykorzystanie-komercyjne) · [**🇬🇧 English**](README.en.md)
+[![CI — main](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/aievolutionpl/agentic-os/actions/workflows/ci.yml)
 
-</div>
+[Start](#start) · [Możliwości](#możliwości) · [Skille](#skille) · [Pluginy](#pluginy) · [Ograniczenia](#ograniczenia) · [English](README.en.md)
 
----
+![Agenting OS — widok rozmowy](docs/images/rc2/chat.png)
 
-## Harness — instrukcja, pamięć i kontekst zespołu
 
-Nowy widok **Harness** łączy edycję instrukcji głównej, ustawienia automatycznego przywoływania pamięci, podgląd źródeł i budżetu kontekstu oraz zapisane połączenia agentów. Eksport `AGENTS.md` wymaga wyboru projektu i zawiera tylko jego prywatne wpisy oraz pamięć jawnie udostępnioną workspace.
+Agenting OS to aplikacja desktopowa z lokalną bazą rozmów, pamięcią projektów i połączeniami z narzędziami AI. W jednym oknie wybierasz agenta i model, porządkujesz kontekst, planujesz zadania oraz przeglądasz wyniki pracy. Wykonywanie zmian w kodzie ma osobny proces implementacji i recenzji.
 
-[Pomysł produktu, plan rozwoju i gotowy prompt implementacyjny](docs/HARNESS_EVOLUTION_PL.md). Test nowego przepływu: `npm run qa:harness-studio`.
+README opisuje kod w tej gałęzi. Gotowy instalator może zawierać wcześniejszy zestaw funkcji. Badge CI dotyczy `main`, nie bieżącej gałęzi.
 
-![Harness — shared instructions and context inspector](docs/images/harness-context.png)
-
-## 🌟 Czym jest Agenting OS?
-
-**Agenting OS** to flagowe, lokalne środowisko inżynierskie (*Local-First Agentic Workbench & Harness Studio*) stworzone przez zespół **[AI Evolution Polska](https://www.aievolutionpolska.pl)**. Łączy w jednym, ultraszybkim oknie desktopowym:
-
-- 🤖 **Wieloagentowy czat i planowanie** (*Codex*, *Claude Code*, *Antigravity*, *OpenCode / OpenRouter*, *Hermes*, *ACP* oraz modele lokalne) z opcją **„Druga opinia”** (*Multi-Agent Second Opinion*).
-- 🛡️ **Izolowany proces zmian w Git Worktree** z kryptograficzną weryfikacją diffów (`SHA-256`), niezależnym agentem-recenzentem (*Reviewer*) oraz 1-klikowym tworzeniem **GitHub Pull Requestów**.
-- 🧠 **Lokalny Graf Pamięci MCP + Auto-Vault** z wyszukiwaniem pełnotekstowym `FTS5`, eksportem klastrów wiedzy oraz generatorem specyfikacji **`AGENTS.md`**.
-- 📚 **20 wbudowanych pakietów Skilli + interaktywny kreator `SKILL.md Studio`** zapisujący skille bezpośrednio w `.agents/skills/<slug>/SKILL.md`.
-- 💻 **Natywny, wielokartowy terminal PTY (`node-pty` + Xterm.js)** z paskiem szybkich komend CLI i dynamiczną synchronizacją z **7 motywami kolorystycznymi**.
-
-![Agenting OS — Główny pulpit i środowisko rozmowy z agentami](docs/images/classic-start.png)
-
----
-
-## 💼 Licencja i Wykorzystanie Komercyjne
-
-> [!IMPORTANT]
-> ### 📜 Zasady pobierania, edycji i wdrożeń komercyjnych (`AI Evolution Polska`)
->
-> - ✅ **Pobieranie, nauka i modyfikacja (Open Access & Customizing):** Każdy użytkownik może swobodnie pobierać kod źródłowy, uruchamiać aplikację lokalnie, edytować ją, rozbudowywać o własne skille i dostosowywać na użytek prywatny, edukacyjny, badawczy oraz testowy.
-> - 🏢 **Wykorzystanie komercyjne w firmie (Commercial & Enterprise License):** Jeżeli chcesz wykorzystywać **Agenting OS** komercyjnie w swojej firmie, wdrożyć narzędzie dla zespołu deweloperskiego, świadczyć za jego pomocą usługi komercyjne lub zintegrować je z komercyjnym produktem — **wymagany jest kontakt z nami w celu uzyskania licencji komercyjnej**:
->   - 📧 **E-mail:** **[kontakt@aievolutionpolska.pl](mailto:kontakt@aievolutionpolska.pl)**
->   - 🌐 **Strona WWW:** **[www.aievolutionpolska.pl](https://www.aievolutionpolska.pl)**
->
-> *Kod bazowy repozytorium udostępniany jest z zachowaniem pliku [LICENSE](LICENSE) oraz [NOTICE](NOTICE) (Copyright © 2026 AI Evolution Polska).*
-
----
-
-## 🔥 Dlaczego Agenting OS robi różnicę?
-
-| Problem tradycyjnej pracy z AI | Rozwiązanie w **Agenting OS** |
-| :--- | :--- |
-| ❌ **Chaos 5 otwartych terminali i okien czatu** | ✅ **Jeden spójny Harness Studio:** Czat, Terminal PTY, Kanban, Diff Studio, Graf Pamięci, Przeglądarka i Skille w jednym oknie ze wspólnym kontekstem. |
-| ❌ **Agent nadpisuje pliki bezpośrednio w Twoim repozytorium** | ✅ **Bezpieczna izolacja Git Worktree:** Wykonawca pracuje w osobnym worktree, generuje diff z sumą `SHA-256`, a zmianę ocenia **niezależny Recenzent** przed Twoim zatwierdzeniem. |
-| ❌ **Utrata kontekstu i ustaleń między sesjami** | ✅ **Memory Vault + Graf MCP + `AGENTS.md`:** Automatyczna ekstrakcja wiedzy z ukończonych rozmów (z redakcją sekretów), powiązania `[[Wiki]]` i 1-klikowy eksport `AGENTS.md`. |
-| ❌ **Uzależnienie od jednego modelu / dostawcy** | ✅ **Wieloagentowa elastyczność:** Przełączaj w locie między *Codex*, *Claude Code*, *Antigravity*, *OpenRouter* i *Hermes* oraz proś innego agenta o **Drugą opinię** architektoniczną. |
-| ❌ **Chmurowa telemetria i wyciek kodu na obce serwery** | ✅ **100% Local-First:** Baza SQLite, pamięć, sesje i artefakty leżą wyłącznie lokalnie w `userData` Electron. Brak konta w chmurze i brak ukrytej telemetrii. |
-
----
-
-## ✨ Kompleksowy Przegląd Funkcji
-
-### 1. 💬 Wieloagentowy Czat, `/Slash` Commands i „Druga Opinia”
-- **Praca w trybie Rozmowy lub Planowania (`Chat` / `Plan`):** Wybierz dowolnego skonfigurowanego agenta oraz indywidualny model dla każdej rozmowy.
-- **Szybkie komendy `/slash` w polu czatu:** Wpisz `/`, aby błyskawicznie wywołać `/plan` (plan architektoniczny), `/review` (audyt bezpieczeństwa i błędów), `/test` (scenariusze testowe), `/debug` (analiza przyczyn źródłowych) lub `/clear`.
-- **🔄 Przycisk „Druga opinia” (*Multi-Agent Second Opinion*):** Pod każdą ukończoną odpowiedzią asystenta możesz jednym kliknięciem przekazać odpowiedź do **innego agenta** w trybie Planowania, aby uzyskać niezależną krytykę architektoniczną i wykryć przypadki brzegowe.
-- **Handoff jednym kliknięciem:** Każdą odpowiedź możesz od razu zapisać do **Pamięci projektu** albo przekształcić w **Zadanie w kolejce**.
-
-### 2. 🎯 Master Agent & Generator Pipeline’ów DAG (`Spec → Kod → QA`)
-- **Autonomiczny Master Agent:** Tworzy wieloetapowy plan działania (do 6 kroków), deleguje zadania do wykonawców i recenzentów, a następnie weryfikuje rezultaty.
-- **Gotowe Presety Misji z Auto-Skillami:** Jednym kliknięciem uruchomisz misję *Full-Stack Feature + TDD*, *UI/UX Polish & Taste Redesign*, *Architecture Blueprint & Spec* lub *Security Audit & Bug Hunt* wraz z automatycznie dobranym pakietem skilli.
-- **⚡ Generator 3-Etapowego Łańcucha DAG (`Spec → Kod → QA`):** W widoku projektu jednym przyciskiem wygenerujesz 3 powiązane zależnościami zadania:
-  1. `Etap 1/3 [Spec]` — Analiza architektury i specyfikacja zmian
-  2. `Etap 2/3 [Kod]` — Implementacja funkcjonalności i kontraktów (zależne od Etapu 1)
-  3. `Etap 3/3 [QA]` — Testy regresyjne i weryfikacja końcowa (zależne od Etapu 2)
-
-```mermaid
-flowchart LR
-  A["🎯 Cel / Misja Master Agenta"] --> B["⚡ Kolejka DAG (Spec → Kod → QA)"]
-  B --> C["🛠️ Wykonawca w izolowanym Git Worktree"]
-  C --> D["🔐 Artefakt Diff + Hash SHA-256"]
-  D --> E["🧐 Niezależny Agent-Recenzent"]
-  E --> F["✅ Twoja zgoda (ważna 15 min)"]
-  F --> G["🚀 Wdrożenie do repo / GitHub PR"]
-```
-
-### 3. 🔍 Zaawansowane Diff Studio, Git Repo Health & Integracja GitHub
-- **Pasek stanu Git Repo Health w nagłówku projektu:** Podgląd na żywo aktywnej gałęzi (`GIT BRANCH`), stanu drzewa roboczego (`WORKTREE: CLEAN` lub `DIRTY` z liczbą zmienionych plików) oraz ostatniego commita `HEAD`.
-- **Interaktywna przeglądarka Diff Studio:**
-  - Wyszukiwarka tekstu i plików wewnątrz diffu w czasie rzeczywistym (`Szukaj w diffie...`).
-  - Zwijanie i rozwijanie pojedynczych plików lub wszystkich naraz (**„Zwiń / Rozwiń wszystkie”**).
-  - Kopiowanie diffu pojedynczego pliku jednym kliknięciem.
-- **Eksport gałęzi i GitHub Pull Request:** Z zatwierdzonego przebiegu możesz jednym kliknięciem wyeksportować lokalny branch (`agentic/task-...`) lub utworzyć **Pull Request na GitHubie (`gh pr create`)** z pełnym raportem recenzenta.
-
-### 4. 🧠20 Wbudowanych Pakietów Skilli + Kreator `SKILL.md Studio`
-Agenting OS posiada wbudowany katalog **20 zweryfikowanych, przypiętych do konkretnego commita (`SHA-1`) pakietów skilli** dostępnych z poziomu **Dashboard Skills Dock** oraz **Biblioteki Skilli**:
-
-| Kategoria | Wbudowane pakiety skilli (instalowane 1 kliknięciem do `.agents/skills/`) |
-| :--- | :--- |
-| **🏗️ Engineering & Architecture** | `archify` (*Architecture Diagrams & ADR*), `addyosmani-agent-skills` (*Chrome Eng Workflows*), `agentskills-standard` (*Modular Spec*), `mcp-builder` (*Anthropic MCP Builder*) |
-| **🎨 Design & Frontend** | `frontend-design` (*Anthropic UI Craft*), `taste-skill` (*High-Taste UI & Anti-Slop Design*) |
-| **🧪 Testing, QA & Debugging** | `webapp-testing` (*Playwright Verification*), `systematic-debugging` (*Root-Cause Debugging*), `test-driven-development` (*Strict Red-Green-Refactor*), `verification-before-completion` (*Evidence Gate*) |
-| **📈 Marketing & Content** | `marketingskills` (*CRO, Copywriting, SEO & Analytics*), `humanizer` (*Natural Writing & AI Pattern Removal*), `brainstorming` (*Structured Ideation*) |
-| **☁️ Google Workspace & Docs** | `gws-calendar` (*Calendar & Meet*), `gws-docs` (*Google Docs Markdown*), `gws-sheets` (*Spreadsheets & Formulas*), `gws-shared` (*Drive Auth & Permissions*), `pdf` (*Anthropic PDF Toolkit*) |
-| **🌐 Web Automation & Ecosystem** | `browserbase-skills` (*Stagehand Cloud Browser Automation*), `awesome-claude-skills` (*Composio Workflow Patterns*) |
-
-- **✨ Wbudowany Kreator `SKILL.md Studio`:** Twórz własne skille bezpośrednio w aplikacji (z gotowymi szablonami *Engineering & TDD*, *UI & Design System*, *API & Security Gate*). Kreator automatycznie zapisuje plik `.agents/skills/<slug>/SKILL.md` w katalogu projektu, rejestruje go w bazie SQLite i udostępnia wszystkim agentom.
-
-### 5. 🕸️ Graf Pamięci MCP, Auto-Vault i Eksport `AGENTS.md`
-- **Interaktywny Graf Pamięci (`MemoryGraphPanel`):**
-  - Wizualizacja węzłów pamięci projektu i workspace’u oraz krawędzi powiązań `[[Wiki]]`.
-  - Wyszukiwarka węzłów na żywo, licznik bezpośrednich sąsiadów oraz przycisk **„Kopiuj klaster MD”**, który eksportuje wybrany węzeł wraz ze wszystkimi powiązanymi notatkami jako ustrukturyzowany dokument Markdown.
-- **Memory Vault (Auto-Sync):** Automatyczna synchronizacja wniosków z ukończonych rozmów do pamięci projektu z automatyczną redakcją kluczy API i tokenów.
-- **📦 Eksport `AGENTS.md`:** Jednym kliknięciem w zakładce Pamięć wygenerujesz i skopiujesz kompletny plik specyfikacji **`AGENTS.md`** zawierający przypięte reguły architektoniczne oraz notatki robocze projektu.
-
-### 6. 💻 Wbudowany Terminal PTY, Przeglądarka Projektu i 7 Motywów Kolorystycznych
-- **Natywny Terminal (`node-pty` + Xterm.js):**
-  - Do 6 równoległych kart terminala działających w tle podczas przełączania widoków.
-  - Pasek szybkich komend 1-Click: `$ git status`, `$ git diff --stat`, `$ npm test`, `$ codex`, `$ claude` oraz przycisk czyszczenia bufora.
-- **🌐 Przeglądarka Projektu (`BrowserPanel`):**
-  - Wbudowane presety portów deweloperskich (`localhost:3000`, `localhost:5173`, `localhost:8080`, `localhost:4321`, `GitHub`).
-  - Przycisk **„Zapisz URL w Pamięci”** — jednym kliknięciem zapisuje oglądany adres i tytuł strony w pamięci projektu dla agentów.
-- **🎨 7 Motywów Kolorystycznych (*Harness Studio Themes*):**
-  - `Classic · Terra` (jasny, ciepły edytorial)
-  - `Graphite` (głęboki ciemny grafit)
-  - `Light` (czysty dzienny kontrast)
-  - `Claude Code` (ciepły obsydian + bursztynowy akcent `#D97757`)
-  - `Codex CLI` (terminalowa czerń + szmaragdowy akcent `#10A37F`)
-  - `Tokyo Night` (indygo `#1A1B26` + błękit `#7AA2F7`)
-  - `Nord Frost` (arktyczny łupek `#2E3440` + lodowy błękit `#88C0D0`)
-- **⌨️ Skróty klawiszowe Harness:** `Ctrl+K` / `⌘K` otwiera paletę poleceń (*Command Palette*), a skróty **`Alt+1` do `Alt+8`** błyskawicznie przełączają główne moduły aplikacji.
-
-### 7. 🔌 Plugin Marketplace, Lifecycle Hooks, Zasady i Budżety
-- **6 Wbudowanych Pluginów i Hooków Cyklu Życia:**
-  - `auto-test-runner` (*Auto Test Runner Hook*)
-  - `security-gate-hook` (*Zero-Trust Security Gate*)
-  - `conventional-commit-guard` (*Conventional Commits Guard*)
-  - `code-complexity-radar` (*Code Complexity & Architecture Radar*)
-  - `docs-sync-hook` (*Documentation & README Sync*)
-  - `pr-changelog-composer` (*PR & Release Notes Composer*)
-- **🛡️ 1-Klikowe Profile Bezpieczeństwa i Budżetu (`PolicyPanel`):**
-  - **Strict Sandbox (\$0 API)** — pełna kontrola człowieka, blokada wydatków API.
-  - **Balanced Team (\$25 / Ask)** — zbalansowany profil zespołowy z limitem \$25/mies.
-  - **Autonomous Sprint (\$100)** — wysoka autonomia na dłuższe sesje inżynierskie.
-- **📊 Eksport telemetrii CSV:** Eksport zużycia tokenów, kosztów i historii uruchomień do pliku CSV jednym kliknięciem.
-
----
 
 ## 🖼️ Galeria Interfejsu
 
-| Czat z formatowaniem i akcjami | Natywny terminal PTY projektu |
-| :---: | :---: |
-| ![Jasny czat z formatowaniem odpowiedzi](docs/images/chat-light.png) | ![Terminal Bash uruchomiony w katalogu projektu](docs/images/terminal-dark.png) |
-| **Projekt, zadania i kolejka DAG** | **Weryfikacja zespołu przed startem** |
-| ![Projekt z kolejką zadań](docs/images/project.png) | ![Podgląd wykonawcy i brakującego połączenia recenzenta](docs/images/team-preflight.png) |
-| **Tablica Kanban na żywo** | **Graf Pamięci i Wiedzy MCP** |
-| ![Tablica Kanban z aktywnością agentów](docs/images/classic-kanban.png) | ![Graf pamięci projektu i notatki Markdown](docs/images/classic-memory.png) |
-| **Połączenia, modele i diagnostyka** | **Terminal w jasnym motywie** |
-| ![Centrum połączeń i stan wykrytych narzędzi](docs/images/connections.png) | ![Jasny motyw terminala](docs/images/terminal-light.png) |
+Aktualne zrzuty wersji 0.5.0-rc.2, wykonane w aplikacji Electron na przykładowym projekcie. Statusy i dane na obrazach są testowe.
+
+| Chat | Agents |
+| --- | --- |
+| ![Chat](docs/images/rc2/chat.png) | ![Agents](docs/images/rc2/agents.png) |
+| Skills | Plugins |
+| ![Skills](docs/images/rc2/skills.png) | ![Plugins](docs/images/rc2/plugins.png) |
+| Memory | ScheduleJob |
+| ![Memory](docs/images/rc2/memory.png) | ![ScheduleJob](docs/images/rc2/schedule.png) |
 
 <details>
-<summary>📱 Zobacz ekran startowy oraz układ responsywny dla węższych okien</summary>
+<summary>Settings / Mobile</summary>
 
-![Początek pracy z agentem](docs/images/start.png)
+![Settings](docs/images/rc2/settings.png)
 
-<p align="center">
-  <img src="docs/images/chat-mobile.png" alt="Czat w oknie szerokości 390 pikseli" width="320">
-  <img src="docs/images/terminal-mobile.png" alt="Terminal w oknie szerokości 390 pikseli" width="320">
-</p>
+<img src="docs/images/rc2/mobile.png" width="320" alt="Chat at 390 pixels">
 
 </details>
 
----
+## Start
 
-## 📥 Pobranie i Instalacja
+### Instalator Windows
 
-Gotowy instalator dla systemu **Windows x64** wraz z sumami kontrolnymi `SHA-256` znajduje się w sekcji [**Releases**](https://github.com/aievolutionpl/agentic-os/releases/latest):
+Sprawdź dostępne pliki i opis wersji w [GitHub Releases](https://github.com/aievolutionpl/agentic-os/releases). Dla wydań zawierających instalator Windows wybierz plik `Agenting-OS-<wersja>-windows-x64-setup.exe`. Jeśli wydanie zawiera `SHA256SUMS.txt`, porównaj sumę pobranego pliku:
 
-1. Pobierz plik `Agenting-OS-<wersja>-windows-x64-setup.exe`.
-2. *(Opcjonalnie)* Zweryfikuj sumę kontrolną:
-   ```powershell
-   certutil -hashfile Agenting-OS-0.5.0-rc.1-windows-x64-setup.exe SHA256
-   ```
-   i porównaj z plikiem `SHA256SUMS.txt`.
-3. Uruchom instalator (ostrzeżenie Windows SmartScreen wynika z braku komercyjnego certyfikatu EV Code Signing w wersji preview).
+```powershell
+Get-FileHash .\Agenting-OS-<wersja>-windows-x64-setup.exe -Algorithm SHA256
+```
 
----
+### Uruchomienie ze źródeł
 
-## 🛠️ Uruchomienie ze źródeł
-
-Wymagania: **Node.js 24 lub 26** (plik [`.nvmrc`](.nvmrc) wskazuje `26`), `npm`, `Git` oraz środowisko graficzne. W przypadku kompilacji natywnego modułu `node-pty` wymagany jest Python 3 oraz kompilator C++ (Windows: *Visual Studio C++ Build Tools*, Linux: `make` + `g++`, macOS: *Xcode Command Line Tools*).
+Wymagania: Node.js 24 lub 26, npm, Git i środowisko graficzne. Zalecaną wersję Node wskazuje [`.nvmrc`](.nvmrc). Kompilacja natywnego modułu terminala może wymagać Python 3 i narzędzi C++: Visual Studio Build Tools na Windows, `make` i `g++` na Linux lub Xcode Command Line Tools na macOS. Konfiguracja instalatora w repozytorium dotyczy Windows x64; CI sprawdza Windows i Linux.
 
 ```sh
 git clone https://github.com/aievolutionpl/agentic-os.git
@@ -210,82 +68,129 @@ npm ci
 npm start
 ```
 
-Polecenie `npm start` kompiluje proces główny oraz renderer React/Vite i otwiera okno aplikacji Electron. Aby zbudować instalator Windows x64:
+`npm start` buduje aplikację i otwiera okno Electron. Aby uruchomić konkretną gałąź, wybierz ją przez `git switch <nazwa-gałęzi>` przed instalacją zależności.
+
+### Pierwsze pięć minut
+
+1. Otwórz **Ustawienia → Agenci i modele**. Wybierz zainstalowane narzędzie i skonfiguruj połączenie. Samo wykrycie CLI nie oznacza zalogowanego konta.
+2. Dodaj projekt i wybierz jego folder albo rozpocznij rozmowę w domyślnym workspace.
+3. Użyj **Nowa rozmowa** lub przycisku **+** przy projekcie. Wybierz agenta i model.
+4. W **Skillach** wybierz projekt i dodaj potrzebne pakiety. Nie musisz instalować całego katalogu.
+5. Zapisuj przydatne odpowiedzi w pamięci. Gdy potrzebujesz implementacji, utwórz zadanie z odpowiedzi i przejdź do procesu wykonania oraz recenzji.
+
+## Możliwości
+
+| Obszar | Co możesz zrobić |
+| --- | --- |
+| **Rozmowy** | Wybrać model dla rozmowy, dodać pliki, zaplanować pracę, poprosić o drugą opinię i przekazać odpowiedź do zadania lub pamięci. |
+| **Projekty** | Organizować rozmowy pod folderami, wyszukiwać projekty i zmieniać nazwę dwuklikiem. Zmiana nazwy nie przenosi folderu. |
+| **Zadania i recenzja** | Uruchamiać wykonawcę w osobnym Git worktree, oglądać diff i weryfikację, a następnie zatwierdzić konkretny wynik. |
+| **Pamięć** | Przechowywać notatki projektu, jawnie udostępniać wybrane wpisy w workspace i przeglądać powiązania na grafie. |
+| **Harness** | Edytować instrukcje workspace, ustawiać przywoływanie pamięci i sprawdzać źródła oraz budżet kontekstu. |
+| **Skille** | Instalować przypięte pakiety instrukcji, importować własne i włączać lub wyłączać zainstalowane skille. |
+| **Pluginy** | Połączyć Google Drive, Canva, Notion, Firecrawl, Linear, Asanę lub Jira/Confluence, uruchomić narzędzie i zapisać wynik w pamięci projektu. |
+| **ScheduleJob** | Zaplanować pracę jednorazową, codzienną lub w wybrane dni tygodnia; pauzować harmonogram i otwierać wyniki. |
+| **Terminal i Git** | Korzystać z terminala PTY, podglądu repozytorium i diffów oraz eksportu wyników pracy. |
+
+### Agenci i limity
+
+Interfejs udostępnia połączenia Codex, Claude Code, Antigravity, OpenCode, Hermes i lokalnego LLM. OpenRouter jest źródłem modeli i rozliczeń dla obsługujących go połączeń. Możliwości zależą od adaptera, zainstalowanej wersji CLI, konta i modelu.
+
+Pasek limitów pokazuje aktywnych, skonfigurowanych agentów. Wspólne źródło rozliczeń jest łączone w jedną kartę, gdy dane wskazują tę samą usługę. Wyłączenie agenta blokuje nowe zadania i ukrywa jego kartę; nie wylogowuje konta ani nie zatrzymuje już uruchomionej pracy.
+
+Procent limitu, saldo pieniężne i liczba tokenów to różne miary. Aplikacja nie przelicza ich na fikcyjną liczbę pozostałych tokenów. Brak lub nieaktualność odczytu są oznaczane. Szczegóły: [połączenia i subskrypcje](docs/SUBSCRIPTION_CONNECTIONS.md), [adaptery dostawców](docs/PROVIDERS.md). Opisane tam historyczne testy nie potwierdzają aktualnego stanu Twojego konta.
+
+### Wygląd i nawigacja
+
+Pięć palet obejmuje także sidebar: **Pearl**, **Light Orange**, **Midnight**, **Graphite** i **AI Evolution**. Motyw wybierasz w górnym pasku. Ustawienia pozwalają m.in. dostosować szerokość treści, tekst rozmowy, gęstość projektów, animacje i efekt szkła.
+
+Aktywna rozmowa ma szerszy obszar odpowiedzi i kompaktowe pole wpisywania. W szerokim oknie nagłówek i limity mieszczą się w jednym rzędzie. Przy mniejszych szerokościach układ przechodzi do kilku rzędów. `Ctrl+K` / `⌘K` otwiera paletę poleceń.
+
+## Skille
+
+Katalog zawiera **33 pakiety** przypięte do konkretnych wersji źródłowych, z informacją o pochodzeniu i licencji. Źródłem pełnej listy jest [catalog.json](resources/skills/catalog.json).
+
+| Zastosowanie | Przykłady |
+| --- | --- |
+| Interfejsy i architektura | Frontend design, Taste UI, Archify, MCP builder |
+| Debugowanie i jakość | Systematic debugging, test-driven development, verification before completion |
+| Praca z dokumentami | Google Workspace, PDF, własne instrukcje `SKILL.md` |
+| Marketing i sprzedaż | Copywriting, strategia treści, SEO, plan marketingowy, badanie klientów, social media, e-mail, reklamy, pozycjonowanie produktu i materiały sprzedażowe |
+
+Dziesięć dodanych pakietów marketingowych pochodzi z kolekcji `coreyhaines31/marketingskills`, znalezionej przez skills.sh. Wersje, pełne zasoby pomocnicze i licencje są dołączone do repozytorium.
+
+Instalacja zapisuje pakiet w `.agents/skills/<slug>` wybranego projektu. Wyłączony skill trafia do `.agents/disabled-skills/<slug>` i zostaje wykluczony z nowego kontekstu agentów. Ponowne włączenie zachowuje lokalne poprawki. Instalacja nie wykonuje automatycznie skryptów pakietu. Skill jest instrukcją pracy — nie dodaje samodzielnie kont, uprawnień ani narzędzi.
+
+## Pluginy
+
+| Usługa | Połączenie | Zakres |
+| --- | --- | --- |
+| Google Drive | Desktop OAuth client i logowanie w przeglądarce | Szukanie plików oraz odczyt dokumentów tekstowych i eksport Google Docs/Sheets. |
+| Notion | OAuth w przeglądarce | Narzędzia udostępnione przez oficjalny serwer MCP. |
+| Canva | OAuth; własne dane klienta, jeśli wymagane | Narzędzia udostępnione przez Canva MCP. |
+| Firecrawl | OAuth lub klucz API | Narzędzia pobierania i przeszukiwania treści internetowych. |
+| Linear | Logowanie OAuth | Zadania, projekty i priorytety zespołu. |
+| Asana | Własna aplikacja OAuth: Client ID i secret | Codzienne zadania, terminy i projekty. |
+| Jira / Confluence | Logowanie OAuth Atlassian | Zgłoszenia i dokumentacja zespołu. |
+
+Wybierasz narzędzie, sprawdzasz parametry i zatwierdzasz wykonanie w panelu. Wynik można dodać do pamięci projektu. Pluginy nie są jeszcze automatycznie wywoływane przez model podczas rozmowy. Po restarcie aplikacji trzeba ponownie nawiązać połączenie; zapisane granty są wykorzystywane tam, gdzie pozwala na to dostawca.
+
+[Konfiguracja pluginów, przechowywanie danych i ograniczenia](docs/PLUGINS.md).
+
+## Pamięć i harness
+
+Prywatna pamięć pozostaje przypisana do projektu; wpisy współdzielone są udostępniane jawnie. Harness pozwala kontrolować przywoływanie pamięci i dodatkowe instrukcje workspace. Eksport `AGENTS.md` wymaga wskazania projektu.
+
+Instrukcja główna obejmuje pracę od celu do zweryfikowanego wyniku: sprawdzenie kontekstu, sensowne decyzje, realizację w granicach uprawnień i komunikowanie rzeczywistych wyników. Treści plików, skili i pamięci nie podnoszą uprawnień agenta. Ograniczenia wykonania są egzekwowane przez kod aplikacji i adaptery.
+
+![Harness — instrukcje i kontekst](docs/images/harness-context.png)
+
+## Ograniczenia
+
+- **Czat i planowanie nie są bezpośrednim edytorem projektu.** Czat nadal używa kontekstu `research`; adaptery z obsługą odczytu pracują w tym trybie, a pozostałe korzystają z izolowanego workspace. Bezpośrednia edycja wybranego folderu i przełącznik „Auto accept” w czacie nie są wdrożone. Do implementacji użyj procesu zadań.
+- **Połączenie nie gwarantuje dostępności modelu ani limitu.** Konieczne mogą być instalacja CLI, logowanie, odpowiedni plan lub konfiguracja API.
+- **ScheduleJob wymaga działającej aplikacji i komputera.** Nie wybudza urządzenia. Zadania korzystają z ograniczeń rozmowy i wymagają zgody na cykliczne użycie dostawcy.
+- **Pluginy wymagają własnych kont i uprawnień.** Google Drive potrzebuje konfiguracji OAuth. Testy protokołu nie zastępują sprawdzenia rzeczywistego konta.
+- **Lokalna baza nie oznacza pracy offline.** Prompty, wybrany kontekst i żądania narzędzi trafiają do używanych dostawców. Opłaty oraz limity zależą od tych usług.
+
+## Rozwój i weryfikacja
+
+Electron i TypeScript obsługują proces główny, React/Vite — interfejs, SQLite/FTS5 — dane, a `node-pty` i Xterm.js — terminal. Kontrakty IPC znajdują się w `src/shared.ts`; adaptery i wykonanie w `src/main`, a komponenty w `src/renderer`.
+
+```sh
+npm run typecheck
+npm run lint
+npm test
+npm run smoke
+npm run qa:calm
+npm run qa:plugins
+npm run qa:harness-studio
+npm run release:audit
+```
+
+Testy UI uruchamiają Electron i wymagają środowiska graficznego; CI na Linux korzysta z Xvfb. Audyt wydania sprawdza m.in. lokalne linki dokumentacji, katalog licencji i przypięcie skili. Nie jest pełnym audytem bezpieczeństwa.
+
+Budowanie i sprawdzanie instalatora Windows:
 
 ```sh
 npm run package:win
 npm run smoke:package
 ```
 
----
+## Dane, licencje i kontakt
 
-## 🏛️ Architektura i Stack Technologiczny
+Dane aplikacji są przechowywane lokalnie w katalogu `userData` Electron. Klucze OpenRouter i dane połączeń pluginów korzystają z systemowego magazynu szyfrowania. Narzędzia zewnętrzne mogą dodatkowo przechowywać własne dane logowania. Więcej: [SECURITY.md](SECURITY.md).
 
-| Warstwa | Technologia | Rola w systemie |
-| :--- | :--- | :--- |
-| **Powłoka Desktopowa** | **Electron 43 + TypeScript 5.9** | Izolowany proces główny (`contextIsolation: true`, `sandbox: true`), nadzór procesów potomnych i worktree Git. |
-| **Interfejs Użytkownika** | **React 19 + Vite 7** | Wielopanelowy *Harness Studio*, 7 motywów kolorystycznych, skróty `Ctrl+K` i `Alt+1..8`. |
-| **Baza Danych i Pamięć** | **SQLite + FTS5 + MCP Memory** | Lokalna trwałość czatów, zadań, przebiegów, skilli, polityk bezpieczeństwa i grafu wiedzy. |
-| **Terminal i Procesy** | **`node-pty` 1.1 + `@xterm/xterm`** | Prawdziwe lokalne sesje PowerShell / Bash z obsługą sygnałów i zachowaniem stanu między kartami. |
-| **Testy i Jakość (QA)** | **`node:test` + JSDOM + Playwright** | Ponad 190 testów jednostkowych, integracyjnych i UI sprawdzających protokoły, bazę SQLite i komponenty. |
+Warunki kodu określa [LICENSE](LICENSE), a informacje o autorstwie [NOTICE](NOTICE). Pakiety skili i zależności zachowują własne licencje — zobacz [wykaz licencji](licenses/THIRD_PARTY_NOTICES.md). W sprawie wdrożeń, wsparcia i współpracy skontaktuj się z AI Evolution Polska.
 
-```text
-src/renderer/   Interfejs React 19 (Chat, Terminal, DiffViewer, MemoryGraph, KnowledgeHub, ControlCenter)
-src/main/       Proces główny Electron, adaptery dostawców, supervisor Git worktree, SQLite store
-src/shared.ts   Silnie typowany kontrakt IPC (allowlista kanałów i walidacja wejścia)
-resources/      20 przypiętych pakietów skilli (resources/skills/catalog.json)
-tests/          Testy jednostkowe, protokołowe i UI (node:test + jsdom + Playwright)
-docs/           Dokumentacja architektury, macierz dostawców (PROVIDERS.md) i raporty wydania
-```
+[Strona AI Evolution Polska](https://www.aievolutionpolska.pl) · [kontakt@aievolutionpolska.pl](mailto:kontakt@aievolutionpolska.pl) · [Zgłoś problem](https://github.com/aievolutionpl/agentic-os/issues)
 
-### Weryfikacja deweloperska i testy
+[Pluginy](docs/PLUGINS.md) · [Dostawcy](docs/PROVIDERS.md) · [Stan wydania](docs/RELEASE_STATUS.md) · [Współpraca](CONTRIBUTING.md) · [Historia zmian](CHANGELOG.md)
 
-```sh
-npm run typecheck       # Sprawdzenie typów TypeScript (main + renderer)
-npm test                # Pełny zestaw testów automatycznych
-npm run smoke           # Szybki test dymny uruchomienia Electron
-npm run release:audit   # Audyt bezpieczeństwa, linków dokumentacji, licencji i katalogu skilli
-```
+## Dyktowanie lokalne
 
----
+Mikrofon znajduje się w dolnym pasku pola rozmowy. W **Ustawienia → Głos i dyktowanie** wybierz język (domyślnie polski, dostępny angielski), model Whisper Tiny/Base/Small i przycisk **Pobierz / sprawdź model**. Wymagane są Python z `openai-whisper` oraz FFmpeg w PATH.
 
-## 🔒 Bezpieczeństwo i Prywatność (*Zero-Telemetry Local-First*)
+Przytrzymaj F8 w aktywnym oknie rozmowy, aby mówić; puść, aby rozpocząć transkrypcję. Skrót można zmienić na F9/F10 lub wyłączyć. Kliknięcie mikrofonu przełącza nagrywanie/stop. Widoczny wskaźnik pokazuje nagrywanie i przetwarzanie. Limit: 60 sekund. Tekst trafia do szkicu, bez automatycznego wysyłania. Pierwsze pobranie modelu wymaga internetu, późniejsza transkrypcja działa lokalnie. Skrót nie jest globalnym skrótem systemu operacyjnego.
 
-- **Pełna lokalność danych:** Wszystkie rozmowy, pamięć MCP, historia przebiegów i worktree znajdują się w lokalnym katalogu `userData` aplikacji Electron.
-- **Szyfrowanie kluczy API:** Klucze OpenRouter są chronione natywnym mechanizmem systemowym `safeStorage` (DPAPI / Keychain / Secret Service).
-- **Redakcja sekretów:** Automatyczny Memory Vault oraz diagnostyka automatycznie maskują rozpoznane klucze (`sk-...`, `ghp_...`, `github_pat_...`, klucze prywatne PEM).
-- **Twarda izolacja Chromium:** Renderer działa z `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true` oraz rygorystycznym `Content-Security-Policy`. Szczegóły w pliku [SECURITY.md](SECURITY.md).
-
----
-
-## 🤝 Kontakt, Wsparcie i Wdrożenia Komercyjne
-
-Narzędzie zostało zaprojektowane i zbudowane przez **[AI EVOLUTION POLSKA](https://www.aievolutionpolska.pl)**.
-
-- 🌐 **Strona internetowa:** **[www.aievolutionpolska.pl](https://www.aievolutionpolska.pl)**
-- 📧 **Licencje komercyjne, wdrożenia firmowe i współpraca B2B:** **[kontakt@aievolutionpolska.pl](mailto:kontakt@aievolutionpolska.pl)**
-- 🐛 **Zgłaszanie błędów i propozycji funkcji:** [GitHub Issues](https://github.com/aievolutionpl/agentic-os/issues)
-- 📖 **Dokumentacja dodatkowa:** [Dostawcy AI](docs/PROVIDERS.md) · [Stan wydania](docs/RELEASE_STATUS.md) · [Współpraca](CONTRIBUTING.md) · [Bezpieczeństwo](SECURITY.md) · [Changelog](CHANGELOG.md)
-
----
-
-<div align="center">
-
-**Stworzone z pasją do inżynierii AI przez [AI EVOLUTION POLSKA](https://www.aievolutionpolska.pl)**  
-📧 [kontakt@aievolutionpolska.pl](mailto:kontakt@aievolutionpolska.pl) · 🌐 [www.aievolutionpolska.pl](https://www.aievolutionpolska.pl)
-
-[Licencja](LICENSE) · [Notice](NOTICE) · [Licencje zależności](licenses/THIRD_PARTY_NOTICES.md) · [Kodeks postępowania](CODE_OF_CONDUCT.md)
-
-</div>
-
-
-### Uproszczony workspace
-
-Rozmowy i projekty mają wspólne drzewo nawigacji. Nową rozmowę uruchomisz przyciskiem u góry albo bezpośrednio pod projektem. Skille, Limity i ScheduleJob są dostępne bezpośrednio w menu. Narzędzia dodatkowe znajdują się w „Więcej”, a język, motyw i połączenia w Ustawieniach. Stały pasek u góry pokazuje pozostałe limity podłączonych subskrypcji; stare odczyty są oznaczone. Nowe profile zaczynają od jasnej palety perłowo-granatowej. Mapa pamięci pokazuje rzeczywistych agentów z historii rozmów i notatki, które utworzyli.
-
-Szczegóły odczytu limitów, w tym ograniczenia nieudokumentowanego endpointu konta Claude i ochrona danych logowania: [Calm workspace](docs/CALM_WORKSPACE.md). Weryfikacja nowej nawigacji: `npm run qa:calm`.
-
-ScheduleJob uruchamia codzienne analizy i raporty o wybranej godzinie lokalnej, gdy aplikacja jest włączona. Utworzenie harmonogramu wymaga zgody na cykliczne wysyłanie kontekstu i zużycie limitu. Przebiegi korzystają z istniejących zabezpieczeń rozmowy i trybu tylko do odczytu. Możesz je pauzować, uruchomić od razu i otworzyć wynik z historii. Harmonogram nie wybudza komputera; po przerwie wykonuje jeden zaległy przebieg. Zmiana nazwy projektu jest dostępna pod prawym przyciskiem myszy lub ikoną ołówka i nie przenosi folderu.
-
-
-Kolorystykę zmienisz w górnym pasku: **Pearl**, **Claude Light**, **Midnight**, **Graphite**, **AI Evolution**. Każdy motyw obejmuje także boczne menu i terminal. Dwuklik nazwy projektu w menu włącza edycję w miejscu (Enter zapisuje, Escape anuluje). Pierścienie przy subskrypcjach pokazują pozostały procent rzeczywistego limitu; saldo pieniężne nie jest przeliczane na procenty.
+Motyw **Pure White** wybierzesz z menu kolorystyki w górnym pasku. Limity subskrypcji dopasowują się do dostępnej szerokości bez przewijania poziomego. Przycisk „Szukaj” jest kompaktowy; skrót Ctrl+K nadal działa.

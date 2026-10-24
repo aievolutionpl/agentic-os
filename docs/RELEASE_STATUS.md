@@ -2,7 +2,11 @@
 
 This document describes current release readiness. Older audits, handoffs, briefs and evidence folders are historical records. CI on the commit being distributed takes precedence over a local report.
 
-## Current: 0.5.0-rc.1 public preview candidate
+## Current candidate: 0.5.0-rc.2
+
+Prepared 2026-10-23. Updated gallery: `docs/images/rc2`. Release workflow runs typecheck, lint, automated tests, release audit, Windows packaging and packaged-app smoke before publishing the unsigned prerelease installer and SHA256SUMS.txt. Check the workflow attached to the tag for actual publication status. Live provider OAuth and clean-machine install/upgrade/uninstall remain separate manual checks.
+
+## Historical: 0.5.0-rc.1 verification
 
 **2026-10-20 Windows workspace update:** [Classic/Grafit UI, model selection, memory graph, complete skills and Kanban](PREMIUM_WORKSPACE.md). Local verification now includes 174 automated tests, native Windows terminal shutdown, Electron smoke and `qa:premium` (Classic at 320/390/768/1440 px). The exact PR's Windows/Linux CI and packaged Windows smoke remain required merge gates. The table below records the earlier Linux candidate verification and its distribution limits; it is not evidence of a signed public release.
 

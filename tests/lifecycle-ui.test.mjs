@@ -106,7 +106,7 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     // Projects can share the same millisecond on fast hosts; UUID order is not creation order.
     const target = () =>
       [...dom.window.document.querySelectorAll(".project-link")].find(
-        (button) => button.textContent.includes(p.name),
+        (button) => button.getAttribute("aria-label")?.endsWith(`: ${p.name}`),
       );
     await wait(target);
     target().click();

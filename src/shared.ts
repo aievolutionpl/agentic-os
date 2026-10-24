@@ -8,6 +8,10 @@ export const AGENTS = [
   "antigravity",
 ] as const;
 export type Agent = (typeof AGENTS)[number];
+export interface ProviderInstallPlan {
+  agent: Agent; command: string; url: string; platform: string;
+  missing: string[]; ready: boolean; executable: string | null;
+}
 /** Gemini remains readable in historical records; new work uses Antigravity. */
 export const AVAILABLE_AGENTS = AGENTS.filter((id) => id !== "gemini");
 export const READ_ONLY_AGENTS: readonly Agent[] = [
@@ -285,6 +289,7 @@ export function chatMarkdown(chat: ChatSession): string {
   );
 }
 export const THEMES = [
+  "white",
   "dark",
   "claude",
   "codex",
@@ -645,6 +650,10 @@ export interface API {
   integrationTools(input: {id: IntegrationId}): Promise<McpTool[]>;
   integrationCall(input: {id: IntegrationId; name:string; arguments:Record<string,unknown>; consent:true}): Promise<{text:string; isError:boolean}>;
   terminalList?(): Promise<TerminalSession[]>;
+  providerInstallPlan?(input: { agent: Agent }): Promise<ProviderInstallPlan>;
+  providerInstallStart?(input: { agent: Agent; consent: true }): Promise<TerminalSession>;
+  providerLoginStart?(input: { agent: Agent; consent: true }): Promise<TerminalSession>;
+  providerInstallStatus?(input: { agent: Agent }): Promise<{ plan: ProviderInstallPlan; session: TerminalSession | null; installed: boolean }>;
   terminalOpen?(input: {
     projectId?: string;
     consent: true;
@@ -659,8 +668,9 @@ export interface API {
     rows: number;
   }): Promise<void>;
   terminalClose?(input: { id: string }): Promise<void>;
+  voicePrepare?(input:{model:"tiny"|"base"|"small"}):Promise<boolean>;
   voiceBegin?(): Promise<boolean>;
-  voiceTranscribe?(input:{audio:string;language:"pl"|"en"}):Promise<string>;
+  voiceTranscribe?(input:{audio:string;language:"pl"|"en";model?:"tiny"|"base"|"small"}):Promise<string>;
   scheduleList?(): Promise<{jobs:ScheduleJob[];runs:ScheduleRun[]}>;
   scheduleCreate?(input: {title:string;prompt:string;projectId:string;agent:Agent;time:string;weekdays?:number[];date?:string;consent:true}): Promise<ScheduleJob>;
   scheduleAction?(input: {id:string;action:"pause"|"resume"|"delete"|"run"}): Promise<void>;
@@ -701,13 +711,18 @@ export interface API {
   }): Promise<WorkspacePolicy>;
   /** Usage ledger: per-agent totals for 30 days and the latest entries. */
   usageReport?(): Promise<{ summary: UsageSummary[]; recent: UsageEntry[] }>;
-  /** Preview the router's choice; it never starts anything. */
+  routingHistory?(): Promise<RoutingHistoryEntry[]>;
+  /** Preview a choice. Optional Jev performs one explicitly consented reasoning call. */
   routePreview?(input: {
     mode: RoutingMode;
     role: "implementer" | "reviewer";
     readOnly: boolean;
     author?: Agent;
     preferred?: Agent;
+    taskKind?: "general" | "writing" | "coding";
+    strict?: boolean;
+    task?: string;
+    jev?: { agent: Agent; model: string; consent: true };
   }): Promise<RoutingDecision>;
   /** Approve paid runs for one agent for 30 minutes, in memory only. */
   policyApprove?(input: { agent: Agent; consent: true }): Promise<void>;
@@ -1020,7 +1035,7 @@ export interface McpTool {
   description: string;
   inputSchema: Record<string, unknown>;
 }
-export type IntegrationId = "notion" | "canva" | "google-drive" | "firecrawl";
+export type IntegrationId = "notion" | "canva" | "google-drive" | "firecrawl" | "linear" | "asana" | "atlassian";
 export interface IntegrationStatus {
   id: IntegrationId;
   state: "disconnected" | "connecting" | "connected" | "error";
@@ -1119,6 +1134,7 @@ export interface RoutingDecision {
   rejected: { agent: Agent; reasons: string[] }[];
   reason: string;
 }
+export interface RoutingHistoryEntry { id: string; at: string; decision: RoutingDecision }
 /** Workspace rules the application enforces before any agent starts. */
 export interface WorkspacePolicy {
   /** Agents allowed to run; empty means every connected agent. */

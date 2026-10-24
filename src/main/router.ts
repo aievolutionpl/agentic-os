@@ -34,6 +34,10 @@ export interface RouteRequest {
   author?: Agent;
   /** Manual mode only: the operator's choice. */
   preferred?: Agent;
+  /** Optional task category supplied by the user, never inferred as a capability. */
+  taskKind?: "general" | "writing" | "coding";
+  /** Auto routing only considers checked, policy-approved subscription agents. */
+  strict?: boolean;
 }
 
 /**
@@ -55,6 +59,9 @@ export function route(
     else {
       if (f.check === "needs-auth") why.push("SIGN_IN_REQUIRED");
       if (f.check === "unavailable") why.push("UNAVAILABLE");
+      if (request.strict && f.check === null) why.push("CONNECTION_UNCHECKED");
+      if (request.strict && f.paid) why.push("PAID_REQUIRES_MANUAL_CHOICE");
+      if (request.strict && f.policy === "approve") why.push("NEEDS_APPROVAL");
       if (readOnly && !READ_ONLY_AGENTS.includes(agent))
         why.push("NO_READ_ONLY_MODE");
       if (request.author === agent && request.role === "reviewer")
@@ -75,6 +82,9 @@ export function route(
     };
     if (f!.check === "connected") add(3, "CONNECTION_VERIFIED");
     else add(0, "CONNECTION_UNCHECKED");
+    if ((request.taskKind === "writing" && agent === "claude") ||
+        (request.taskKind === "coding" && agent === "codex"))
+      add(4, "TASK_PREFERENCE");
     const proven = Math.min(f!.successes, 5);
     if (proven)
       add(

@@ -80,3 +80,12 @@ test('remote MCP connects, paginates, requires consent and disconnects without l
   assert.ok(calls.every(c=>c.url.startsWith('https://mcp.firecrawl.dev/')&&!c.url.includes(key)));
  }finally{await plugins.close();rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});}
 });
+
+test('daily-work plugins enforce provider-specific HTTPS OAuth hosts',()=>{
+ for(const [id,host] of [['linear','mcp.linear.app'],['asana','mcp.asana.com'],['atlassian','mcp.atlassian.com']]) {
+  assert.equal(integrationUrl(id,`https://${host}/mcp`).hostname,host);
+  assert.throws(()=>integrationUrl(id,`https://${host}.evil.test/mcp`));
+  assert.throws(()=>integrationUrl(id,'https://127.0.0.1/mcp'));
+  assert.throws(()=>integrationUrl(id,'https://mcp.notion.com/mcp'));
+ }
+});

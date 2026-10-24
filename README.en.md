@@ -4,6 +4,12 @@
 
 # Agenting OS
 
+**Upcoming:** in-app CLI installation, official login and optional **Jev** decision
+model. In a task, choose its type, enable Jev, select a model and click “Show
+proposal”. Jev chooses among verified agents without granting permissions.
+Rules handle failures/timeouts; paid API requires manual selection.
+[Setup, workflow and limitations](docs/ONBOARDING-AND-JEV.md).
+
 **One workspace for agent conversations, projects and persistent knowledge.**
 
 Built by [AI Evolution Polska](https://www.aievolutionpolska.pl). [Polski](README.md)
@@ -68,7 +74,7 @@ Select a specific branch with `git switch <branch>` before installing dependenci
 | Memory | Project notes, explicitly shared workspace knowledge and a graph of relationships. |
 | Harness | Editable workspace instructions, automatic recall controls, context sources and budget inspection. |
 | Skills | 33 pinned packages, custom imports and enable/disable controls. |
-| Plugins | Google Drive, Canva, Notion and Firecrawl connections with manual tool execution. |
+| Plugins | Google Drive, Canva, Notion, Firecrawl, Linear, Asana and Jira/Confluence connections with manual tool execution. |
 | ScheduleJob | One-time, daily and selected-weekday schedules, pause controls and links to results. |
 | Terminal and Git | Native PTY terminal, repository inspection, diff viewing and result export. |
 
@@ -98,6 +104,9 @@ Installation writes to `.agents/skills/<slug>` in the selected project. Disablin
 | Notion | Browser OAuth | Tools returned by the official MCP service. |
 | Canva | OAuth; registered client credentials if required | Tools returned by Canva MCP. |
 | Firecrawl | OAuth or API key | Web retrieval and search tools. |
+| Linear | OAuth login | Tasks, projects and priorities. |
+| Asana | Registered OAuth client ID and secret | Tasks, deadlines and projects. |
+| Jira / Confluence | Atlassian OAuth | Issues and team documentation. |
 
 Select a tool, inspect arguments and explicitly execute it in the panel. Results can be saved to project memory. Remote plugins are not automatically available in the model's conversation tool loop. Reconnect after restarting the app; saved grants are reused where supported.
 
@@ -152,3 +161,9 @@ Code terms are defined in [LICENSE](LICENSE); attribution is in [NOTICE](NOTICE)
 [Website](https://www.aievolutionpolska.pl) · [Email](mailto:kontakt@aievolutionpolska.pl) · [Issues](https://github.com/aievolutionpl/agentic-os/issues)
 
 [Plugins](docs/PLUGINS.md) · [Providers](docs/PROVIDERS.md) · [Release status](docs/RELEASE_STATUS.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+
+## Local dictation
+
+The microphone is in the composer toolbar. **Settings → Głos i dyktowanie** selects Polish (default) or English, Whisper Tiny/Base/Small, model download/verification, and a hold-to-talk key. Python with `openai-whisper` and FFmpeg must be available on PATH.
+
+Hold F8 in the focused conversation window and release to transcribe; F9/F10 or disabling the shortcut are available. Clicking the microphone toggles recording/stop. A visible indicator shows recording and processing. Recordings are limited to 60 seconds; transcripts enter the draft and are never sent automatically. Initial model download needs internet; transcription then runs locally. This is an app shortcut, not an OS-wide hotkey.

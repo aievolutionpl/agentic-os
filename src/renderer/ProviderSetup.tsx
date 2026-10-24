@@ -27,7 +27,7 @@ const defaults = {
   local: "acp",
   antigravity: "antigravity-cli",
 } as const;
-export function ProviderSetup({ language }: { language: "pl" | "en" }) {
+export function ProviderSetup({ language, onFirstTask }: { language: "pl" | "en"; onFirstTask?: (agent: Agent) => void }) {
   const pl = language === "pl",
     api = window.agenting!;
   const [settings, setSettings] = useState<ProviderSetting[]>([]),
@@ -203,6 +203,10 @@ export function ProviderSetup({ language }: { language: "pl" | "en" }) {
         <span className="helper">{pl ? "Wyłączenie zatrzymuje nowe zadania i ukrywa limity. Konto dostawcy pozostaje zalogowane." : "Disabling blocks new tasks and hides limits. The provider account stays signed in."}</span>
       </div>
       <ProviderGuide key={agent} agent={agent} pl={pl} onDetect={async () => setDetected(await api.providerDetect!())} />
+      {onFirstTask && <button type="button" className="secondary" disabled={busy || !(health?.agent === agent && health.state === "connected")}
+        onClick={() => onFirstTask(agent)}>
+        <Icon name="chat" />{pl ? "Pierwsze zadanie · poznaj projekt" : "First task · explore a project"}
+      </button>}
       <form
         onSubmit={(event) => {
           event.preventDefault();

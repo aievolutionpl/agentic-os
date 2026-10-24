@@ -3,6 +3,9 @@ import type {IntegrationId,IntegrationStatus,McpTool,Project} from "../shared";
 import {Icon} from "./ui";
 
 const catalog: {id:IntegrationId;name:string;icon:string;description:string;guide:string;color:string}[]=[
+ {id:"linear",name:"Linear",icon:"plan",description:"Zadania, priorytety i projekty zespołu. Wyszukuj zgłoszenia i aktualizuj postęp.",guide:"https://linear.app/docs/mcp",color:"#8073dc"},
+ {id:"asana",name:"Asana",icon:"check",description:"Codzienny plan pracy, terminy i zadania marketingowe w jednym miejscu.",guide:"https://developers.asana.com/docs/integrating-with-asanas-mcp-server",color:"#db7383"},
+ {id:"atlassian",name:"Jira i Confluence",icon:"folder",description:"Zgłoszenia Jira i wiedza zespołu w Confluence. Szukaj kontekstu i zarządzaj pracą.",guide:"https://atlassian.github.io/atlassian-mcp-server/",color:"#5793d9"},
  {id:"google-drive",name:"Google Drive",icon:"folder",description:"Szukaj plików, czytaj dokumenty i dodawaj wiedzę do projektu.",guide:"https://developers.google.com/identity/protocols/oauth2/native-app",color:"#528461"},
  {id:"canva",name:"Canva",icon:"palette",description:"Połącz projekty graficzne i narzędzia tworzenia materiałów marki.",guide:"https://www.canva.dev/docs/apps/mcp/",color:"#7962bf"},
  {id:"notion",name:"Notion",icon:"skill",description:"Pracuj z dokumentami, stronami i bazami swojego zespołu.",guide:"https://developers.notion.com/guides/mcp/get-started-with-mcp",color:"#7d8291"},
@@ -11,6 +14,7 @@ const catalog: {id:IntegrationId;name:string;icon:string;description:string;guid
 const stateLabels={disconnected:"Niepołączony",connecting:"Oczekiwanie na logowanie…",connected:"Połączony",error:"Sprawdź połączenie"};
 function message(error:unknown) {
  const value=String(error);
+ if(value.includes("ASANA_CLIENT_REQUIRED"))return "Dodaj Client ID i Client secret aplikacji Asana w sekcji Konfiguracja OAuth, następnie połącz konto.";
  if(value.includes("GOOGLE_CLIENT_REQUIRED"))return "Dodaj Client ID aplikacji typu Desktop z Google Cloud. Włącz Google Drive API, potem zaloguj się.";
  if(value.includes("CONNECTION_BUSY"))return "Dokończ lub anuluj poprzednie logowanie.";
  if(value.includes("ENCRYPTION"))return "Systemowy magazyn szyfrowania jest niedostępny. Połączenie nie zostało zapisane.";
@@ -38,8 +42,9 @@ export function PluginsHub({projects}:{projects:Project[]}) {
     {(status?.state==="connected"||status?.state==="connecting")&&<button className="secondary" onClick={()=>void api.integrationDisconnect({id:selected}).then(refresh).catch(e=>setNotice(message(e)))}>{status.state==="connecting"?"Anuluj logowanie":"Wyłącz plugin"}</button>}
     {status?.configured&&<button className="text-action" disabled={busy} onClick={()=>void act(()=>api.integrationDisconnect({id:selected,forget:true}),"Usunięto zapisane połączenie z tej aplikacji.")}>Usuń zapisane połączenie</button>}
    </div>
-   {(selected==="google-drive"||selected==="canva"||selected==="firecrawl")&&<details className="integration-credentials" open={selected==="google-drive"&&!status?.configured}><summary>{selected==="firecrawl"?"Połączenie kluczem API": "Konfiguracja OAuth"}</summary>
+   {(selected==="google-drive"||selected==="canva"||selected==="firecrawl"||selected==="asana")&&<details className="integration-credentials" open={(selected==="google-drive"||selected==="asana")&&!status?.configured}><summary>{selected==="firecrawl"?"Połączenie kluczem API": "Konfiguracja OAuth"}</summary>
     {selected==="google-drive"&&<p>W Google Cloud utwórz klienta OAuth typu <strong>Desktop app</strong> i włącz Google Drive API. Dostęp jest tylko do odczytu. Dla aplikacji w trybie testowym dodaj swoje konto jako użytkownika testowego.</p>}
+    {selected==="asana"&&<p>Zarejestruj aplikację OAuth w Asana i dodaj adres powrotu <code>http://127.0.0.1:48573/callback</code>. Asana wymaga własnego Client ID i Client secret.</p>}
     {selected==="canva"&&<p>Jeśli Canva wymaga własnej aplikacji, włącz Canva MCP w portalu dewelopera i dodaj adres powrotu: <code>http://127.0.0.1:48573/callback</code>.</p>}
     <form onSubmit={e=>{e.preventDefault();void act(async()=>{await api.integrationSave({id:selected,...(selected==="firecrawl"?{apiKey}:{clientId,clientSecret:secret})});setApiKey("");setClientId("");setSecret("");},"Zapisano konfigurację. Teraz wybierz Połącz konto.");}}>
      {selected==="firecrawl"?<label>Klucz API Firecrawl<input type="password" autoComplete="off" value={apiKey} onChange={e=>setApiKey(e.target.value)} required maxLength={4096}/></label>:<><label>Client ID<input autoComplete="off" value={clientId} onChange={e=>setClientId(e.target.value)} required maxLength={4096}/></label><label>Client secret<input type="password" autoComplete="off" value={secret} onChange={e=>setSecret(e.target.value)} maxLength={4096}/></label></>}

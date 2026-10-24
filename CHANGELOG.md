@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- Pure White theme, wrapping quota header without horizontal scrolling, wider composer and visible model/workspace selection.
+- Polish-first Whisper settings and hold-to-talk controls; additional daily-work integrations.
+- Explicit official CLI installers for Codex, Claude and Antigravity with dependency checks, PTY output, cancellation and exit/version verification.
+- Official CLI login terminals and a first-project task entry point after connection verification.
+- Task-aware routing with checked subscription agents; optional Jev decision-model role, bounded structured choices, rule fallback and local decision history. Jev cannot grant execution permissions.
+- Electron 43.8.3, undici 8.12.3 and fast-uri 3.1.9 security updates.
+
+No new official release or installer publication in this change.
+
 ## 0.5.0-rc.2 — 2026-10-23
 
 - Pięć palet, kompaktowy czat, szerszy obszar odpowiedzi i uproszczona nawigacja projektów.

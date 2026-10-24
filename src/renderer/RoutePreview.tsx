@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import type { Agent, RoutingDecision, RoutingMode } from "../shared";
+import React, { useEffect, useRef, useState } from "react";
+import { READ_ONLY_AGENTS, type Agent, type ProviderSetting, type RoutingDecision, type RoutingMode, type RoutingHistoryEntry } from "../shared";
+import { ModelPicker } from "./ModelPicker";
 import { Icon, agentName } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 import { policyMessage } from "./PolicyPanel";
@@ -23,6 +24,8 @@ const REASONS: Record<string, [string, string]> = {
   QUOTA_UNKNOWN: ["limit nieznany", "quota unknown"],
   PAID_PER_TOKEN: ["płatne za tokeny", "paid per token"],
   NEEDS_APPROVAL: ["wymaga zgody", "needs approval"],
+  TASK_PREFERENCE: ["preferowany dla tego zadania", "preferred for this task"],
+  PAID_REQUIRES_MANUAL_CHOICE: ["płatne API wymaga ręcznego wyboru", "paid API requires manual choice"],
 };
 /** "+3 CONNECTION_VERIFIED" → "+3 połączenie sprawdzone". */
 export function reasonText(reason: string, pl: boolean) {
@@ -50,6 +53,7 @@ export function RoutePreview({
   current,
   currentReviewer,
   onApply,
+  task = "",
 }: {
   language: "pl" | "en";
   disabled?: boolean;
@@ -57,18 +61,37 @@ export function RoutePreview({
   current?: Agent;
   currentReviewer?: Agent;
   onApply: (implementer: Agent, reviewer: Agent) => void;
+  task?: string;
 }) {
   const api = window.agenting!,
     pl = language === "pl";
   const [mode, setMode] = useState<RoutingMode>("balanced");
+  const [taskKind, setTaskKind] = useState<"general" | "writing" | "coding">("general");
+  const [jevEnabled, setJevEnabled] = useState(false);
+  const [jevAgent, setJevAgent] = useState<Agent>("codex");
+  const [jevModel, setJevModel] = useState("");
+  const [providers, setProviders] = useState<ProviderSetting[]>([]);
+  const [history, setHistory] = useState<RoutingHistoryEntry[]>([]);
+  const revision = useRef(0);
   const [result, setResult] = useState<{
     implementer: RoutingDecision;
     reviewer: RoutingDecision | null;
   } | null>(null);
   const [busy, setBusy] = useState(false),
     [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void api.providerSettings?.().then(rows => { if (live) setProviders(rows); }).catch(() => {});
+    void api.routingHistory?.().then(rows => { if (live) setHistory(rows); }).catch(() => {});
+    return () => { live = false; };
+  }, [api]);
+  useEffect(() => {
+    revision.current++;
+    setResult(null);
+  }, [task, taskKind, mode, jevEnabled, jevAgent, jevModel, current, currentReviewer]);
   if (!api.routePreview) return null;
   async function preview(next = mode) {
+    const epoch = revision.current;
     setBusy(true);
     setFailed(false);
     try {
@@ -76,6 +99,11 @@ export function RoutePreview({
         mode: next,
         role: "implementer",
         readOnly: false,
+        taskKind,
+        strict: next !== "manual",
+        ...(jevEnabled && next !== "manual" ? {
+          task: task.slice(0, 4000), jev: { agent: jevAgent, model: jevModel, consent: true as const },
+        } : {}),
         ...(next === "manual" && current ? { preferred: current } : {}),
       });
       const reviewer = implementer.choice
@@ -84,12 +112,14 @@ export function RoutePreview({
             role: "reviewer",
             readOnly: true,
             author: implementer.choice,
+            strict: next !== "manual",
             ...(next === "manual" && currentReviewer
               ? { preferred: currentReviewer }
               : {}),
           })
         : null;
-      setResult({ implementer, reviewer });
+      if (epoch === revision.current) setResult({ implementer, reviewer });
+      void api.routingHistory?.().then(setHistory).catch(() => {});
     } catch {
       // A stale proposal from another mode must not stay applicable.
       setResult(null);
@@ -133,7 +163,6 @@ export function RoutePreview({
           onChange={(e) => {
             const next = e.target.value as typeof mode;
             setMode(next);
-            if (result) void preview(next);
           }}
         >
           <option value="balanced">{pl ? "Zrównoważony" : "Balanced"}</option>
@@ -150,13 +179,40 @@ export function RoutePreview({
         <button
           type="button"
           className="secondary"
-          disabled={disabled || busy}
+          disabled={disabled || busy || (jevEnabled && mode !== "manual" && (!jevModel || !task.trim()))}
           onClick={() => void preview()}
         >
           <Icon name={busy ? "refresh" : "search"} />
           {pl ? "Pokaż propozycję" : "Show proposal"}
         </button>
       </div>
+      <details className="route-options">
+        <summary>{pl ? "Preferencje zadania i model Jev" : "Task preferences and Jev decision model"}</summary>
+        <label>{pl ? "Rodzaj pracy" : "Task type"}
+          <select value={taskKind} disabled={busy} onChange={e => setTaskKind(e.target.value as typeof taskKind)}>
+            <option value="general">{pl ? "Ogólne" : "General"}</option>
+            <option value="writing">{pl ? "Pisanie · preferuj Claude" : "Writing · prefer Claude"}</option>
+            <option value="coding">{pl ? "Kod · preferuj Codex" : "Coding · prefer Codex"}</option>
+          </select>
+        </label>
+        <label><input type="checkbox" checked={jevEnabled} disabled={busy || mode === "manual"} onChange={e => setJevEnabled(e.target.checked)} />
+          {pl ? "Jev · użyj modelu decyzyjnego" : "Jev · use a decision model"}
+        </label>
+        {jevEnabled && <>
+          <p>{pl ? "„Pokaż propozycję” wyśle treść zadania do wybranego modelu (zużywa limit). Jedno wywołanie, maks. 45 s; przy błędzie zadziałają reguły. Jev nie wykonuje zadania ani nie zmienia uprawnień." : "Show proposal sends task text to this model (uses quota). One call, up to 45 seconds; rules handle failures. Jev does not execute the task or change permissions."}</p>
+          <select aria-label={pl ? "Dostawca modelu Jev" : "Jev provider"} value={jevAgent} disabled={busy} onChange={e => { setJevAgent(e.target.value as Agent); setJevModel(""); }}>
+            {providers.filter(p => p.configured && READ_ONLY_AGENTS.includes(p.id) && p.id !== "gemini" && p.id !== "opencode").map(p => <option key={p.id} value={p.id}>{agentName(p.id)}</option>)}
+          </select>
+          <ModelPicker agent={jevAgent} value={jevModel} provider={providers.find(p => p.id === jevAgent)} pl={pl} disabled={busy} onChange={setJevModel} />
+        </>}
+      </details>
+      {!!history.length && <details><summary>{pl ? "Ostatnie decyzje" : "Recent decisions"}</summary>
+        <ul>{history.slice(0, 8).map(row => <li key={row.id}>
+          <time>{new Date(row.at).toLocaleTimeString(pl ? "pl-PL" : "en-GB")}</time>{" · "}
+          {row.decision.choice ? agentName(row.decision.choice) : (pl ? "Bez wyboru" : "No choice")}{" · "}
+          {row.decision.reason === "JEV_RULE_FALLBACK" ? (pl ? "reguły awaryjne" : "rule fallback") : row.decision.reason === "JEV_VALIDATED_CHOICE" ? "Jev" : (pl ? "reguły / wybór ręczny" : "rules / manual choice")}
+        </li>)}</ul>
+      </details>}
       {failed && (
         <p className="inline-error" role="alert">
           {pl
@@ -166,6 +222,11 @@ export function RoutePreview({
       )}
       {result && (
         <div className="route-result">
+          {result.implementer.reason.startsWith("JEV_") && <p role="status">{({
+            JEV_VALIDATED_CHOICE: pl ? "Jev: wybór sprawdzony względem dostępnych agentów." : "Jev: choice validated against eligible agents.",
+            JEV_RULE_FALLBACK: pl ? "Jev niedostępny lub odpowiedź niepoprawna — zastosowano reguły." : "Jev unavailable or invalid response — rules applied.",
+            JEV_CLARIFICATION_REQUIRED: pl ? "Jev potrzebuje dokładniejszego opisu. Doprecyzuj zadanie lub wybierz agenta ręcznie." : "Jev needs more context. Refine the task or choose an agent manually.",
+          } as Record<string, string>)[result.implementer.reason]}</p>}
           {row(pl ? "Wykonawca" : "Implementer", result.implementer)}
           {row(pl ? "Recenzent" : "Reviewer", result.reviewer)}
           {(

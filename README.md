@@ -4,6 +4,12 @@
 
 # Agenting OS
 
+**W przygotowaniu:** instalacja CLI z terminalem, oficjalne logowanie i opcjonalny
+model decyzyjny **Jev**. W zadaniu wybierz rodzaj pracy, włącz Jev, wskaż model
+i kliknij „Pokaż propozycję”. Jev wybiera spośród sprawdzonych agentów; nie nadaje
+uprawnień. Błędy i timeout obsługują reguły, a płatne API wymaga ręcznego wyboru.
+[Konfiguracja, przepływ i ograniczenia](docs/ONBOARDING-AND-JEV.md).
+
 **Jeden workspace do rozmów z agentami, pracy nad projektami i wiedzy, która zostaje z Tobą.**
 
 Zbudowane przez [AI Evolution Polska](https://www.aievolutionpolska.pl).
@@ -82,7 +88,7 @@ npm start
 | **Pamięć** | Przechowywać notatki projektu, jawnie udostępniać wybrane wpisy w workspace i przeglądać powiązania na grafie. |
 | **Harness** | Edytować instrukcje workspace, ustawiać przywoływanie pamięci i sprawdzać źródła oraz budżet kontekstu. |
 | **Skille** | Instalować przypięte pakiety instrukcji, importować własne i włączać lub wyłączać zainstalowane skille. |
-| **Pluginy** | Połączyć Google Drive, Canva, Notion lub Firecrawl, uruchomić narzędzie i zapisać wynik w pamięci projektu. |
+| **Pluginy** | Połączyć Google Drive, Canva, Notion, Firecrawl, Linear, Asanę lub Jira/Confluence, uruchomić narzędzie i zapisać wynik w pamięci projektu. |
 | **ScheduleJob** | Zaplanować pracę jednorazową, codzienną lub w wybrane dni tygodnia; pauzować harmonogram i otwierać wyniki. |
 | **Terminal i Git** | Korzystać z terminala PTY, podglądu repozytorium i diffów oraz eksportu wyników pracy. |
 
@@ -123,6 +129,9 @@ Instalacja zapisuje pakiet w `.agents/skills/<slug>` wybranego projektu. Wyłąc
 | Notion | OAuth w przeglądarce | Narzędzia udostępnione przez oficjalny serwer MCP. |
 | Canva | OAuth; własne dane klienta, jeśli wymagane | Narzędzia udostępnione przez Canva MCP. |
 | Firecrawl | OAuth lub klucz API | Narzędzia pobierania i przeszukiwania treści internetowych. |
+| Linear | Logowanie OAuth | Zadania, projekty i priorytety zespołu. |
+| Asana | Własna aplikacja OAuth: Client ID i secret | Codzienne zadania, terminy i projekty. |
+| Jira / Confluence | Logowanie OAuth Atlassian | Zgłoszenia i dokumentacja zespołu. |
 
 Wybierasz narzędzie, sprawdzasz parametry i zatwierdzasz wykonanie w panelu. Wynik można dodać do pamięci projektu. Pluginy nie są jeszcze automatycznie wywoływane przez model podczas rozmowy. Po restarcie aplikacji trzeba ponownie nawiązać połączenie; zapisane granty są wykorzystywane tam, gdzie pozwala na to dostawca.
 
@@ -177,3 +186,11 @@ Warunki kodu określa [LICENSE](LICENSE), a informacje o autorstwie [NOTICE](NOT
 [Strona AI Evolution Polska](https://www.aievolutionpolska.pl) · [kontakt@aievolutionpolska.pl](mailto:kontakt@aievolutionpolska.pl) · [Zgłoś problem](https://github.com/aievolutionpl/agentic-os/issues)
 
 [Pluginy](docs/PLUGINS.md) · [Dostawcy](docs/PROVIDERS.md) · [Stan wydania](docs/RELEASE_STATUS.md) · [Współpraca](CONTRIBUTING.md) · [Historia zmian](CHANGELOG.md)
+
+## Dyktowanie lokalne
+
+Mikrofon znajduje się w dolnym pasku pola rozmowy. W **Ustawienia → Głos i dyktowanie** wybierz język (domyślnie polski, dostępny angielski), model Whisper Tiny/Base/Small i przycisk **Pobierz / sprawdź model**. Wymagane są Python z `openai-whisper` oraz FFmpeg w PATH.
+
+Przytrzymaj F8 w aktywnym oknie rozmowy, aby mówić; puść, aby rozpocząć transkrypcję. Skrót można zmienić na F9/F10 lub wyłączyć. Kliknięcie mikrofonu przełącza nagrywanie/stop. Widoczny wskaźnik pokazuje nagrywanie i przetwarzanie. Limit: 60 sekund. Tekst trafia do szkicu, bez automatycznego wysyłania. Pierwsze pobranie modelu wymaga internetu, późniejsza transkrypcja działa lokalnie. Skrót nie jest globalnym skrótem systemu operacyjnego.
+
+Motyw **Pure White** wybierzesz z menu kolorystyki w górnym pasku. Limity subskrypcji dopasowują się do dostępnej szerokości bez przewijania poziomego. Przycisk „Szukaj” jest kompaktowy; skrót Ctrl+K nadal działa.

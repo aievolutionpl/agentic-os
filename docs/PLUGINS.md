@@ -39,3 +39,11 @@ The ten added marketing packages come from [Corey Haines' marketingskills collec
 `tests/workspace-connections.test.mjs` checks subscription filtering, skill discovery/context changes, OAuth state/cancellation, network restrictions and the MCP lifecycle using a local protocol fixture. `npm run qa:plugins` checks agent and skill toggles, settings and responsive plugin layouts in an isolated Electron profile. Real account OAuth and remote tool permissions require login to each provider and are separate from these automated checks.
 
 Official references: [Google desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app), [Notion MCP](https://developers.notion.com/guides/mcp/get-started-with-mcp), [Canva MCP](https://www.canva.dev/docs/apps/mcp/), [Firecrawl MCP](https://github.com/firecrawl/firecrawl-mcp-server).
+
+## Daily work integrations
+
+- [Linear](https://linear.app/docs/mcp): `https://mcp.linear.app/mcp`, OAuth dynamic client registration.
+- [Asana](https://developers.asana.com/docs/integrating-with-asanas-mcp-server): `https://mcp.asana.com/v2/mcp`. Register your OAuth app first, with `http://127.0.0.1:48573/callback`, then save its client ID and secret in the plugin panel. Asana v2 does not support dynamic client registration.
+- [Atlassian](https://atlassian.github.io/atlassian-mcp-server/): `https://mcp.atlassian.com/v2/mcp`, OAuth access to Jira and Confluence according to your account permissions.
+
+These integrations reuse the encrypted connection store, provider-specific HTTPS allowlists, tool discovery and explicit execution consent. They start disconnected. Authenticated account access is not covered by local protocol tests.

@@ -380,4 +380,129 @@ html.quietGlass .project-sidebar {background:var(--nav-bg);}
 }
 
 .compact-workspace-header {flex-shrink:0;border-bottom:1px solid var(--border);background:var(--surface);}
-@media(min-width:1250px){.compact-workspace-header {display:flex;align-items:center;}.compact-workspace-header .top-bar {flex:1;min-width:400px;}.compact-workspace-header .quota-strip {max-width:58%;min-width:0;border:0;padding-inline:8px;}.compact-workspace-header .quota-strip-label {display:none;}}
+/* Shared sizing for the responsive header; layout rules live with the header below. */
+.compact-workspace-header .top-bar {display:flex;}
+.compact-workspace-header .breadcrumb {min-width:0;flex:1;white-space:nowrap;overflow:hidden;}
+.compact-workspace-header .breadcrumb strong {overflow:hidden;text-overflow:ellipsis;}
+.compact-workspace-header .quota-strip {box-sizing:border-box;}
+.chat-workspace.has-conversation .chat-composer {flex-shrink:0;height:auto;min-height:0;overflow:visible;}
+.chat-workspace.has-conversation .composer-toolbar {display:flex;flex-wrap:wrap;min-width:0;height:auto;}
+.chat-workspace.has-conversation .composer-toolbar>* {min-width:0;max-width:100%;flex-shrink:1;}
+.chat-workspace.has-conversation .composer-toolbar .model-picker {flex:0 1 240px;}
+.chat-workspace.has-conversation .composer-toolbar .primary {position:static;flex:0 0 auto;align-self:center;}
+.chat-workspace.has-conversation .model-picker select {min-width:0;width:100%;}
+.chat-stage,.chat-layout,.workspace-content {min-width:0;}
+.toast {bottom:auto;top:70px;max-width:min(360px,calc(100vw - 32px));}
+@media(max-width:600px){.chat-workspace.has-conversation .composer-toolbar .model-picker {flex:1 1 180px;}.compact-workspace-header .settings {flex-wrap:wrap;gap:6px;}.chat-workspace.has-conversation .composer-chip {max-width:160px;}}
+
+/* AI Evolution Polska Brand System 2026 v2: Void / Bone / Aurora / Amber.
+   Source: github.com/aievolutionpl/AI-EVOLUTION-POLSKA-Branding/brand/tokens/aiep-tokens.css */
+html[data-theme="codex"] {
+ --bg:#08070e;--bg-subtle:#1c1a2b;--surface:#27243c;--surface-hover:#34304f;
+ --border:#554d76;--border-strong:#9182bc;--text:#f2efe8;--text-muted:#c0bad6;
+ --accent:#ffb23e;--accent-hover:#ffc76f;--accent-fg:#0e0c17;
+ --nav-bg:#12111c;--nav-end:#1c1a2b;--nav-text:#f2efe8;--nav-muted:#bcb5d1;
+ --nav-accent:#ffb23e;--nav-border:#48405f;--secondary-accent:#7b5cff;
+ --memory-accent:#8edbc2;--creative-accent:#b8a5ff;--planning-accent:#f1a0cb;
+}
+html[data-theme="codex"] .body {background:radial-gradient(ellipse at 90% 15%,#3d8bff16,transparent 44%),radial-gradient(ellipse at 10% 90%,#e04a9a12,transparent 45%),#08070e;}
+html[data-theme="codex"] .chat-workspace {position:relative;isolation:isolate;}
+html[data-theme="codex"] .body:has(.chat-workspace)::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 15% 25%,#7b5cff26,transparent 48%),radial-gradient(ellipse at 88% 65%,#3d8bff20,transparent 42%),radial-gradient(#f2efe82b .65px,transparent 1px);background-size:auto,auto,83px 91px;mask-image:linear-gradient(transparent,#000 12%,#000 88%,transparent);}
+html[data-theme="codex"] .chat-composer {background:linear-gradient(120deg,#34304b,#29263e);border:1px solid #9182bc;box-shadow:inset 0 1px 0 #f2efe81f,0 12px 36px #0005;}
+html[data-theme="codex"] .chat-composer:focus-within {border-color:#b8a5ff;box-shadow:0 0 0 3px #7b5cff24,0 12px 36px #0005;}
+html[data-theme="codex"] .chat-message {background:linear-gradient(130deg,#282538f5,#201e30f5);border-color:#554d76;box-shadow:inset 0 1px 0 #f2efe810;}
+html[data-theme="codex"] .composer-tools>summary {background:#1c1a2b66;}
+@media(prefers-reduced-motion:no-preference){html[data-theme="codex"]:not(.quietMotion) .body:has(.chat-workspace)::before {animation:aiep-aurora 18s ease-in-out infinite alternate;}@keyframes aiep-aurora{from{opacity:.5;}to{opacity:1;}}}
+html.plainBackground[data-theme="codex"] .body:has(.chat-workspace)::before {display:none;}
+
+/* The atmosphere belongs to the full workspace, independently of text width. */
+html[data-theme="codex"] .body:has(.chat-workspace) {position:relative;isolation:isolate;}
+html[data-theme="codex"] .body:has(.chat-workspace)>main {background:transparent;}
+.composer-toolbar .voice-input {margin:0;gap:6px;}
+.composer-toolbar .voice-input>small {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+.voice-microphone {display:grid;place-items:center;width:36px;height:36px;padding:8px!important;}
+.voice-microphone[aria-pressed="true"] {background:var(--accent);color:var(--accent-fg);}
+.voice-recording {position:fixed;z-index:1000;top:80px;left:50%;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:12px 18px;border:1px solid var(--accent);border-radius:18px;background:var(--surface);color:var(--text);box-shadow:0 12px 48px #0005;display:flex;gap:12px;align-items:center;}
+.voice-wave {color:var(--accent);letter-spacing:3px;animation:voice-pulse .7s ease-in-out infinite alternate;}
+@keyframes voice-pulse {to{opacity:.35;transform:scaleY(.55);}}
+@media(prefers-reduced-motion:reduce){.voice-wave{animation:none;}}
+.voice-settings select {flex:1;min-width:0;}.voice-settings p {margin:0;font-size:13px;line-height:1.5;}
+
+/* Composer: writing surface, controls, then optional tools. */
+.chat-workspace:not(.has-conversation) .chat-stage,
+.chat-workspace .chat-topline {max-width:1080px;}
+html[data-theme] .chat-workspace .chat-composer textarea {
+ box-sizing:border-box;width:100%;border:1px solid var(--border-strong);border-radius:12px;
+ background:color-mix(in srgb,var(--bg) 48%,var(--surface));color:var(--text);
+ padding:16px 18px;box-shadow:inset 0 1px 4px #00000012;margin:0 0 12px;
+}
+html[data-theme] .chat-workspace .chat-composer textarea:focus {
+ outline:2px solid color-mix(in srgb,var(--accent) 60%,transparent);outline-offset:2px;border-color:var(--accent);
+}
+html[data-theme] .chat-workspace .chat-composer textarea::placeholder {color:var(--text-muted);opacity:1;}
+.chat-workspace .chat-composer>.composer-tools {margin-top:12px;padding:4px 8px;border:0;border-top:1px solid var(--border);border-radius:0;background:transparent;}
+.chat-workspace .chat-composer>.composer-tools>summary {background:transparent;padding:7px 4px;}
+.chat-workspace .start-composer .composer-toolbar {display:flex;flex-wrap:wrap;gap:8px;}
+.chat-workspace .start-composer .composer-toolbar>* {min-width:0;max-width:100%;}
+.chat-workspace .start-composer .model-picker {flex:0 1 240px;}
+.chat-workspace .start-composer .model-picker select {min-width:0;width:100%;}
+.chat-workspace .start-composer .workspace-menu>summary {max-width:260px;overflow:hidden;text-overflow:ellipsis;}
+@media(max-width:600px){.chat-workspace .start-composer .model-picker{flex:1 1 180px;}html[data-theme] .chat-workspace .chat-composer textarea{padding:12px;}}
+
+/* Pure White: neutral surfaces, restrained color only on useful accents. */
+html[data-theme="white"] {
+ color-scheme:light;
+ --bg:#ffffff;--bg-subtle:#f5f6f8;--surface:#ffffff;--surface-hover:#f1f4f8;
+ --border:#dce1e8;--border-strong:#a8b3c2;--text:#202c3c;--text-muted:#586577;--text-faint:#647083;
+ --accent:#285fc1;--accent-hover:#204c9b;--accent-fg:#ffffff;--accent-ring:#285fc126;
+ --nav-bg:#ffffff;--nav-end:#ffffff;--nav-text:#24354b;--nav-muted:#586577;--nav-accent:#285fc1;--nav-border:#e0e5eb;
+ --glass:#ffffff;--secondary-accent:#7952b3;--memory-accent:#167564;--creative-accent:#7952b3;--planning-accent:#a65b18;
+ --success:#23724c;--warning:#946000;--danger:#ba3345;
+}
+html[data-theme="white"] .body,html[data-theme="white"] .project-sidebar,
+html[data-theme="white"] .top-bar,html[data-theme="white"] .compact-workspace-header {background:#fff;}
+html[data-theme="white"] .project-sidebar .project-tree {background:#f7f8fa;border-color:#e0e5eb;box-shadow:none;}
+html[data-theme="white"] .glyph-codex,html[data-theme="white"] .glyph-openrouter,
+html[data-theme="white"] .glyph-opencode,html[data-theme="white"] .glyph-hermes {color:#19385b;}
+html[data-theme="white"] .brand-mask {background-color:currentColor;}
+html[data-theme="white"] .project-sidebar .primary-nav [data-section="chat"]>.icon {color:#285fc1;}
+html[data-theme="white"] .project-sidebar .primary-nav [data-section="plugins"]>.icon {color:#ad4675;}
+html[data-theme="white"] .project-sidebar .primary-nav [data-section="quota"]>.icon {color:#a65b18;}
+html[data-theme="white"] .chat-composer {background:#fff;box-shadow:0 8px 28px #2037570a;}
+html[data-theme="white"] .chat-workspace .chat-composer textarea {background:#f7f9fc;}
+html[data-theme="white"] .chat-message.assistant {background:#f7f9fc;}
+/* One adaptive header; account chips wrap instead of becoming a scroll strip. */
+.compact-workspace-header {display:flex;flex-wrap:wrap;align-items:center;gap:0;container-type:inline-size;}
+.compact-workspace-header .top-bar {flex:1 1 420px;width:auto;min-width:0;height:auto;min-height:48px;padding:8px 16px;gap:12px;flex-wrap:nowrap;border:0;}
+.compact-workspace-header .settings {display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.compact-workspace-header .palette-trigger {height:32px;min-height:32px;padding:5px 9px;gap:6px;font-size:12px;}
+.compact-workspace-header .quota-strip {position:static;flex:1 1 560px;width:auto;max-width:100%;padding:6px 16px;min-width:0;justify-content:flex-end;border:0;background:transparent;}
+.compact-workspace-header .quota-strip-label {display:none;}
+.compact-workspace-header .quota-strip-items {display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;overflow:visible;min-width:0;max-width:100%;padding:0;}
+.compact-workspace-header .quota-mini {height:32px;min-height:32px;padding:4px 8px;gap:5px;flex:0 1 auto;max-width:100%;font-size:11px;border-radius:8px;}
+.compact-workspace-header .quota-mini strong {font-size:11px;padding:0;}
+.compact-workspace-header .quota-ring {width:20px;height:20px;flex:0 0 20px;}
+.compact-workspace-header .quota-stale-dot {margin-left:4px;color:var(--warning);font-size:14px;}
+@container(max-width:1500px){
+ .compact-workspace-header .top-bar {flex-basis:100%;}
+ .compact-workspace-header .quota-strip {flex-basis:100%;padding-top:0;justify-content:flex-start;}
+ .compact-workspace-header .quota-strip-items {justify-content:flex-start;}
+}
+@container(max-width:600px){
+ .compact-workspace-header .breadcrumb>span,.compact-workspace-header .breadcrumb>.icon {display:none;}
+ .compact-workspace-header .top-bar {padding:7px 10px;gap:6px;}
+ .compact-workspace-header .settings {gap:5px;}
+ .compact-workspace-header .palette-trigger {width:32px;padding:6px;}
+ .compact-workspace-header .palette-trigger>span {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+ .compact-workspace-header .quota-strip {padding:0 10px 7px;}
+ .compact-workspace-header .quota-mini {flex:1 1 125px;justify-content:center;}
+ .compact-workspace-header .top-theme-picker {max-width:138px;}
+}
+/* Installer output and routing options remain usable in narrow settings panels. */
+.provider-install { min-width: 0; margin-block: 12px; }
+.provider-install pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.provider-install .terminal-viewport { height: 280px; min-width: 0; }
+.provider-install > button { margin: 4px; }
+.route-options { margin-block: 8px; }
+.route-options > label { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-block: 10px; }
+.route-options select { max-width: 100%; }

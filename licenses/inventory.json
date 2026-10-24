@@ -1437,10 +1437,10 @@
   },
   {
     "name": "electron",
-    "version": "43.8.0",
+    "version": "43.8.3",
     "license": "MIT",
     "notices": [
-      "dependencies/electron-43.8.0-LICENSE"
+      "dependencies/electron-43.8.3-LICENSE"
     ]
   },
   {
@@ -1841,10 +1841,10 @@
   },
   {
     "name": "fast-uri",
-    "version": "3.1.8",
+    "version": "3.1.9",
     "license": "BSD-3-Clause",
     "notices": [
-      "dependencies/fast-uri-3.1.8-LICENSE"
+      "dependencies/fast-uri-3.1.9-LICENSE"
     ]
   },
   {
@@ -4051,10 +4051,10 @@
   },
   {
     "name": "undici",
-    "version": "8.11.2",
+    "version": "8.12.3",
     "license": "MIT",
     "notices": [
-      "dependencies/undici-8.11.2-LICENSE"
+      "dependencies/undici-8.12.3-LICENSE"
     ]
   },
   {

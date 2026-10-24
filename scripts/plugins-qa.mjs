@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 const profile=mkdtempSync(join(tmpdir(),'agenting-plugins-'));const root=join(profile,'project');mkdirSync(root);
 const store=new Store(join(profile,'agenting.sqlite'));store.setPreferences({language:'pl',theme:'classic'});
-const project=store.createProject({name:'Studio produktu',root,master:'codex'});store.createMemory({projectId:project.id,content:'Kierunek projektu\nCzytelna rozmowa i spokojny interfejs.',source:'Decyzja projektowa',scope:'project'});const chatId=randomUUID();store.chats.save({id:chatId,title:'Plan interfejsu',projectId:project.id,agent:'claude',mode:'chat',source:'local',root,workspace:root,status:'idle',messages:[{id:randomUUID(),role:'user',content:'Uporządkuj widok',at:Date.now(),status:'complete'},{id:randomUUID(),role:'assistant',content:'Rozmowa jest głównym elementem.',at:Date.now(),status:'complete'}],contextIds:[],skillIds:[],activity:[],error:null,updatedAt:Date.now()});await store.extensions.install(project.id,'builtin:copywriting');store.runs.configure('codex',process.execPath,[],'codex','isolated');store.capabilities.record({agent:'codex',state:'connected',detail:'UI fixture',models:[],observedAt:new Date().toISOString()});store.close();
+const project=store.createProject({name:'Studio produktu',root,master:'codex'});store.createMemory({projectId:project.id,content:'Kierunek projektu\nCzytelna rozmowa i spokojny interfejs.',source:'Decyzja projektowa',scope:'project'});const chatId=randomUUID();store.chats.save({id:chatId,title:'Plan interfejsu',projectId:project.id,agent:'claude',mode:'chat',source:'local',root,workspace:root,status:'idle',messages:[{id:randomUUID(),role:'user',content:'Uporządkuj widok',at:Date.now(),status:'complete'},{id:randomUUID(),role:'assistant',content:'Rozmowa jest głównym elementem.',at:Date.now(),status:'complete'}],contextIds:[],skillIds:[],activity:[],error:null,updatedAt:Date.now()});await store.extensions.install(project.id,'builtin:copywriting');store.runs.configure('codex',process.execPath,[],'codex','isolated','fixture/model');store.capabilities.record({agent:'codex',state:'connected',detail:'UI fixture',models:[{id:'fixture/model',name:'Fixture model'}],observedAt:new Date().toISOString()});store.close();
 const env={...process.env,AGENTING_DATA_DIR:profile,CLAUDE_CONFIG_DIR:join(profile,'claude')};delete env.ELECTRON_RUN_AS_NODE;
 const app=await electron.launch({args:[resolve('.'),...(process.env.AGENTING_TEST_NO_SANDBOX==='1'?['--no-sandbox','--no-zygote']:[])],env});
 
@@ -31,10 +31,10 @@ try {
  await page.screenshot({animations:"disabled",path:resolve('.runtime/plugins-skills.png')});
  await page.locator('.primary-nav').getByRole('button',{name:'Pluginy',exact:true}).click();
  await page.getByRole('heading',{name:'Pluginy',exact:true}).waitFor();
- assert.equal(await page.locator('.integration-card').count(),4);
+ assert.equal(await page.locator('.integration-card').count(),7);
  await page.locator('.integration-card').filter({hasText:'Google Drive'}).click();
  await page.getByText('Konfiguracja OAuth',{exact:true}).waitFor();
  await page.screenshot({animations:"disabled",path:resolve('.runtime/plugins-desktop.png')});
  for(const width of [768,390,320]) {await page.setViewportSize({width,height:1000});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({animations:"disabled",path:resolve('.runtime/plugins-'+width+'.png')});}
- assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,providerToggle:true,skillToggle:true,plugins:4,settings:true,widths:[1440,768,390,320]}));
+ assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,providerToggle:true,skillToggle:true,plugins:7,settings:true,widths:[1440,768,390,320]}));
 }finally{await app.close();}

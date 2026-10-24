@@ -1,3 +1,4 @@
+import {VoiceSettings} from "./VoiceSettings";
 import { PluginsHub } from "./PluginsHub";
 import {WorkspaceCustomization,SidebarResize,applyWorkspaceLayout} from "./WorkspaceCustomization";
 import { THEME_CHOICES } from "./theme-catalog";
@@ -72,7 +73,7 @@ const agentChoices = [
 ];
 function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [chatRequest, setChatRequest] = useState<{id: string; project?: string; nonce: number}>();
+  const [chatRequest, setChatRequest] = useState<{id: string; project?: string; nonce: number; firstTaskAgent?: Agent}>();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null),
     [projectId, setProjectId] = useState("");
   const [data, setData] = useState<ProjectData>({
@@ -819,7 +820,6 @@ function App() {
             >
               <Icon name="search" />
               <span>{prefs.language === "pl" ? "Szukaj" : "Search"}</span>
-              <kbd>Ctrl K</kbd>
             </button>
             <button className="icon-button" aria-label={prefs.language === "pl" ? "Ustawienia" : "Settings"} onClick={() => setSettingsOpen(true)}><Icon name="settings" /></button>
           </div>
@@ -897,7 +897,7 @@ function App() {
               <PluginsHub projects={snapshot?.projects ?? []}/>
             ) : view === "connections" ? (
               <>
-                <ProviderSetup language={prefs.language} />
+                <ProviderSetup language={prefs.language} onFirstTask={agent => { setChatRequest({ id: "", nonce: Date.now(), firstTaskAgent: agent }); setView("chat"); }} />
                 <PolicyPanel language={prefs.language} />
               </>
             ) : view === "quota" ? (
@@ -1313,6 +1313,7 @@ function App() {
                           </div>
                         </div>
                         <RoutePreview
+                          task={draft}
                           language={prefs.language}
                           disabled={busy}
                           current={implementer}
@@ -1567,7 +1568,7 @@ function App() {
                         </article>
                       ))}
                     </div>
-                    <ProviderSetup language={prefs.language} />
+                    <ProviderSetup language={prefs.language} onFirstTask={agent => { setChatRequest({ id: "", nonce: Date.now(), firstTaskAgent: agent }); setView("chat"); }} />
                   </section>
                 )}
               </>
@@ -1663,7 +1664,7 @@ function App() {
               className="language-select"
             />
 </div>
-        <WorkspaceCustomization/>
+        <WorkspaceCustomization/><VoiceSettings/>
         <div className="settings-links">{([
           ["connections", "connections", "Agenci i modele", "Agents and models"],
           ["plugins", "connections", "Pluginy i aplikacje", "Plugins and apps"],

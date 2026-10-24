@@ -10,8 +10,8 @@ import type { SecretStorage } from "./openrouter.js";
 import { exact, text, object, redact } from "./validate.js";
 import { oauthCallback } from "./plugin-oauth.js";
 
-const endpoints = {notion:"https://mcp.notion.com/mcp",canva:"https://mcp.canva.com/mcp",firecrawl:"https://mcp.firecrawl.dev/v2/mcp-oauth"};
-const ids: IntegrationId[]=["google-drive","canva","notion","firecrawl"];
+const endpoints = {linear:"https://mcp.linear.app/mcp",asana:"https://mcp.asana.com/v2/mcp",atlassian:"https://mcp.atlassian.com/v2/mcp",notion:"https://mcp.notion.com/mcp",canva:"https://mcp.canva.com/mcp",firecrawl:"https://mcp.firecrawl.dev/v2/mcp-oauth"};
+const ids: IntegrationId[]=["google-drive","canva","notion","firecrawl","linear","asana","atlassian"];
 type Saved = {apiKey?:string;clientId?:string;clientSecret?:string;client?:OAuthClientInformationMixed;tokens?:OAuthTokens;expiresAt?:number};
 const driveTools:McpTool[]=[
   {name:"drive_search",description:"Znajdź pliki i foldery na Google Drive (tylko odczyt).",inputSchema:{type:"object",properties:{query:{type:"string"},pageToken:{type:"string"}},additionalProperties:false}},
@@ -23,7 +23,7 @@ export function integrationId(value: unknown): IntegrationId {
 /** OAuth discovery may only contact the selected provider, never arbitrary LAN hosts. */
 export function integrationUrl(id:IntegrationId,value:string|URL) {
   const url=new URL(value);
-  const domains=id==="google-drive"?["googleapis.com","accounts.google.com"]:id==="notion"?["notion.com","notion.so"]:id==="canva"?["canva.com"]:["firecrawl.dev"];
+  const domains=id==="google-drive"?["googleapis.com","accounts.google.com"]:id==="notion"?["notion.com","notion.so"]:id==="canva"?["canva.com"]:id==="linear"?["linear.app"]:id==="asana"?["asana.com"]:id==="atlassian"?["atlassian.com"]:["firecrawl.dev"];
   if(url.protocol!=="https:" || url.username || url.password || (url.port && url.port!=="443") || !domains.some(d=>url.hostname===d || url.hostname.endsWith("."+d))) throw Error("PLUGIN_HOST_BLOCKED");
   return url;
 }
@@ -87,6 +87,7 @@ export class Integrations {
     let client:Client|undefined;
     try {
       const saved=this.read()[id]??{};
+      if(id==="asana"&&(!saved.clientId||!saved.clientSecret))throw Error("PLUGIN_ASANA_CLIENT_REQUIRED");
       callback=await oauthCallback();this.cancelOAuth=()=>callback?.close();
       if(id==="google-drive") {
         if(!saved.clientId)throw Error("PLUGIN_GOOGLE_CLIENT_REQUIRED");

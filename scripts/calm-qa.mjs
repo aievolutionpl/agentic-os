@@ -69,10 +69,10 @@ assert.equal(await page.locator('.conversation-starters button').count(),6);
 await page.getByRole('button',{name:/Mini gra/}).click();
 assert.match(await page.getByRole('textbox',{name:'Pierwsza wiadomość',exact:true}).inputValue(),/grę/);
 const navBackgrounds=new Set();
-for(const theme of ['light','classic','dark','claude','codex']) {
+for(const theme of ['white','light','classic','dark','claude','codex']) {
   await page.getByRole('button',{name:'Kolorystyka',exact:true}).click();
-  assert.equal(await page.locator('.top-theme-picker').getByRole('option').count(),5);
-  await page.getByRole('option',{name:({light:'Pearl',classic:'Light Orange',dark:'Midnight',claude:'Graphite',codex:'AI Evolution'})[theme],exact:true}).click();
+  assert.equal(await page.locator('.top-theme-picker').getByRole('option').count(),6);
+  await page.getByRole('option',{name:({white:'Pure White',light:'Pearl',classic:'Light Orange',dark:'Midnight',claude:'Graphite',codex:'AI Evolution'})[theme],exact:true}).click();
   await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);
   await page.reload();await page.locator('main[aria-busy="false"]').waitFor();
   await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);
@@ -86,6 +86,6 @@ for(const theme of ['light','classic','dark','claude','codex']) {
   assert.ok(contrast(channels,hex)>=4.5,`${theme}: actual navigation text contrast ${JSON.stringify(navColors)}`);
   await page.screenshot({path:resolve('.runtime/studio-theme-'+theme+'.png')});
 }
-assert.equal(navBackgrounds.size,5);
+assert.equal(navBackgrounds.size,6);
 assert.deepEqual(errors,[]);console.log(JSON.stringify({passed:true,viewports:[1440,768,390,320],settings:true,draftPreserved:true}));
 }finally{await app.close();}

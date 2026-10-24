@@ -12,6 +12,9 @@ const env={...process.env,AGENTING_DATA_DIR:profile,CLAUDE_CONFIG_DIR:join(profi
 const app=await electron.launch({args:[resolve('.'),...(process.env.AGENTING_TEST_NO_SANDBOX==='1'?['--no-sandbox','--no-zygote']:[])],env});
 try {
  const page=await app.firstWindow();await page.locator('main[aria-busy="false"]').waitFor();
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.evaluate(()=>document.fonts.ready);
+ const settleLayout=()=>page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
  assert.equal(await page.locator('.palette-trigger kbd').count(),0);
  // Deterministic layout fixture: seven account cards, including stale/unknown values.
  await page.locator('.quota-strip-items').evaluate(el=>{
@@ -24,6 +27,7 @@ try {
  });
  for(const width of [1920,1640,1440,1280,1024,768,390,320]) {
   await page.setViewportSize({width,height:1000});
+  await settleLayout();
   const issues=await page.locator('.compact-workspace-header').evaluate(el=>{
    const items=[el,...el.querySelectorAll('.quota-strip,.quota-strip-items,.top-bar,.settings')];
    const overflow=items.some(item=>item.scrollWidth>item.clientWidth+1);
@@ -31,12 +35,17 @@ try {
    const overlap=boxes.some((a,i)=>boxes.slice(i+1).some(b=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>2&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>2));
    return {overflow,overlap};
   });
+  if(issues.overflow || issues.overlap) {
+   console.error(await page.locator('.compact-workspace-header').evaluate(el=>[el,...el.querySelectorAll('.quota-strip,.quota-strip-items,.top-bar,.settings')].map(item=>({className:item.className,clientWidth:item.clientWidth,scrollWidth:item.scrollWidth}))));
+   await page.screenshot({path:resolve('.runtime/header-failure-'+width+'.png'),animations:'disabled'});
+  }
   assert.deepEqual(issues,{overflow:false,overlap:false},`header at ${width}`);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await page.screenshot({path:resolve('.runtime/header-white-'+width+'.png'),animations:'disabled'});
  }
  await page.setViewportSize({width:1024,height:900});
  await page.evaluate(()=>document.documentElement.style.setProperty('--sidebar-width','480px'));
+ await settleLayout();
  assert.equal(await page.locator('.compact-workspace-header').evaluate(el=>el.scrollWidth>el.clientWidth+1),false,'wide sidebar leaves a fitting header');
  await page.getByRole('button',{name:'Szukaj',exact:true}).click();
  await page.getByRole('dialog').waitFor();

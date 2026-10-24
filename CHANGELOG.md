@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.5.0-rc.3 — 2026-10-24
+
+- White-letter logo for dark themes, preserving the original logo in light palettes.
+- Fixed theme-menu stacking above the conversation surface.
+- Refreshed Polish/English README and real Electron gallery with six themes.
 
 - Pure White theme, wrapping quota header without horizontal scrolling, wider composer and visible model/workspace selection.
 - Polish-first Whisper settings and hold-to-talk controls; additional daily-work integrations.
@@ -9,7 +13,7 @@
 - Task-aware routing with checked subscription agents; optional Jev decision-model role, bounded structured choices, rule fallback and local decision history. Jev cannot grant execution permissions.
 - Electron 43.8.3, undici 8.12.3 and fast-uri 3.1.9 security updates.
 
-No new official release or installer publication in this change.
+Unsigned Windows preview; no automatic updater. Live provider accounts and clean-machine installer lifecycle remain separate manual checks.
 
 ## 0.5.0-rc.2 — 2026-10-23
 

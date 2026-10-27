@@ -309,6 +309,7 @@ export const THEMES = [
   "codex",
   "light",
   "classic",
+  "matrix",
 ] as const;
 export type ThemeMode = (typeof THEMES)[number];
 export interface Preferences {

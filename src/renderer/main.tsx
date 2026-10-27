@@ -46,13 +46,15 @@ import { ChatWorkspace, startNewChat } from "./ChatWorkspace";
 import { HarnessPanel } from "./HarnessPanel";
 import { MemoryHub, SkillsHub } from "./KnowledgeHub";
 import { READ_ONLY_AGENTS } from "../shared";
-import { ccWords } from "./cc-i18n";
 import "./style.css";
 import "./harness.css";
 import "./workbench.css";
 import "./premium.css";
 import "./calm.css";
 import "./themes.css";
+import "./matrix.css";
+import { MatrixRain } from "./MatrixRain";
+import { type View, VIEW_SHORTCUTS, pushHistory, viewLabel } from "./views";
 import { ProjectOverview } from "./ProjectOverview";
 import companyLogo from "./assets/ai-evolution.png";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
@@ -84,20 +86,26 @@ function App() {
   const [tab, setTab] = useState<
     "master" | "tasks" | "memory" | "agents" | "extensions" | "browser"
   >(api?.missionPlan ? "master" : "tasks");
-  const [view, setView] = useState<
-    | "center"
-    | "project"
-    | "quota"
-    | "connections"
-    | "chat"
-    | "skills"
-    | "schedule"
-    | "plugins"
-    | "shared-memory"
-    | "harness"
-    | "inbox"
-    | "terminal"
-  >(api?.chatList ? "chat" : api?.connectorScan ? "center" : "project");
+  const [view, setView] = useState<View>(api?.chatList ? "chat" : api?.connectorScan ? "center" : "project");
+  // In-app back navigation: Alt+Left, the mouse back button or the palette.
+  const [history, setHistory] = useState<View[]>([]),
+    shownView = useRef(view),
+    goingBack = useRef(false);
+  useEffect(() => {
+    const from = shownView.current;
+    shownView.current = view;
+    if (goingBack.current) goingBack.current = false;
+    else setHistory((stack) => pushHistory(stack, from, view));
+  }, [view]);
+  function goBack() {
+    const previous = history[history.length - 1];
+    if (!previous) return;
+    goingBack.current = true;
+    setHistory(history.slice(0, -1));
+    setView(previous);
+  }
+  const back = useRef(goBack);
+  back.current = goBack;
   const [attention, setAttention] = useState<Attention | null>(null),
     [attentionFailed, setAttentionFailed] = useState(false),
     [palette, setPalette] = useState(false);
@@ -210,6 +218,10 @@ function App() {
     document.documentElement.lang = prefs.language;
     document.documentElement.dataset.theme = prefs.theme;
   }, [prefs.language, prefs.theme]);
+  const screenTitle = viewLabel(view, prefs.language) ?? project?.name ?? "Agenting OS";
+  useEffect(() => {
+    document.title = screenTitle === "Agenting OS" ? screenTitle : `${screenTitle} · Agenting OS`;
+  }, [screenTitle]);
   useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 6000);
@@ -248,17 +260,16 @@ function App() {
         api?.connectorScan &&
         !document.querySelector("dialog[open]")
       ) {
-        const map: Record<string, typeof view> = {
-          "1": "center",
-          "2": "chat",
-          "3": "terminal",
-          "4": "inbox",
-          "5": "skills",
-          "6": "shared-memory",
-          "7": "connections",
-          "8": "quota",
-        };
-        const nextView = map[event.key];
+        if (event.key === "ArrowLeft") {
+          // Option+Left moves by word in text fields and shells; leave it to them.
+          if ((event.target as HTMLElement).closest("input,textarea,select,[contenteditable=true],.xterm")) return;
+          event.preventDefault();
+          back.current();
+          return;
+        }
+        const nextView = (Object.keys(VIEW_SHORTCUTS) as View[]).find(
+          (id) => VIEW_SHORTCUTS[id] === event.key,
+        );
         if (nextView) {
           event.preventDefault();
           setProjectsExpanded(false);
@@ -288,8 +299,17 @@ function App() {
         input.focus();
       }
     };
+    const mouseBack = (event: MouseEvent) => {
+      if (event.button !== 3 || document.querySelector("dialog[open]")) return;
+      event.preventDefault();
+      back.current();
+    };
     document.addEventListener("keydown", shortcuts);
-    return () => document.removeEventListener("keydown", shortcuts);
+    document.addEventListener("mouseup", mouseBack);
+    return () => {
+      document.removeEventListener("keydown", shortcuts);
+      document.removeEventListener("mouseup", mouseBack);
+    };
   }, []);
   async function readAttention() {
     if (!api?.attention) return;
@@ -490,55 +510,39 @@ function App() {
       go = pl ? "Przejdź" : "Go to",
       act = pl ? "Akcja" : "Action",
       projects = pl ? "Projekt" : "Project";
-    const views: [typeof view, string, string, string, boolean, string][] = [
-      ["center", "grid", ccWords.pl.nav, ccWords.en.nav, !!api?.connectorScan, "Alt+1"],
-      ["chat", "message", "Czaty", "Chats", !!api?.chatList, "Alt+2"],
-      ["terminal", "terminal", "Terminal", "Terminal", !!api?.terminalList, "Alt+3"],
-      [
-        "inbox",
-        "inbox",
-        attentionWords.pl.title,
-        attentionWords.en.title,
-        !!api?.attention,
-        "Alt+4",
-      ],
-      [
-        "skills",
-        "skill",
-        "Biblioteka skilli",
-        "Skill library",
-        !!api?.chatList,
-        "Alt+5",
-      ],
-      [
-        "shared-memory",
-        "memory",
-        "Wspólna pamięć",
-        "Shared memory",
-        !!api?.chatList,
-        "Alt+6",
-      ],
-      [
-        "connections",
-        "connections",
-        "Połączenia i modele",
-        "Connections & models",
-        !!api?.connectorScan,
-        "Alt+7",
-      ],
-      ["quota", "layers", "Limity i tokeny", "OpenQuota", !!api?.connectorScan, "Alt+8"],
-      ["harness", "layers", "Harness", "Harness", !!api?.harnessGet, ""],
+    const views: [View, string, boolean][] = [
+      ["center", "grid", !!api?.connectorScan],
+      ["chat", "message", !!api?.chatList],
+      ["terminal", "terminal", !!api?.terminalList],
+      ["inbox", "inbox", !!api?.attention],
+      ["skills", "skill", !!api?.chatList],
+      ["shared-memory", "memory", !!api?.chatList],
+      ["connections", "connections", !!api?.connectorScan],
+      ["quota", "tokens", !!api?.connectorScan],
+      ["plugins", "connections", !!api?.integrationList],
+      ["schedule", "clock", !!api?.scheduleList],
+      ["harness", "layers", !!api?.harnessGet],
     ];
     const list: Command[] = views
-      .filter((v) => v[4])
-      .map(([id, icon, plLabel, enLabel, , shortcut]) => ({
+      .filter(([, , available]) => available)
+      .map(([id, icon]) => ({
         id: `view-${id}`,
-        label: pl ? plLabel : enLabel,
+        label: viewLabel(id, prefs.language)!,
         group: go,
-        hint: `${go} · ${shortcut}`,
+        hint: VIEW_SHORTCUTS[id] ? `${go} · Alt+${VIEW_SHORTCUTS[id]}` : go,
         icon,
         run: () => setView(id),
       }));
+    const previous = history[history.length - 1];
+    if (previous)
+      list.unshift({
+        id: "view-back",
+        label: `${pl ? "Wstecz" : "Back"}: ${viewLabel(previous, prefs.language) ?? project?.name ?? projects}`,
+        group: go,
+        hint: `${go} · Alt+←`,
+        icon: "back",
+        run: goBack,
+      });
     for (const item of attention?.decisions.slice(0, 8) ?? [])
       list.push({
         id: `attention-${item.kind}-${item.id}`,
@@ -764,6 +768,7 @@ function App() {
       )}
       {!narrow && <SidebarResize/>}
       <div className="body">
+        {prefs.theme === "matrix" && <MatrixRain />}
         <div className="compact-workspace-header"><header className="top-bar">
           {narrow && (
             <button
@@ -778,37 +783,22 @@ function App() {
               <Icon name="menu" />
             </button>
           )}
+          {history.length > 0 && (
+            <button
+              className="icon-button view-back"
+              title={`${prefs.language === "pl" ? "Wstecz" : "Back"} (Alt+←)`}
+              aria-label={prefs.language === "pl" ? "Wstecz" : "Back"}
+              aria-keyshortcuts="Alt+ArrowLeft"
+              onClick={goBack}
+            >
+              <Icon name="back" />
+            </button>
+          )}
           <div className="breadcrumb">
             <span>{w.workspace}</span>
             <Icon name="chevron" />
-            <strong title={view === "center" ? undefined : project?.name}>
-              {view === "plugins" ? (prefs.language === "pl" ? "Pluginy" : "Plugins") : view === "schedule" ? "ScheduleJob" : view === "harness" ? "Harness" : view === "terminal"
-                ? "Terminal"
-                : view === "chat"
-                  ? prefs.language === "pl"
-                    ? "Czaty"
-                    : "Chats"
-                  : view === "skills"
-                    ? prefs.language === "pl"
-                      ? "Biblioteka skilli"
-                      : "Skill library"
-                    : view === "shared-memory"
-                      ? prefs.language === "pl"
-                        ? "Wspólna pamięć"
-                        : "Shared memory"
-                      : view === "inbox"
-                        ? attentionWords[prefs.language].title
-                        : view === "center"
-                          ? ccWords[prefs.language].nav
-                          : view === "quota"
-                            ? prefs.language === "pl"
-                              ? "Limity i tokeny"
-                              : "OpenQuota"
-                            : view === "connections"
-                              ? prefs.language === "pl"
-                                ? "Połączenia i modele"
-                                : "Connections & models"
-                              : (project?.name ?? "Agenting OS")}
+            <strong title={view === "center" ? undefined : project?.name} aria-current="page">
+              {screenTitle}
             </strong>
           </div>
           <div className="settings">
@@ -1664,7 +1654,7 @@ function App() {
               className="language-select"
             />
 </div>
-        <WorkspaceCustomization/><VoiceSettings/>
+        <WorkspaceCustomization pl={prefs.language === "pl"}/><VoiceSettings/>
         <div className="settings-links">{([
           ["connections", "connections", "Agenci i modele", "Agents and models"],
           ["plugins", "connections", "Pluginy i aplikacje", "Plugins and apps"],

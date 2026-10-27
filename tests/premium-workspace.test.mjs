@@ -367,7 +367,7 @@ test("a per-conversation model survives a turn and reaches the Codex thread and 
 });
 test("Classic and Harness themes persist and active selectors retain Antigravity without Gemini CLI", (t) => {
   const { store } = setup(t);
-  for (const theme of ["claude", "codex", "dark", "light", "classic"]) {
+  for (const theme of ["claude", "codex", "dark", "light", "classic", "matrix"]) {
     store.setPreferences({ language: "pl", theme });
     assert.equal(store.preferences().theme, theme);
   }

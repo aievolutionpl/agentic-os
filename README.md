@@ -49,11 +49,13 @@ Aktualne zrzuty wersji 0.5.0-rc.3, wykonane w aplikacji Electron na przykładowy
 
 ### Ciemne i jasne motywy
 
-W Midnight, Graphite i AI Evolution logo ma białe litery i kolorową orbitę. Jasne motywy zachowują granatowy wariant. Logo przełącza się razem z motywem w górnym pasku.
+W Midnight, Graphite, AI Evolution i Matrix Terminal logo ma białe litery i kolorową orbitę. Jasne motywy zachowują granatowy wariant. Logo przełącza się razem z motywem w górnym pasku.
 
 | Pure White | Light Orange |
 | --- | --- |
 | ![Pure White](docs/images/rc3/pure-white.png) | ![Light Orange](docs/images/rc3/light-orange.png) |
+
+![Matrix Terminal](docs/images/matrix-terminal.png)
 
 ![Aktualna rozmowa — AI Evolution](docs/images/rc3/conversation.png)
 
@@ -114,9 +116,17 @@ Procent limitu, saldo pieniężne i liczba tokenów to różne miary. Aplikacja 
 
 ### Wygląd i nawigacja
 
-Sześć palet obejmuje także sidebar: **Pure White**, **Pearl**, **Light Orange**, **Midnight**, **Graphite** i **AI Evolution**. Motyw wybierasz w górnym pasku. Ustawienia pozwalają m.in. dostosować szerokość treści, tekst rozmowy, gęstość projektów, animacje i efekt szkła.
+Siedem palet obejmuje także sidebar: **Pure White**, **Pearl**, **Light Orange**, **Midnight**, **Graphite**, **AI Evolution** i **Matrix Terminal**. Motyw wybierasz w górnym pasku. Matrix Terminal to fosforowa zieleń na czarnym tle, czcionka monospace, delikatne linie CRT i cyfrowy deszcz za treścią. Deszcz zatrzymuje się przy „Ogranicz animacje” lub systemowym ograniczeniu ruchu. „Jednolite tło” wyłącza deszcz i linie CRT, a „Ogranicz efekt szkła” same linie. Ustawienia pozwalają m.in. dostosować szerokość treści, tekst rozmowy, gęstość projektów, animacje i efekt szkła.
 
 Aktywna rozmowa ma szerszy obszar odpowiedzi i kompaktowe pole wpisywania. W szerokim oknie nagłówek i limity mieszczą się w jednym rzędzie. Przy mniejszych szerokościach układ przechodzi do kilku rzędów. `Ctrl+K` / `⌘K` otwiera paletę poleceń.
+
+| Skrót | Ekran |
+| --- | --- |
+| `Alt+1` … `Alt+8` | Centrum, Czaty, Terminal, Praca i pytania, Skille, Pamięć, Połączenia, Limity |
+| `Alt+9` / `Alt+0` | Pluginy / ScheduleJob |
+| `Alt+←` lub boczny przycisk myszy „wstecz” | Poprzedni ekran (także strzałka obok ścieżki w nagłówku) |
+
+Tytuł okna pokazuje bieżący ekran. Grupa „Więcej” w sidebarze otwiera się sama, gdy aktywny jest Terminal, Harness lub Praca i pytania.
 
 ## Skille
 

@@ -49,6 +49,7 @@ import {
   Paperclip,
   FileText,
   ArrowUp,
+  ArrowLeft,
   TerminalSquare,
 } from "lucide-react";
 const iconLibrary: Record<string, LucideIcon> = {
@@ -98,6 +99,7 @@ const iconLibrary: Record<string, LucideIcon> = {
   attach: Paperclip,
   file: FileText,
   up: ArrowUp,
+  back: ArrowLeft,
   terminal: TerminalSquare,
 };
 

@@ -21,6 +21,7 @@ const TERMINAL_THEMES: Record<
   codex: {background:"#292039",foreground:"#f4effc",cursor:"#a9e6b4",selectionBackground:"#4b3c63"},
   light: {background:"#ffffff",foreground:"#202d40",cursor:"#2e618d",selectionBackground:"#b9d5ed"},
   classic: {background:"#fffdfa",foreground:"#322b26",cursor:"#a74325",selectionBackground:"#ead0b6"},
+  matrix: {background:"#020a05",foreground:"#b8ffcb",cursor:"#39ff7a",selectionBackground:"#0f4a24"},
 };
 
 export function TerminalView({

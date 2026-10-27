@@ -52,15 +52,28 @@ test("Alt shortcuts are unique digits and point at real screens", () => {
 });
 
 test("back history skips repeats, never records a no-op and stays bounded", () => {
+  const at = (view, project = "") => views.historyEntry(view, project);
   let stack = [];
-  stack = views.pushHistory(stack, "chat", "chat");
+  stack = views.pushHistory(stack, at("chat"), at("chat"));
   assert.deepEqual(stack, []);
-  stack = views.pushHistory(stack, "chat", "terminal");
-  stack = views.pushHistory(stack, "terminal", "plugins");
-  assert.deepEqual(stack, ["chat", "terminal"]);
-  assert.deepEqual(views.pushHistory(["chat"], "chat", "quota"), ["chat"]);
-  for (let i = 0; i < 100; i++) stack = views.pushHistory(stack, i % 2 ? "chat" : "quota", i % 2 ? "quota" : "chat");
+  stack = views.pushHistory(stack, at("chat"), at("terminal"));
+  stack = views.pushHistory(stack, at("terminal"), at("plugins"));
+  assert.deepEqual(stack.map((entry) => entry.view), ["chat", "terminal"]);
+  assert.deepEqual(views.pushHistory([at("chat")], at("chat"), at("quota")), [at("chat")]);
+  for (let i = 0; i < 100; i++) stack = views.pushHistory(stack, at(i % 2 ? "chat" : "quota"), at(i % 2 ? "quota" : "chat"));
   assert.equal(stack.length, 30);
+});
+
+test("back history remembers which project a project screen showed", () => {
+  const at = (view, project = "") => views.historyEntry(view, project);
+  assert.deepEqual(at("chat", "a"), { view: "chat" });
+  let stack = [];
+  stack = views.pushHistory(stack, at("project", "a"), at("center"));
+  stack = views.pushHistory(stack, at("center"), at("project", "b"));
+  stack = views.pushHistory(stack, at("project", "b"), at("project", "c"));
+  assert.deepEqual(stack, [at("project", "a"), at("center"), at("project", "b")]);
+  // Before any project loaded there is nothing to return to.
+  assert.deepEqual(views.pushHistory([], at("project"), at("project", "a")), []);
 });
 
 test("theme picker lists every persisted palette exactly once, including Matrix Terminal", () => {

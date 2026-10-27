@@ -55,11 +55,25 @@ export const SECONDARY_VIEWS: readonly View[] = ["inbox", "terminal", "harness"]
 
 const HISTORY_LIMIT = 30;
 
+/** A visited screen; project screens also remember which project they showed. */
+export interface HistoryEntry {
+  view: View;
+  project?: string;
+}
+
+export function historyEntry(view: View, projectId: string): HistoryEntry {
+  return view === "project" && projectId ? { view, project: projectId } : { view };
+}
+
+const sameEntry = (a: HistoryEntry | undefined, b: HistoryEntry) =>
+  !!a && a.view === b.view && a.project === b.project;
+
 /**
  * Back-navigation stack for the in-app view router. Consecutive duplicates are
- * dropped so "back" always lands on a different screen.
+ * dropped so "back" always lands on a different screen or project.
  */
-export function pushHistory(stack: readonly View[], from: View, to: View): View[] {
-  if (from === to || stack[stack.length - 1] === from) return [...stack];
+export function pushHistory(stack: readonly HistoryEntry[], from: HistoryEntry, to: HistoryEntry): HistoryEntry[] {
+  // A project screen before any project loaded is not a place to return to.
+  if (sameEntry(from, to) || sameEntry(stack[stack.length - 1], from) || (from.view === "project" && !from.project)) return [...stack];
   return [...stack, from].slice(-HISTORY_LIMIT);
 }

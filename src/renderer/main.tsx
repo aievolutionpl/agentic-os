@@ -54,7 +54,7 @@ import "./calm.css";
 import "./themes.css";
 import "./matrix.css";
 import { MatrixRain } from "./MatrixRain";
-import { type View, VIEW_SHORTCUTS, pushHistory, viewLabel } from "./views";
+import { type HistoryEntry, type View, VIEW_SHORTCUTS, historyEntry, pushHistory, viewLabel } from "./views";
 import { ProjectOverview } from "./ProjectOverview";
 import companyLogo from "./assets/ai-evolution.png";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
@@ -88,21 +88,24 @@ function App() {
   >(api?.missionPlan ? "master" : "tasks");
   const [view, setView] = useState<View>(api?.chatList ? "chat" : api?.connectorScan ? "center" : "project");
   // In-app back navigation: Alt+Left, the mouse back button or the palette.
-  const [history, setHistory] = useState<View[]>([]),
-    shownView = useRef(view),
+  const [history, setHistory] = useState<HistoryEntry[]>([]),
+    shown = useRef(historyEntry(view, "")),
     goingBack = useRef(false);
   useEffect(() => {
-    const from = shownView.current;
-    shownView.current = view;
+    const from = shown.current,
+      to = historyEntry(view, projectId);
+    shown.current = to;
     if (goingBack.current) goingBack.current = false;
-    else setHistory((stack) => pushHistory(stack, from, view));
-  }, [view]);
+    else setHistory((stack) => pushHistory(stack, from, to));
+  }, [view, projectId]);
   function goBack() {
     const previous = history[history.length - 1];
     if (!previous) return;
     goingBack.current = true;
     setHistory(history.slice(0, -1));
-    setView(previous);
+    setView(previous.view);
+    // selectProject sets the project synchronously, so both changes land in one render.
+    if (previous.project && previous.project !== projectId) void selectProject(previous.project);
   }
   const back = useRef(goBack);
   back.current = goBack;
@@ -537,7 +540,7 @@ function App() {
     if (previous)
       list.unshift({
         id: "view-back",
-        label: `${pl ? "Wstecz" : "Back"}: ${viewLabel(previous, prefs.language) ?? project?.name ?? projects}`,
+        label: `${pl ? "Wstecz" : "Back"}: ${viewLabel(previous.view, prefs.language) ?? snapshot?.projects.find((item) => item.id === previous.project)?.name ?? projects}`,
         group: go,
         hint: `${go} · Alt+←`,
         icon: "back",

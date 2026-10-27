@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Matrix Terminal** palette: phosphor green on black, monospace UI, CRT scanlines, a green-tinted logo, a matching xterm palette and a quiet digital rain that freezes for reduced motion and "Reduce motion"; "Plain background" removes rain and scanlines, "Reduce glass" removes scanlines. All text tokens meet WCAG AA.
+- Navigation audit: one shared screen registry for the breadcrumb, window title, command palette and `Alt` shortcuts; Plugins (`Alt+9`) and ScheduleJob (`Alt+0`) are now reachable from the palette and keyboard.
+- Back navigation with `Alt+←`, the mouse back button, a header arrow and a palette entry.
+- The sidebar "More" group opens while Terminal, Harness or Work & questions is active, and marks it with `aria-current`.
+- Fixed a dangling `·` in the Harness palette hint; workspace layout settings are now translated to English.
+
 ## 0.5.0-rc.3 — 2026-10-24
 
 - White-letter logo for dark themes, preserving the original logo in light palettes.

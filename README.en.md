@@ -45,7 +45,7 @@ Current 0.5.0-rc.3 screenshots captured in Electron with a sample project. Accou
 
 ### Dark and light themes
 
-Midnight, Graphite and AI Evolution use white logo lettering with the colored orbit. Light themes keep the navy variant. Switching the theme in the header updates the logo immediately.
+Midnight, Graphite, AI Evolution and Matrix Terminal use white logo lettering with the colored orbit. Light themes keep the navy variant. Switching the theme in the header updates the logo immediately.
 
 | Pure White | Light Orange |
 | --- | --- |
@@ -90,7 +90,9 @@ Select a specific branch with `git switch <branch>` before installing dependenci
 | ScheduleJob | One-time, daily and selected-weekday schedules, pause controls and links to results. |
 | Terminal and Git | Native PTY terminal, repository inspection, diff viewing and result export. |
 
-The six visible palettes are **Pure White**, **Pearl**, **Light Orange**, **Midnight**, **Graphite** and **AI Evolution**. Themes include the sidebar. Settings control content width, chat text size, project density, motion and glass effects. Active conversations have a compact composer and wider transcript. Wide windows combine the header and quotas into one row; smaller windows wrap controls. `Ctrl+K` / `Cmd+K` opens the command palette.
+The seven visible palettes are **Pure White**, **Pearl**, **Light Orange**, **Midnight**, **Graphite**, **AI Evolution** and **Matrix Terminal**. Themes include the sidebar. Matrix Terminal uses phosphor green on black, monospace type, faint CRT scanlines and a digital rain behind the content; the rain freezes with "Reduce motion" or the system reduced-motion setting. "Plain background" removes the rain and scanlines; "Reduce glass and scanline effects" removes the scanlines. Settings control content width, chat text size, project density, motion and glass effects. Active conversations have a compact composer and wider transcript. Wide windows combine the header and quotas into one row; smaller windows wrap controls. `Ctrl+K` / `Cmd+K` opens the command palette. `Alt+1`…`Alt+9` and `Alt+0` jump between screens, and `Alt+←`, the mouse back button or the arrow next to the header path returns to the previous screen. The window title follows the current screen.
+
+![Matrix Terminal](docs/images/matrix-terminal.png)
 
 ## Agents and quotas
 

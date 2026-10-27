@@ -206,8 +206,8 @@ html[data-theme] .project-sidebar .nav-item > .icon {color:var(--nav-accent);}
 .app-logo-crop {display:block;width:112px;height:48px;overflow:hidden;position:relative;flex-shrink:0;}
 .app-logo-crop img {position:absolute;width:112px;height:112px;max-width:none;left:0;top:-33px;}
 .app-logo-crop .app-logo-dark {display:none;}
-html:is([data-theme="dark"],[data-theme="claude"],[data-theme="codex"]) .app-logo-light {display:none;}
-html:is([data-theme="dark"],[data-theme="claude"],[data-theme="codex"]) .app-logo-dark {display:block;}
+html:is([data-theme="dark"],[data-theme="claude"],[data-theme="codex"],[data-theme="matrix"]) .app-logo-light {display:none;}
+html:is([data-theme="dark"],[data-theme="claude"],[data-theme="codex"],[data-theme="matrix"]) .app-logo-dark {display:block;}
 .brand .brand-mark {width:auto;height:auto;background:none;border:0;}
 .brand strong {font-size:15px;letter-spacing:.02em;}
 html[data-theme="light"] .glyph-codex,html[data-theme="classic"] .glyph-codex {color:#19385b;}

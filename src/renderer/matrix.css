@@ -1,0 +1,68 @@
+/* Matrix Terminal: phosphor green on a black CRT, monospace type, scanlines
+   and a quiet digital rain behind the workspace. Cyan and amber keep the
+   functional accents (memory, planning) distinguishable from the main green. */
+html[data-theme="matrix"] {
+ color-scheme:dark;
+ --mono-ui:ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Consolas,"DejaVu Sans Mono",monospace;
+ --bg:#010603;--bg-subtle:#04110a;--surface:#06180d;--surface-hover:#0b2515;
+ --border:#174a2b;--border-strong:#2f8f52;--text:#cbffd8;--text-muted:#8bd9a3;--text-faint:#79c992;
+ --accent:#39ff7a;--accent-hover:#86ffaf;--accent-fg:#00170a;--accent-ring:#39ff7a33;
+ --nav-bg:#010804;--nav-end:#03140a;--nav-text:#cbffd8;--nav-muted:#86d39f;--nav-accent:#39ff7a;--nav-border:#143f26;
+ --secondary-accent:#22d3c5;--memory-accent:#5cf2ff;--creative-accent:#c6ff5c;--planning-accent:#ffd23f;
+ --success:#39ff7a;--warning:#ffd23f;--danger:#ff6b78;
+ --glass:#04110ae8;--status-bg:#04110a;--backdrop:#000a05bf;
+ --shadow-soft:0 12px 36px #0009,0 0 0 1px #39ff7a0d;--shadow-popover:0 18px 52px #000c,0 0 24px #39ff7a1f;
+ --glow:0 0 10px #39ff7a59;
+}
+html[data-theme="matrix"] :is(body,input,button,textarea,select,h1,h2,h3,.brand strong,.master-heading h2) {font-family:var(--mono-ui);letter-spacing:0;}
+html[data-theme="matrix"] ::selection {background:#39ff7a;color:#00170a;}
+html[data-theme="matrix"] :is(input,textarea) {caret-color:var(--accent);}
+
+/* Atmosphere: a black CRT with a faint phosphor bloom, rain and scanlines. */
+html[data-theme="matrix"] .shell,html[data-theme="matrix"] .body {background:radial-gradient(ellipse at 50% -10%,#39ff7a14,transparent 60%),var(--bg);}
+html[data-theme="matrix"] .body {position:relative;isolation:isolate;}
+html[data-theme="matrix"] .body>main {background:transparent;}
+.matrix-rain {position:absolute;inset:0;z-index:-1;width:100%;height:100%;pointer-events:none;opacity:.22;mask-image:linear-gradient(#000 0%,#000c 45%,#0004 100%);}
+html.plainBackground .matrix-rain {display:none;}
+html[data-theme="matrix"] .shell::after {content:"";position:fixed;inset:0;z-index:5;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0 2px,#00ff5508 2px 3px);mix-blend-mode:screen;}
+html.plainBackground[data-theme="matrix"] .shell::after,html.quietGlass[data-theme="matrix"] .shell::after {display:none;}
+
+/* Chrome: sharp terminal panels with a hairline green edge. */
+html[data-theme="matrix"] .project-sidebar {background:linear-gradient(180deg,#03140a,#010804 70%);border-right:1px solid var(--nav-border);box-shadow:inset -1px 0 #39ff7a14;}
+html[data-theme="matrix"] .project-sidebar .project-tree {background:#020c06;border-color:var(--nav-border);box-shadow:inset 0 0 0 1px #39ff7a08;}
+html[data-theme="matrix"] :is(.top-bar,.compact-workspace-header) {background:#020a05d9;backdrop-filter:blur(6px);}
+html[data-theme="matrix"] .compact-workspace-header {border-bottom:1px solid var(--border);}
+html[data-theme="matrix"] .app-logo-crop img {filter:grayscale(1) sepia(1) hue-rotate(75deg) saturate(5) brightness(1.05) drop-shadow(0 0 6px #39ff7a55);}
+html[data-theme="matrix"] .brand strong {color:var(--accent);text-shadow:var(--glow);text-transform:uppercase;letter-spacing:.12em;font-size:13px;}
+html[data-theme="matrix"] .breadcrumb strong {color:var(--accent);}
+html[data-theme="matrix"] .project-sidebar .new-conversation {background:transparent;color:var(--accent);border:1px solid var(--accent);box-shadow:inset 0 0 18px #39ff7a1f,var(--glow);text-transform:uppercase;letter-spacing:.06em;}
+html[data-theme="matrix"] .project-sidebar .new-conversation:hover {background:#39ff7a1a;}
+html[data-theme="matrix"] .project-sidebar .nav-item {border-radius:3px;}
+html[data-theme="matrix"] .project-sidebar .nav-item.selected {background:#39ff7a14;box-shadow:inset 3px 0 var(--section-accent,var(--accent));text-shadow:0 0 8px #39ff7a40;}
+/* Cursors are drawn, never typed, so accessible names stay unchanged. */
+html[data-theme="matrix"] .project-sidebar .nav-item.selected>span::after {content:"";display:inline-block;width:7px;height:1em;margin-left:7px;vertical-align:-2px;background:var(--section-accent,var(--accent));box-shadow:0 0 8px var(--section-accent,var(--accent));}
+
+/* Surfaces and controls. */
+html[data-theme="matrix"] :is(.chat-composer,.chat-message,.select-trigger,.palette-trigger,.quota-mini,.conversation-starters button,.skill-library article,.overview-projects article,.terminal-shell,.toast,dialog) {border-radius:4px;}
+html[data-theme="matrix"] .chat-composer {background:#03120ae6;border:1px solid var(--border-strong);box-shadow:inset 0 0 24px #39ff7a0d,0 12px 36px #0008;}
+html[data-theme="matrix"] .chat-composer:focus-within {border-color:var(--accent);box-shadow:0 0 0 3px #39ff7a1f,0 0 24px #39ff7a26;}
+html[data-theme="matrix"] .chat-workspace .chat-composer textarea {background:#010804;border-color:var(--border);border-radius:3px;box-shadow:none;}
+html[data-theme="matrix"] .chat-workspace .chat-composer textarea::placeholder {color:var(--text-faint);}
+html[data-theme="matrix"] .chat-message {background:#04140be6;border-color:var(--border);box-shadow:inset 0 1px 0 #39ff7a0f;}
+html[data-theme="matrix"] .chat-message.assistant {background:#03100ae6;border-left:2px solid var(--accent);}
+html[data-theme="matrix"] .conversation-welcome h2 {color:var(--accent);text-shadow:var(--glow);}
+html[data-theme="matrix"] .conversation-welcome h2::after {content:"";display:inline-block;width:.5em;height:.12em;margin-left:.15em;background:var(--accent);box-shadow:var(--glow);}
+@media(prefers-reduced-motion:no-preference){html[data-theme="matrix"]:not(.quietMotion) .conversation-welcome h2::after {animation:matrix-cursor 1.1s steps(1) infinite;}}
+@keyframes matrix-cursor {50%{opacity:0;}}
+html[data-theme="matrix"] :is(h1,.page-title h1) {text-shadow:0 0 14px #39ff7a33;}
+html[data-theme="matrix"] .primary,html[data-theme="matrix"] button.primary {background:var(--accent);color:var(--accent-fg);border-color:var(--accent);box-shadow:0 0 16px #39ff7a40;border-radius:3px;}
+html[data-theme="matrix"] .primary:hover:not(:disabled) {background:var(--accent-hover);box-shadow:0 0 22px #39ff7a66;}
+html[data-theme="matrix"] button.secondary {background:#04140b;border-color:var(--border-strong);border-radius:3px;}
+html[data-theme="matrix"] button:hover:not(:disabled) {border-color:var(--accent);}
+html[data-theme="matrix"] :is(button,input,textarea,select,summary,a):focus-visible {outline:2px solid var(--accent);outline-offset:2px;box-shadow:0 0 0 4px #39ff7a26;}
+html[data-theme="matrix"] .conversation-starters button[data-intent] {background:#03120ad9;}
+html[data-theme="matrix"] .conversation-starters button[data-intent]:hover {box-shadow:0 0 14px color-mix(in srgb,var(--section-accent) 30%,transparent);}
+html[data-theme="matrix"] :is(code,pre,kbd) {color:var(--accent);background:#010a05;border-color:var(--border);}
+html[data-theme="matrix"] .glyph-codex,html[data-theme="matrix"] .glyph-openrouter,html[data-theme="matrix"] .glyph-opencode,html[data-theme="matrix"] .glyph-hermes {color:var(--text);}
+html[data-theme="matrix"] main {scrollbar-color:var(--border-strong) transparent;}
+html[data-theme="matrix"] .terminal-viewport {box-shadow:inset 0 0 32px #39ff7a12;}

@@ -7,4 +7,5 @@ export const THEME_CHOICES: {value:ThemeMode;label:string}[] = [
   {value:"dark",label:"Midnight"},
   {value:"claude",label:"Graphite"},
   {value:"codex",label:"AI Evolution"},
+  {value:"matrix",label:"Matrix Terminal"},
 ];

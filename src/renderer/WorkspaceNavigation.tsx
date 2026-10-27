@@ -3,6 +3,7 @@ import type { ChatSession, Project } from "../shared";
 import appLogo from "./assets/agenting-logo.png";
 import appLogoDark from "./assets/agenting-logo-dark.png";
 import { Icon } from "./ui";
+import { SECONDARY_VIEWS, type View } from "./views";
 
 export function BrandMark() {
   return <span className="app-logo-crop"><img className="app-logo-light" src={appLogo} alt="" /><img className="app-logo-dark" src={appLogoDark} alt="" /></span>;
@@ -15,6 +16,10 @@ export function WorkspaceNavigation({ projects, pl, view, navigate, openChat, ne
   const [rename, setRename] = useState<Project | null>(null), [name, setName] = useState("");
   const [saving, setSaving] = useState(false), [renameError, setRenameError] = useState(false);
   const [query, setQuery] = useState("");
+  // The "More" group opens by itself while one of its screens is active, so the selection is always visible.
+  const nested = SECONDARY_VIEWS.includes(view as View);
+  const [moreOpen, setMoreOpen] = useState(nested);
+  useEffect(() => { if (nested) setMoreOpen(true); }, [nested, view]);
   const [collapsed, setCollapsed] = useState<string[]>(() => {
     try {
       const saved: unknown = JSON.parse(localStorage.getItem("agenting-collapsed-projects") ?? "[]");
@@ -45,8 +50,8 @@ export function WorkspaceNavigation({ projects, pl, view, navigate, openChat, ne
     <button className="new-conversation" onClick={() => { openChat(""); close(); }}><Icon name="plus" />{pl ? "Nowa rozmowa" : "New conversation"}</button>
     <nav className="primary-nav" aria-label="Agenting OS">
       {[["chat", "message", "Rozmowy", "Conversations"], ["shared-memory", "memory", "Pamięć", "Memory"], ["skills", "skill", "Skille", "Skills"], ["plugins", "connections", "Pluginy", "Plugins"], ["schedule", "clock", "ScheduleJob", "ScheduleJob"], ["quota", "tokens", "Limity", "Limits"]].map(([id, icon, polish, english]) => <button key={id} data-section={id} className={`nav-item ${view === id ? "selected" : ""}`} aria-current={view === id ? "page" : undefined} onClick={() => go(id!)}><Icon name={icon!} /><span>{pl ? polish : english}</span></button>)}
-      <details className="nav-more"><summary><Icon name="grid" />{pl ? "Więcej" : "More"}</summary>
-        {[["inbox", "inbox", "Zadania", "Tasks"], ["terminal", "terminal", "Terminal", "Terminal"], ["harness", "layers", "Harness", "Harness"]].map(([id, icon, polish, english]) => <button key={id} data-section={id} className={`nav-item ${view === id ? "selected" : ""}`} onClick={() => go(id!)}><Icon name={icon!} /><span>{pl ? polish : english}</span></button>)}
+      <details className="nav-more" open={moreOpen} onToggle={e => setMoreOpen(e.currentTarget.open)}><summary><Icon name="grid" />{pl ? "Więcej" : "More"}</summary>
+        {[["inbox", "inbox", "Zadania", "Tasks"], ["terminal", "terminal", "Terminal", "Terminal"], ["harness", "layers", "Harness", "Harness"]].map(([id, icon, polish, english]) => <button key={id} data-section={id} className={`nav-item ${view === id ? "selected" : ""}`} aria-current={view === id ? "page" : undefined} onClick={() => go(id!)}><Icon name={icon!} /><span>{pl ? polish : english}</span></button>)}
       </details>
     </nav>
     <div className="project-heading"><h2 id="projects-title"><button className="text-action" onClick={() => go("center")}>{pl ? "Projekty" : "Projects"}</button><span className="project-count">{projects.length}</span></h2><div className="project-heading-actions"><button className="icon-button" disabled={!visibleProjects.length} title={pl ? (allCollapsed ? "Rozwiń projekty" : "Zwiń projekty") : (allCollapsed ? "Expand projects" : "Collapse projects")} aria-label={pl ? (allCollapsed ? "Rozwiń projekty" : "Zwiń projekty") : (allCollapsed ? "Expand projects" : "Collapse projects")} onClick={() => setCollapsed(ids => allCollapsed ? ids.filter(id => !visibleProjects.some(project => project.id === id)) : [...new Set([...ids, ...visibleProjects.map(project => project.id)])])}><Icon name="layers" /></button><button className="icon-button" aria-label={pl ? "Nowy projekt" : "New project"} onClick={newProject}><Icon name="plus" /></button></div></div>

@@ -137,7 +137,8 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
           ?.textContent.includes("Child czeka na Parent"),
     );
     const graph = dom.window.document.querySelector(".task-graph");
-    assert.ok(graph.textContent.includes("Child czeka na Parent"));
+    // Nodes render before their dependency summary, so wait for the text.
+    await wait(() => graph.textContent.includes("Child czeka na Parent"));
     assert.equal(
       graph.querySelectorAll(".in-batch").length,
       0,

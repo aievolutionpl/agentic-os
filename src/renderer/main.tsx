@@ -52,7 +52,9 @@ import "./workbench.css";
 import "./premium.css";
 import "./calm.css";
 import "./themes.css";
+import "./glass.css";
 import "./matrix.css";
+import { ThemeGallery } from "./ThemeGallery";
 import { MatrixRain } from "./MatrixRain";
 import { type HistoryEntry, type View, VIEW_SHORTCUTS, historyEntry, pushHistory, viewLabel } from "./views";
 import { ProjectOverview } from "./ProjectOverview";
@@ -1657,7 +1659,8 @@ function App() {
               className="language-select"
             />
 </div>
-        <WorkspaceCustomization pl={prefs.language === "pl"}/><VoiceSettings/>
+        <ThemeGallery value={prefs.theme} pl={prefs.language === "pl"} disabled={busy || loading || !snapshot} onChange={theme => void preferences({ theme })} />
+        <WorkspaceCustomization pl={prefs.language === "pl"}/><VoiceSettings pl={prefs.language === "pl"}/>
         <div className="settings-links">{([
           ["connections", "connections", "Agenci i modele", "Agents and models"],
           ["plugins", "connections", "Pluginy i aplikacje", "Plugins and apps"],

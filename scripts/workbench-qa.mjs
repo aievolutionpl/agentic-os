@@ -482,21 +482,29 @@ try {
   await page.locator("#provider-setup-title").waitFor();
   await capture("08-connections");
   await nav("Czaty");
+  // Count first: the previous reply is already complete, so only a longer transcript proves this send.
+  const sentBefore = await page.evaluate(
+    async (id) =>
+      (await window.agenting.chatList()).find((c) => c.id === id)?.messages
+        .length ?? 0,
+    firstId,
+  );
   await composer.fill("Sprawdź gotowość przykładowego projektu.");
   await page.getByRole("button", { name: "Wyślij", exact: true }).click();
   await page.waitForFunction(
-    async (id) =>
-      (await window.agenting.chatList()).find((c) => c.id === id)?.status !==
-      "running",
-    firstId,
+    async ([id, before]) => {
+      const chat = (await window.agenting.chatList()).find((c) => c.id === id);
+      return (
+        !!chat &&
+        chat.status !== "running" &&
+        chat.messages.length > before &&
+        chat.messages.at(-1)?.status === "complete"
+      );
+    },
+    [firstId, sentBefore],
   );
-  await page.waitForFunction(
-    async (id) =>
-      (await window.agenting.chatList())
-        .find((c) => c.id === id)
-        ?.messages.at(-1)?.status === "complete",
-    firstId,
-  );
+  for (let i = 0; i < 100 && (await composer.inputValue()); i++)
+    await page.waitForTimeout(100);
   assert.equal(await composer.inputValue(), "");
   report.checks.push(
     "A message completes through the real app-server protocol fixture after switching screens",

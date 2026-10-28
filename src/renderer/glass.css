@@ -47,10 +47,9 @@
 :where(html[data-theme]) .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button):active:not(:disabled) {transform:scale(.96);}
 :where(html[data-theme]) .top-bar .view-back {width:32px;height:32px;min-height:32px;padding:0;display:grid;place-items:center;}
 
-/* The composer is the one prominent glass card in the workspace. */
+/* The composer sits on the page background, so it takes the glass rim and
+   depth without a costly blur of an already plain backdrop. */
 :where(html[data-theme]) .chat-composer {
- background-color:var(--lg-tint-strong);
- -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
  box-shadow:inset 0 1px 0 var(--lg-rim),var(--lg-shadow);
  transition:box-shadow .2s ease,border-color .2s ease;
 }
@@ -99,11 +98,11 @@
 @media (prefers-reduced-motion:no-preference) {html:not(.quietMotion) .theme-card:active {transform:scale(.98);}}
 
 /* Accessibility: solid chrome when glass is turned down by the user or the system. */
-html.quietGlass :is(.select-options,dialog.command-palette,.toast,.voice-recording,.chat-composer),
+html.quietGlass :is(.select-options,dialog.command-palette,.toast,.voice-recording),
 html.quietGlass .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button) {-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--surface);}
 html.quietGlass dialog::backdrop {-webkit-backdrop-filter:none;backdrop-filter:none;}
 @media (prefers-reduced-transparency:reduce) {
- :is(.select-options,dialog.command-palette,.toast,.voice-recording,.chat-composer),
+ :is(.select-options,dialog.command-palette,.toast,.voice-recording),
  .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button) {-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--surface);}
  dialog::backdrop {-webkit-backdrop-filter:none;backdrop-filter:none;}
 }

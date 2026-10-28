@@ -128,8 +128,13 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
       .querySelector('.task-panel button[aria-label="Zamknij"]')
       .click();
     // The dependency is drawn: Parent in the first column, Child after it.
+    // Both nodes exist before the dependency is saved, so wait for the edge itself.
     await wait(
-      () => dom.window.document.querySelectorAll(".task-node").length === 2,
+      () =>
+        dom.window.document.querySelectorAll(".task-node").length === 2 &&
+        dom.window.document
+          .querySelector(".task-graph")
+          ?.textContent.includes("Child czeka na Parent"),
     );
     const graph = dom.window.document.querySelector(".task-graph");
     assert.ok(graph.textContent.includes("Child czeka na Parent"));

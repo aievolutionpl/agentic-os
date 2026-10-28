@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- **Liquid glass chrome**: menus, the command palette, toasts, header controls and the composer use a translucent, blurred material with a light rim and soft press feedback. Content panels stay solid. "Reduce glass" and the system "reduce transparency" setting switch to solid surfaces.
+- **Theme gallery** in Settings: every palette as a preview card, selectable with the keyboard.
+- The header theme menu shows all seven palettes without scrolling.
+- Settings selects (voice, Whisper model, shortcut) follow the active theme instead of the system grey. Voice settings are translated to English, and the language name stays visible in narrow Settings.
+
 - **Matrix Terminal** palette: phosphor green on black, monospace UI, CRT scanlines, a green-tinted logo, a matching xterm palette and a quiet digital rain that freezes for reduced motion and "Reduce motion"; "Plain background" removes rain and scanlines, "Reduce glass" removes scanlines. All text tokens meet WCAG AA.
 - Navigation audit: one shared screen registry for the breadcrumb, window title, command palette and `Alt` shortcuts; Plugins (`Alt+9`) and ScheduleJob (`Alt+0`) are now reachable from the palette and keyboard.
 - Back navigation with `Alt+←`, the mouse back button, a header arrow and a palette entry.

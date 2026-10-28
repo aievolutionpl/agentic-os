@@ -27,7 +27,7 @@ async function load(entry, name) {
   return import(pathToFileURL(out).href);
 }
 const views = await load("src/renderer/views.ts", "views.cjs");
-const { THEME_CHOICES } = await load("src/renderer/theme-catalog.ts", "theme-catalog.cjs");
+const { THEME_CHOICES, THEME_PREVIEWS } = await load("src/renderer/theme-catalog.ts", "theme-catalog.cjs");
 const ALL = ["center", "project", "quota", "connections", "chat", "skills", "schedule", "plugins", "shared-memory", "harness", "inbox", "terminal"];
 
 test("every screen has one label per language; only the project view is named by its project", () => {
@@ -79,6 +79,9 @@ test("back history remembers which project a project screen showed", () => {
 test("theme picker lists every persisted palette exactly once, including Matrix Terminal", () => {
   assert.deepEqual(THEME_CHOICES.map((choice) => choice.value).sort(), [...THEMES].sort());
   assert.equal(THEME_CHOICES.find((choice) => choice.value === "matrix")?.label, "Matrix Terminal");
+  // The Settings gallery previews every palette with real hex colors.
+  assert.deepEqual(Object.keys(THEME_PREVIEWS).sort(), [...THEMES].sort());
+  for (const preview of Object.values(THEME_PREVIEWS)) for (const color of Object.values(preview)) assert.match(color, /^#[0-9a-f]{6}$/);
   const css = readdirSync("src/renderer").filter((file) => file.endsWith(".css")).map((file) => readFileSync(join("src/renderer", file), "utf8")).join("\n");
   for (const theme of THEMES) assert.ok(css.includes(`html[data-theme="${theme}"] {`), theme);
   assert.match(readFileSync("src/renderer/TerminalPanel.tsx", "utf8"), /\n {2}matrix: \{background:/);

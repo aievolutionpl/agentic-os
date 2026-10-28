@@ -1,0 +1,118 @@
+/* Liquid glass for floating chrome only: header controls, menus, the command
+   palette, the composer and toasts. Content panels stay solid so long text
+   keeps its contrast. Tint stays at 84%+ of the surface for readable labels;
+   the light comes from a top rim and an inner edge, not from gradients.
+   Themes with their own chrome (Pure White, AI Evolution, Matrix) override
+   these through higher-specificity rules, so everything here uses :where(). */
+:where(html[data-theme]) {
+ --lg-tint:color-mix(in srgb,var(--surface) 84%,transparent);
+ --lg-tint-strong:color-mix(in srgb,var(--surface) 92%,transparent);
+ --lg-edge:color-mix(in srgb,var(--text) 13%,transparent);
+ --lg-rim:color-mix(in srgb,#ffffff 30%,transparent);
+ --lg-blur:blur(20px) saturate(1.7);
+ --lg-shadow:0 18px 44px -14px rgb(0 0 0 / .34),0 3px 10px -4px rgb(0 0 0 / .18);
+ --lg-ease:cubic-bezier(.2,.9,.25,1.15);
+}
+:where(html[data-theme="white"],html[data-theme="light"],html[data-theme="classic"]) {
+ --lg-rim:#ffffffd9;--lg-edge:color-mix(in srgb,var(--text) 11%,transparent);
+ --lg-shadow:0 18px 40px -16px rgb(24 39 64 / .22),0 2px 8px -3px rgb(24 39 64 / .10);
+}
+
+/* Floating surfaces. */
+:where(html[data-theme]) :is(.select-options,dialog.command-palette,.toast,.voice-recording) {
+ background-color:var(--lg-tint-strong);
+ -webkit-backdrop-filter:var(--lg-blur);backdrop-filter:var(--lg-blur);
+ border:1px solid var(--lg-edge);
+ box-shadow:inset 0 1px 0 var(--lg-rim),inset 0 0 0 1px color-mix(in srgb,var(--lg-rim) 25%,transparent),var(--lg-shadow);
+}
+:where(html[data-theme]) .select-options {border-radius:12px;padding:6px;}
+:where(html[data-theme]) .select-options button {border-radius:8px;transition:background-color .14s ease;}
+:where(html[data-theme]) .select-options button:hover {background:color-mix(in srgb,var(--accent) 12%,transparent);}
+:where(html[data-theme]) dialog.command-palette {border-radius:18px;}
+:where(html[data-theme]) .toast {border-radius:14px;}
+:where(html[data-theme]) dialog::backdrop {-webkit-backdrop-filter:blur(6px) saturate(1.2);backdrop-filter:blur(6px) saturate(1.2);}
+
+/* Header controls read as glass pills that respond to the pointer. */
+:where(html[data-theme]) .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button) {
+ background-color:var(--lg-tint);
+ border:1px solid var(--lg-edge);border-radius:999px;
+ box-shadow:inset 0 1px 0 var(--lg-rim),0 1px 3px rgb(0 0 0 / .08);
+ transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .18s var(--lg-ease);
+}
+:where(html[data-theme]) .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button):hover:not(:disabled) {
+ background-color:color-mix(in srgb,var(--accent) 10%,var(--lg-tint-strong));
+ border-color:color-mix(in srgb,var(--accent) 45%,var(--lg-edge));
+ box-shadow:inset 0 1px 0 var(--lg-rim),0 4px 14px -4px color-mix(in srgb,var(--accent) 40%,transparent);
+}
+:where(html[data-theme]) .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button):active:not(:disabled) {transform:scale(.96);}
+:where(html[data-theme]) .top-bar .view-back {width:32px;height:32px;min-height:32px;padding:0;display:grid;place-items:center;}
+
+/* The composer sits on the page background, so it takes the glass rim and
+   depth without a costly blur of an already plain backdrop. */
+:where(html[data-theme]) .chat-composer {
+ box-shadow:inset 0 1px 0 var(--lg-rim),var(--lg-shadow);
+ transition:box-shadow .2s ease,border-color .2s ease;
+}
+:where(html[data-theme]) .chat-composer:focus-within {box-shadow:inset 0 1px 0 var(--lg-rim),0 0 0 3px var(--accent-ring),var(--lg-shadow);}
+
+/* Primary actions get a soft liquid press. */
+:where(html[data-theme]) :is(.primary,.new-conversation) {transition:transform .18s var(--lg-ease),box-shadow .18s ease,background-color .16s ease,filter .16s ease;}
+:where(html[data-theme]) :is(.primary,.new-conversation):hover:not(:disabled) {filter:brightness(1.05);}
+:where(html[data-theme]) :is(.primary,.new-conversation):active:not(:disabled) {transform:scale(.97);}
+
+/* Menus and the palette arrive with a short lift. */
+@media (prefers-reduced-motion:no-preference) {
+ html:not(.quietMotion) :is(.select-options,dialog.command-palette[open]) {animation:lg-lift .16s var(--lg-ease) both;}
+ html:not(.quietMotion) .toast {animation:lg-lift .22s var(--lg-ease) both;}
+}
+@keyframes lg-lift {from {opacity:0;transform:translateY(-4px) scale(.985);}}
+
+/* Header theme menu lists every palette without an inner scroll. */
+.top-theme-picker .select-options {max-height:min(440px,calc(100dvh - 96px));}
+
+/* Native selects follow the theme instead of the operating system grey. */
+:where(.voice-settings,.workspace-customization,.settings-fields) select {
+ min-height:36px;padding:6px 32px 6px 10px;border:1px solid var(--border-strong);border-radius:8px;
+ background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 11px center;
+ color:var(--text);appearance:none;-webkit-appearance:none;
+}
+:where(.voice-settings,.workspace-customization,.settings-fields) select:hover:not(:disabled) {border-color:var(--accent);}
+:where(.voice-settings,.workspace-customization,.settings-fields) select:disabled {opacity:.6;}
+
+/* Theme gallery in Settings. */
+.theme-gallery {border:0;margin:0 0 18px;padding:0;min-width:0;}
+.theme-gallery legend {padding:0;margin-bottom:10px;font-weight:600;}
+.theme-gallery-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+.theme-card {position:relative;display:grid;gap:8px;padding:8px 8px 10px;border:1px solid var(--border);border-radius:14px;background:var(--surface);cursor:pointer;transition:border-color .16s ease,box-shadow .16s ease,transform .18s var(--lg-ease,ease);}
+.theme-card:hover {border-color:color-mix(in srgb,var(--accent) 55%,var(--border));}
+.theme-card:has(input:checked) {border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-ring),inset 0 1px 0 var(--lg-rim,transparent);}
+.theme-card:has(input:focus-visible) {outline:2px solid var(--accent);outline-offset:2px;}
+.theme-card input {position:absolute;opacity:0;pointer-events:none;}
+.theme-card>span:last-child {display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13px;font-weight:600;}
+.theme-card>span:last-child .icon {width:14px;height:14px;color:var(--accent);}
+.theme-preview {display:grid;grid-template-columns:28% 1fr;height:62px;border-radius:9px;overflow:hidden;border:1px solid #0000001a;}
+.theme-preview i {display:block;}
+.theme-preview b {display:grid;align-content:center;gap:5px;padding:8px;}
+.theme-preview b::before,.theme-preview b::after {content:"";display:block;height:7px;border-radius:4px;background:var(--p-surface);}
+.theme-preview b::after {width:45%;height:9px;background:var(--p-accent);}
+@media (prefers-reduced-motion:no-preference) {html:not(.quietMotion) .theme-card:active {transform:scale(.98);}}
+
+/* Accessibility: solid chrome when glass is turned down by the user or the system. */
+html.quietGlass :is(.select-options,dialog.command-palette,.toast,.voice-recording),
+html.quietGlass .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button) {-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--surface);}
+html.quietGlass dialog::backdrop {-webkit-backdrop-filter:none;backdrop-filter:none;}
+@media (prefers-reduced-transparency:reduce) {
+ :is(.select-options,dialog.command-palette,.toast,.voice-recording),
+ .top-bar :is(.palette-trigger,.top-theme-picker .select-trigger,.view-back,.settings>.icon-button) {-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--surface);}
+ dialog::backdrop {-webkit-backdrop-filter:none;backdrop-filter:none;}
+}
+
+/* Narrow windows: two compact theme columns, and the language name stays visible in Settings. */
+@media (max-width:600px) {
+ .theme-gallery-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+ .theme-preview {height:42px;}
+ .theme-card>span:last-child {font-size:12px;}
+ .workspace-settings-dialog .language-select .select-value,
+ .workspace-settings-dialog .language-select .select-trigger>.icon:last-child {display:revert;}
+ .workspace-settings-dialog .language-select .select-trigger {width:auto;padding:var(--s-1) var(--s-2);}
+}

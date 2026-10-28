@@ -22,6 +22,10 @@ export default tseslint.config(
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // Error surfaces cross IPC: only stable policy codes are rethrown on
+      // purpose. Attaching the provider error as `cause` would leak internals
+      // that the redaction tests forbid, so ESLint 10's rule is not applicable.
+      "preserve-caught-error": "off",
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-require-imports": "off",
       // Intentional: if a child process cannot be confirmed stopped, that must

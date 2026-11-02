@@ -63,7 +63,7 @@
     "jsdom": "https://registry.npmjs.org/jsdom/-/jsdom-20.0.3.tgz",
     "playwright": "https://registry.npmjs.org/playwright/-/playwright-1.64.0.tgz",
     "typescript": "https://registry.npmjs.org/typescript/-/typescript-5.9.3.tgz",
-    "typescript-eslint": "^8.72.0",
+    "typescript-eslint": "^8.72.1",
     "vite": "https://registry.npmjs.org/vite/-/vite-7.3.7.tgz"
   },
   "overrides": {

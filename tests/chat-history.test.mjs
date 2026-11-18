@@ -98,6 +98,8 @@ test("templates never discard a draft and stored templates are validated", () =>
   assert.equal(h.insertTemplate("", "T"), "T");
   assert.equal(h.insertTemplate("my notes  ", "T"), "T\n\nmy notes");
   assert.equal(h.insertTemplate("T\n\nmy notes", "T"), "T\n\nmy notes");
+  assert.equal(h.insertTemplate("x".repeat(11_995), "Template"), null, "over the send limit");
+  assert.equal(h.insertTemplate("", "y".repeat(12_000)).length, 12_000);
   assert.deepEqual(h.parseTemplates("not json"), []);
   assert.deepEqual(h.parseTemplates('{"a":1}'), []);
   assert.deepEqual(

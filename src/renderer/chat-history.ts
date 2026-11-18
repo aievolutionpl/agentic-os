@@ -101,12 +101,20 @@ export function groupChats(
     .filter((group) => group.items.length);
 }
 
-/** Inserts a template without discarding what the user already typed. */
-export function insertTemplate(current: string, template: string): string {
+export const MESSAGE_LIMIT = 12000;
+/**
+ * Inserts a template without discarding what the user already typed.
+ * Returns null when the result would exceed the sendable message limit.
+ */
+export function insertTemplate(
+  current: string,
+  template: string,
+  limit = MESSAGE_LIMIT,
+): string | null {
   const draft = current.trimEnd();
-  if (!draft) return template;
   if (draft.includes(template)) return current;
-  return `${template}\n\n${draft}`;
+  const next = draft ? `${template}\n\n${draft}` : template;
+  return next.length > limit ? null : next;
 }
 
 export const TEMPLATE_LIMIT = 20;

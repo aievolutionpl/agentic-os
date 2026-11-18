@@ -35,7 +35,10 @@ export class ChatStore {
   }
   list(): ChatSession[] {
     return this.db
-      .prepare("SELECT state FROM chats ORDER BY updatedAt DESC LIMIT 100")
+      .prepare(
+        // Pinned chats are listed before the limit so recency never evicts them.
+        "SELECT state FROM chats ORDER BY coalesce(json_extract(state,'$.pinned'),0) DESC, updatedAt DESC LIMIT 100",
+      )
       .all()
       .map((row) => JSON.parse(String(row.state)));
   }

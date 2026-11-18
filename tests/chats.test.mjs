@@ -690,6 +690,12 @@ test("pinning keeps recency, survives reload, refuses busy chats and rejects unk
   const pinned = store.chats.get(first.id);
   assert.equal(pinned.pinned, true);
   assert.equal(pinned.updatedAt, before, "pinning must not reorder history");
+  for (let i = 0; i < 100; i++)
+    store.chats.save({ ...store.chats.get(first.id), id: `newer-${i}`, pinned: undefined });
+  assert.ok(
+    store.chats.list().some((c) => c.id === first.id),
+    "a pinned chat stays listed when 100 newer chats exist",
+  );
   await chats.action({ id: first.id, action: "unpin" });
   assert.equal("pinned" in store.chats.get(first.id), false);
   await assert.rejects(

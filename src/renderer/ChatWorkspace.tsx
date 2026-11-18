@@ -422,6 +422,18 @@ export function ChatWorkspace({
       setBusy(false);
     }
   }
+  function applyTemplate(prompt: string) {
+    const next = insertTemplate(message, prompt);
+    if (next === null) {
+      setNotice(
+        pl
+          ? "Szablon i wpisany tekst razem przekraczają 12 000 znaków. Skróć wiadomość i spróbuj ponownie."
+          : "The template and your draft together exceed 12,000 characters. Shorten the message and try again.",
+      );
+      return;
+    }
+    setMessage(next);
+  }
   const toggle = (values: string[], id: string) =>
     values.includes(id) ? values.filter((x) => x !== id) : [...values, id];
   return (
@@ -872,7 +884,7 @@ export function ChatWorkspace({
                           : "Open conversation"}
                     </button>
                   </div>
-<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu pl={pl} draft={message} onChoose={(prompt)=>setMessage((current)=>insertTemplate(current,prompt))} disabled={busy}/><div className="harness-slash-bar">
+<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu pl={pl} draft={message} onChoose={applyTemplate} disabled={busy}/><div className="harness-slash-bar">
                     <span className="harness-slash-label">
                       {pl ? "Komendy:" : "Commands:"}
                     </span>
@@ -1556,7 +1568,7 @@ export function ChatWorkspace({
                     </button>
                   )}
                 </div>
-<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu pl={pl} draft={message} onChoose={(prompt)=>setMessage((current)=>insertTemplate(current,prompt))} disabled={busy}/><div className="harness-slash-bar">
+<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu pl={pl} draft={message} onChoose={applyTemplate} disabled={busy}/><div className="harness-slash-bar">
                   <span className="harness-slash-label">
                     {pl ? "Komendy:" : "Commands:"}
                   </span>

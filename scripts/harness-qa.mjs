@@ -138,10 +138,10 @@ try {
   assert.equal(await page.locator(".skill-library article").count(), 33);
   report.checks.push("thirty-three-skills-search-and-licensed-source-preview");
   await nav("Czaty");
-  await page.locator(".chat-history>button").first().waitFor({ state: "attached" });
+  await page.locator(".chat-history-group>button").first().waitFor({ state: "attached" });
   if (!(await page.locator(".chat-history").isVisible()))
     await page.getByRole("button", { name: "Historia", exact: true }).click();
-  await page.locator(".chat-history>button").first().click();
+  await page.locator(".chat-history-group>button").first().click();
   await page
     .getByRole("textbox", { name: "Wiadomość do agenta" })
     .fill("Doprecyzuj kryteria odbioru.");
@@ -244,10 +244,10 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForFunction(() => !document.querySelector(".projects-toggle")?.checkVisibility());
   await nav("Czaty");
-  await page.locator(".chat-history>button").first().waitFor({ state: "attached" });
+  await page.locator(".chat-history-group>button").first().waitFor({ state: "attached" });
   if (!(await page.locator(".chat-history").isVisible()))
     await page.getByRole("button", { name: "Historia", exact: true }).click();
-  await page.locator(".chat-history>button").first().click();
+  await page.locator(".chat-history-group>button").first().click();
   for (const width of [1440, 900]) {
     await page.setViewportSize({ width, height: 900 });
     await page.waitForFunction(() => {

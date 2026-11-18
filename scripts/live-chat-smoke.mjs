@@ -157,9 +157,9 @@ try {
   );
   report.checks.push("source-file-unchanged");
   await page.reload();
-  await page.locator(".chat-history>button").first().waitFor();
+  await page.locator(".chat-history-group>button").first().waitFor();
   await page
-    .locator(".chat-history>button")
+    .locator(".chat-history-group>button")
     .filter({ hasText: "Read only README" })
     .first()
     .click();

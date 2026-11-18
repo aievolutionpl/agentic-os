@@ -132,6 +132,7 @@ try {
       "openExternalLink",
       "chatList",
       "chatCreate",
+      "chatExport",
       "chatSend",
       "chatAction",
       "chatRemember",

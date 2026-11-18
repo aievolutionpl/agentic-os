@@ -116,9 +116,9 @@ try {
     };
     report.checks.push(`${agent}-subscription-two-turn-chat-over-native-ipc`);
     await page.reload();
-    await page.locator(".chat-history>button").first().waitFor();
+    await page.locator(".chat-history-group>button").first().waitFor();
     await page
-      .locator(".chat-history>button")
+      .locator(".chat-history-group>button")
       .filter({ hasText: marker })
       .first()
       .click();
@@ -129,7 +129,7 @@ try {
     });
   }
   await page.reload();
-  await page.locator(".chat-history>button").first().waitFor();
+  await page.locator(".chat-history-group>button").first().waitFor();
   const persisted = await page.evaluate(() =>
     window.agenting.providerSettings(),
   );

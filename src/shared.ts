@@ -271,6 +271,8 @@ export interface ChatSession {
   activity: string[];
   error: string | null;
   updatedAt: number;
+  /** Pinned conversations stay at the top of the history sidebar. */
+  pinned?: boolean;
 }
 export interface ProviderHealth {
   agent: Agent;
@@ -280,6 +282,19 @@ export interface ProviderHealth {
   observedAt: string;
 }
 
+/** Safe, diacritics-free Markdown file name for an exported transcript. */
+export function chatExportName(title: string, at = new Date()): string {
+  const slug =
+    title
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[łŁ]/g, "l")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "conversation";
+  return `${slug}-${at.toISOString().slice(0, 10)}.md`;
+}
 /** A portable transcript, deliberately excluding local paths and hidden context. */
 export function chatMarkdown(chat: ChatSession): string {
   const line = (value: string) => value.replace(/[\r\n]+/g, " ");
@@ -742,7 +757,12 @@ export interface API {
   }): Promise<RoutingDecision>;
   /** Approve paid runs for one agent for 30 minutes, in memory only. */
   policyApprove?(input: { agent: Agent; consent: true }): Promise<void>;
-  chatAction?(input: { id: string; action: "stop" | "delete" }): Promise<void>;
+  chatAction?(input: {
+    id: string;
+    action: "stop" | "delete" | "pin" | "unpin";
+  }): Promise<void>;
+  /** Saves the transcript as Markdown via a native save dialog; null when cancelled. */
+  chatExport?(input: { id: string }): Promise<string | null>;
   chatRemember?(input: {
     id: string;
     messageId: string;

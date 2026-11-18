@@ -23,6 +23,12 @@ import { ErrorNote } from "./ErrorNote";
 import { MessageText } from "./MessageText";
 import { copyText } from "./clipboard";
 import {
+  chatStats,
+  groupChats,
+  insertTemplate,
+  matchChat,
+} from "./chat-history";
+import {
   AgentStrip,
   AttachButton,
   AttachmentChips,
@@ -400,7 +406,7 @@ export function ChatWorkspace({
       setBusy(false);
     }
   }
-  async function action(action: "stop" | "delete") {
+  async function action(action: "stop" | "delete" | "pin" | "unpin") {
     if (!chat) return;
     setBusy(true);
     try {
@@ -415,6 +421,18 @@ export function ChatWorkspace({
     } finally {
       setBusy(false);
     }
+  }
+  function applyTemplate(prompt: string) {
+    const next = insertTemplate(message, prompt);
+    if (next === null) {
+      setNotice(
+        pl
+          ? "Szablon i wpisany tekst razem przekraczają 12 000 znaków. Skróć wiadomość i spróbuj ponownie."
+          : "The template and your draft together exceed 12,000 characters. Shorten the message and try again.",
+      );
+      return;
+    }
+    setMessage(next);
   }
   const toggle = (values: string[], id: string) =>
     values.includes(id) ? values.filter((x) => x !== id) : [...values, id];
@@ -469,7 +487,11 @@ export function ChatWorkspace({
               <input
                 type="search"
                 aria-label={pl ? "Szukaj rozmów" : "Search conversations"}
-                placeholder={pl ? "Szukaj rozmów…" : "Search conversations…"}
+                placeholder={
+                  pl
+                    ? "Szukaj w tytułach i treści…"
+                    : "Search titles and messages…"
+                }
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -482,42 +504,55 @@ export function ChatWorkspace({
                 : "Conversations are saved on this device."}
             </p>
           )}
-          {sessions
-            .filter((s) =>
-              `${s.title} ${agentName(s.agent)}`
-                .toLocaleLowerCase()
-                .includes(search.toLocaleLowerCase()),
-            )
-            .map((s) => (
-              <button
-                key={s.id}
-                className={selected === s.id ? "active" : ""}
-                onClick={() => {
-                  selectChat(s.id);
-                }}
-              >
-                <ProviderIcon provider={s.agent} />
-                <span>
-                  <strong>{s.title}</strong>
-                  <small>
-                    {agentName(s.agent)} ·{" "}
-                    {s.mode === "plan"
-                      ? pl
-                        ? "plan"
-                        : "plan"
-                      : pl
-                        ? "rozmowa"
-                        : "chat"}
-                    {s.status === "running" ? " · ●" : ""}
-                  </small>
-                </span>
-              </button>
-            ))}
+          {groupChats(
+            sessions.filter(
+              (s) => matchChat(s, search, agentName(s.agent)).hit,
+            ),
+            Date.now(),
+            pl,
+          ).map((group) => (
+            <section
+              key={group.key}
+              className={`chat-history-group group-${group.key}`}
+              aria-label={group.label}
+            >
+              <div className="chat-history-label">
+                {group.key === "pinned" && <Icon name="pin" />}
+                {group.label}
+              </div>
+              {group.items.map((s) => {
+                const snippet = search
+                  ? matchChat(s, search, agentName(s.agent)).snippet
+                  : undefined;
+                return (
+                  <button
+                    key={s.id}
+                    className={selected === s.id ? "active" : ""}
+                    aria-current={selected === s.id ? "true" : undefined}
+                    onClick={() => {
+                      selectChat(s.id);
+                    }}
+                  >
+                    <ProviderIcon provider={s.agent} />
+                    <span>
+                      <strong>{s.title}</strong>
+                      <small>
+                        {agentName(s.agent)} ·{" "}
+                        {s.mode === "plan" ? "plan" : pl ? "rozmowa" : "chat"}
+                        {s.status === "running" ? " · ●" : ""}
+                      </small>
+                      {snippet && (
+                        <small className="chat-search-snippet">{snippet}</small>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </section>
+          ))}
           {!!search &&
-            !sessions.some((s) =>
-              `${s.title} ${agentName(s.agent)}`
-                .toLocaleLowerCase()
-                .includes(search.toLocaleLowerCase()),
+            !sessions.some(
+              (s) => matchChat(s, search, agentName(s.agent)).hit,
             ) && (
               <p className="helper">
                 {pl ? "Brak pasujących rozmów." : "No matching conversations."}
@@ -849,7 +884,7 @@ export function ChatWorkspace({
                           : "Open conversation"}
                     </button>
                   </div>
-<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><div className="harness-slash-bar">
+<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu pl={pl} draft={message} onChoose={applyTemplate} disabled={busy}/><div className="harness-slash-bar">
                     <span className="harness-slash-label">
                       {pl ? "Komendy:" : "Commands:"}
                     </span>
@@ -1013,7 +1048,82 @@ export function ChatWorkspace({
                   <span className="chat-root" title={chat.root}>
                     {chat.root}
                   </span>
+                  {!!chat.messages.length &&
+                    (() => {
+                      const st = chatStats(chat);
+                      return (
+                        <span
+                          className="chat-stats"
+                          title={
+                            pl
+                              ? "Tokeny to przybliżenie (~4 znaki na token), nie rozliczenie dostawcy."
+                              : "Tokens are an estimate (~4 characters each), not provider billing."
+                          }
+                        >
+                          {st.messages.toLocaleString(language)}{" "}
+                          {pl ? "wiad." : "msgs"} ·{" "}
+                          {st.words.toLocaleString(language)}{" "}
+                          {pl ? "słów" : "words"} · ~
+                          {st.tokens.toLocaleString(language)}{" "}
+                          {pl ? "tokenów" : "tokens"}
+                        </span>
+                      );
+                    })()}
                 </div>
+                <button
+                  className={`icon-button${chat.pinned ? " active" : ""}`}
+                  aria-pressed={!!chat.pinned}
+                  aria-label={
+                    chat.pinned
+                      ? pl
+                        ? "Odepnij rozmowę"
+                        : "Unpin conversation"
+                      : pl
+                        ? "Przypnij rozmowę"
+                        : "Pin conversation"
+                  }
+                  title={
+                    chat.pinned
+                      ? pl
+                        ? "Odepnij rozmowę"
+                        : "Unpin conversation"
+                      : pl
+                        ? "Przypnij rozmowę na górze listy"
+                        : "Pin conversation to the top"
+                  }
+                  disabled={busy || running}
+                  onClick={() => void action(chat.pinned ? "unpin" : "pin")}
+                >
+                  <Icon name="pin" />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label={
+                    pl ? "Zapisz rozmowę do pliku .md" : "Save conversation as .md"
+                  }
+                  title={
+                    pl ? "Zapisz rozmowę do pliku .md" : "Save conversation as .md"
+                  }
+                  disabled={!chat.messages.length || !api.chatExport}
+                  onClick={() => {
+                    void api.chatExport!({ id: chat.id })
+                      .then((name) => {
+                        if (name)
+                          setNotice(
+                            pl ? `Zapisano: ${name}` : `Saved: ${name}`,
+                          );
+                      })
+                      .catch(() =>
+                        setNotice(
+                          pl
+                            ? "Nie udało się zapisać rozmowy."
+                            : "Could not save the conversation.",
+                        ),
+                      );
+                  }}
+                >
+                  <Icon name="download" />
+                </button>
                 <button
                   className="icon-button"
                   aria-label={
@@ -1458,7 +1568,7 @@ export function ChatWorkspace({
                     </button>
                   )}
                 </div>
-<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu onChoose={setMessage} disabled={busy}/><div className="harness-slash-bar">
+<details className="composer-tools"><summary>{pl ? "Narzędzia" : "Tools"}</summary><CommandMenu pl={pl} draft={message} onChoose={applyTemplate} disabled={busy}/><div className="harness-slash-bar">
                   <span className="harness-slash-label">
                     {pl ? "Komendy:" : "Commands:"}
                   </span>

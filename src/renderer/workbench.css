@@ -36,10 +36,10 @@
   overflow-y: auto;
   scrollbar-width: thin;
 }
-.chat-history > button {
+.chat-history-group > button {
   width: 100%;
 }
-.chat-history > button.active {
+.chat-history-group > button.active {
   border-color: var(--accent);
   background: var(--bg-subtle);
 }
@@ -527,7 +527,7 @@ html[data-theme="light"] .terminal-viewport {
     margin-bottom: 16px;
     border-bottom: 1px solid var(--border);
   }
-  .chat-history > button {
+  .chat-history-group > button {
     display: flex;
   }
   .chat-workspace.has-conversation {
@@ -645,7 +645,7 @@ html[data-theme="light"] .terminal-viewport {
   }
   .nav-item,
   .terminal-tab,
-  .chat-history > button {
+  .chat-history-group > button {
     transition:
       background-color 160ms,
       border-color 160ms,

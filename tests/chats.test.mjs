@@ -678,3 +678,40 @@ test("skills retain pinned GitHub provenance and local markdown imports never ex
   writeFileSync(path, "x".repeat(20000));
   assert.throws(() => readSkillFile(path), /TOO_LARGE/);
 });
+
+test("pinning keeps recency, survives reload, refuses busy chats and rejects unknown actions", async (t) => {
+  const { dir, store } = setup(t);
+  const supervisor = { settings: () => [{ id: "codex", configured: true }] };
+  const chats = new Chats(store, supervisor, dir, async () => []);
+  const first = await chats.create({ agent: "codex", mode: "chat", source: "default" });
+  const before = store.chats.get(first.id).updatedAt;
+  await new Promise((r) => setTimeout(r, 5));
+  await chats.action({ id: first.id, action: "pin" });
+  const pinned = store.chats.get(first.id);
+  assert.equal(pinned.pinned, true);
+  assert.equal(pinned.updatedAt, before, "pinning must not reorder history");
+  for (let i = 0; i < 100; i++)
+    store.chats.save({ ...store.chats.get(first.id), id: `newer-${i}`, pinned: undefined });
+  assert.ok(
+    store.chats.list().some((c) => c.id === first.id),
+    "a pinned chat stays listed when 100 newer chats exist",
+  );
+  await chats.action({ id: first.id, action: "unpin" });
+  assert.equal("pinned" in store.chats.get(first.id), false);
+  await assert.rejects(
+    chats.action({ id: first.id, action: "archive" }),
+    /INVALID_INPUT/,
+  );
+  await assert.rejects(
+    chats.action({ id: "missing", action: "pin" }),
+    /CHAT_NOT_FOUND/,
+  );
+});
+
+test("export file names are ASCII slugs with a date and a fallback", async () => {
+  const { chatExportName } = await import("../dist/shared.js");
+  const at = new Date("2026-11-18T10:00:00Z");
+  assert.equal(chatExportName("Łódź: plan wdrożenia!", at), "lodz-plan-wdrozenia-2026-11-18.md");
+  assert.equal(chatExportName("../../etc/passwd", at), "etc-passwd-2026-11-18.md");
+  assert.equal(chatExportName("???", at), "conversation-2026-11-18.md");
+});

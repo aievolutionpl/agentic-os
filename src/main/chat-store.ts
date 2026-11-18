@@ -35,7 +35,10 @@ export class ChatStore {
   }
   list(): ChatSession[] {
     return this.db
-      .prepare("SELECT state FROM chats ORDER BY updatedAt DESC LIMIT 100")
+      .prepare(
+        // Pinned chats are listed before the limit so recency never evicts them.
+        "SELECT state FROM chats ORDER BY coalesce(json_extract(state,'$.pinned'),0) DESC, updatedAt DESC LIMIT 100",
+      )
       .all()
       .map((row) => JSON.parse(String(row.state)));
   }
@@ -44,8 +47,9 @@ export class ChatStore {
     if (!row) throw Error("CHAT_NOT_FOUND");
     return JSON.parse(String(row.state));
   }
-  save(chat: ChatSession) {
-    chat.updatedAt = Date.now();
+  /** `touch: false` keeps recency (e.g. pinning must not reorder history). */
+  save(chat: ChatSession, touch = true) {
+    if (touch) chat.updatedAt = Date.now();
     this.db
       .prepare(
         "INSERT INTO chats VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET updatedAt=excluded.updatedAt,state=excluded.state",

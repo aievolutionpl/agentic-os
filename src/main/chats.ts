@@ -390,9 +390,17 @@ export class Chats {
   async action(input: unknown) {
     const p = exact(input, ["id", "action"]),
       id = text(p.id);
-    this.store.chats.get(id);
-    if (!["stop", "delete"].includes(String(p.action)))
+    const chat = this.store.chats.get(id);
+    if (!["stop", "delete", "pin", "unpin"].includes(String(p.action)))
       throw Error("INVALID_INPUT");
+    if (p.action === "pin" || p.action === "unpin") {
+      // A running send owns the stored state and would overwrite the flag.
+      if (this.active.has(id)) throw Error("CHAT_BUSY");
+      if (p.action === "pin") chat.pinned = true;
+      else delete chat.pinned;
+      this.store.chats.save(chat, false);
+      return;
+    }
     const running = this.active.get(id);
     running?.controller.abort();
     await running?.promise;

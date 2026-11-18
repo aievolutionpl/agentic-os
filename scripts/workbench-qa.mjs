@@ -293,7 +293,7 @@ try {
     .waitFor();
   if (!(await history.isVisible())) await page.getByRole("button", { name: "Historia", exact: true }).click();
   await page.getByRole("searchbox", { name: "Szukaj rozmów" }).fill("gotowy");
-  assert.equal(await history.locator(":scope > button").count(), 1);
+  assert.equal(await history.locator(".chat-history-group > button").count(), 1);
   await page.getByRole("searchbox", { name: "Szukaj rozmów" }).fill("");
   report.checks.push(
     "Separate drafts and attachments survive chat switching; rename and history search work",

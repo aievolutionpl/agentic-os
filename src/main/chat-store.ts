@@ -44,8 +44,9 @@ export class ChatStore {
     if (!row) throw Error("CHAT_NOT_FOUND");
     return JSON.parse(String(row.state));
   }
-  save(chat: ChatSession) {
-    chat.updatedAt = Date.now();
+  /** `touch: false` keeps recency (e.g. pinning must not reorder history). */
+  save(chat: ChatSession, touch = true) {
+    if (touch) chat.updatedAt = Date.now();
     this.db
       .prepare(
         "INSERT INTO chats VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET updatedAt=excluded.updatedAt,state=excluded.state",

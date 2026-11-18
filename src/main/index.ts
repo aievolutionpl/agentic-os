@@ -12,8 +12,9 @@ import {
   shell,
   safeStorage,
 } from "electron";
-import { join, dirname } from "node:path";
+import { join, dirname, basename } from "node:path";
 import { mkdirSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Store } from "./store.js";
 import { trustedSender, externalWebUrl } from "./security.js";
@@ -71,6 +72,8 @@ import {
   type Agent,
   type ProviderHealth,
   type RoutingMode,
+  chatMarkdown,
+  chatExportName,
 } from "../shared.js";
 import {
   scanAllQuotas,
@@ -1025,6 +1028,19 @@ app
       terminalWrite: (input) => terminals!.write(input),
       terminalResize: (input) => terminals!.resize(input),
       terminalClose: (input) => terminals!.close(input),
+      chatExport: async (input) => {
+        const p = exact(input, ["id"]);
+        const chat = store.chats.get(text(p.id, 100));
+        if (!chat.messages.length) throw Error("CHAT_EMPTY");
+        const result = await dialog.showSaveDialog(window!, {
+          title: "Export conversation",
+          defaultPath: chatExportName(chat.title),
+          filters: [{ name: "Markdown", extensions: ["md"] }],
+        });
+        if (result.canceled || !result.filePath) return null;
+        await writeFile(result.filePath, chatMarkdown(chat), "utf8");
+        return basename(result.filePath);
+      },
       chatRename: (input) => {
         const p = exact(input, ["id", "title"]);
         const chat = store.chats.get(text(p.id, 100));

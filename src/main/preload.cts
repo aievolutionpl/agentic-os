@@ -36,6 +36,7 @@ const api: API = {
   chatCreate: (input) => ipcRenderer.invoke("app:chatCreate", input),
   chatSend: (input) => ipcRenderer.invoke("app:chatSend", input),
   chatAction: (input) => ipcRenderer.invoke("app:chatAction", input),
+  chatExport: (input) => ipcRenderer.invoke("app:chatExport", input),
   chatRemember: (input) => ipcRenderer.invoke("app:chatRemember", input),
   chatTask: (input) => ipcRenderer.invoke("app:chatTask", input),
   githubRepositories: () => ipcRenderer.invoke("app:githubRepositories"),

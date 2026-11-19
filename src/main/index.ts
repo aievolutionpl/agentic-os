@@ -1073,6 +1073,7 @@ app
       },
       createTask: (input) => store.createTask(input),
       createMemory: (input) => store.createMemory(input),
+      supersedeMemory: (input) => store.supersedeMemory(input),
       deleteMemory: (input) => store.deleteMemory(input),
       setPreferences: (input) => store.setPreferences(input),
       setMaster: (input) => store.setMaster(input),
@@ -1125,6 +1126,8 @@ app
           if (code.startsWith("POLICY_")) throw Error(code);
           if (name.startsWith("integration") && /^PLUGIN_[A-Z_]+$/.test(code)) throw Error(code);
           if (code === "TASK_HELD_BY_QUEUE") throw Error(code);
+          if (["createMemory", "supersedeMemory"].includes(name) &&
+              ["INVALID_EXPIRY", "MEMORY_NOT_FOUND", "MEMORY_ALREADY_SUPERSEDED"].includes(code)) throw Error(code);
           if (name === "harnessSave" && code === "HARNESS_SETTINGS_CONFLICT") throw Error(code);
           if (["contextPreview", "memoryExport"].includes(name) &&
               ["CONTEXT_BUDGET_EXCEEDED", "INVALID_CONTEXT", "PROJECT_NOT_FOUND"].includes(code)) throw Error(code);

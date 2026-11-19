@@ -134,6 +134,7 @@ const api: API = {
   createProject: (input) => ipcRenderer.invoke("app:createProject", input),
   createTask: (input) => ipcRenderer.invoke("app:createTask", input),
   createMemory: (input) => ipcRenderer.invoke("app:createMemory", input),
+  supersedeMemory: (input) => ipcRenderer.invoke("app:supersedeMemory", input),
   deleteMemory: (input) => ipcRenderer.invoke("app:deleteMemory", input),
   setPreferences: (input) => ipcRenderer.invoke("app:setPreferences", input),
   setMaster: (input) => ipcRenderer.invoke("app:setMaster", input),

@@ -3,6 +3,7 @@ import type { Memory, ContextManifestEntry } from "../shared.js";
 import { createHash } from "node:crypto";
 import { HARNESS_CORE, readHarness } from "./harness.js";
 import { text, redact } from "./validate.js";
+import { ACTIVE_MEMORY } from "./memory-lifecycle.js";
 export const WORKFLOWS = {
   implementation: {
     readOnly: false,
@@ -34,7 +35,10 @@ export interface ContextSkill {
   instructions: string;
 }
 export class Knowledge {
-  constructor(private db: DatabaseSync) {
+  constructor(
+    private db: DatabaseSync,
+    private clock: () => number = Date.now,
+  ) {
     if (Number(db.prepare("PRAGMA user_version").get()!.user_version) === 6)
       db.exec(`BEGIN IMMEDIATE;
       CREATE VIRTUAL TABLE memory_search USING fts5(id UNINDEXED,projectId UNINDEXED,content,source);
@@ -43,6 +47,10 @@ export class Knowledge {
       CREATE TRIGGER memory_search_delete AFTER DELETE ON memory BEGIN DELETE FROM memory_search WHERE id=old.id;END;
       CREATE TRIGGER memory_search_update AFTER UPDATE ON memory BEGIN DELETE FROM memory_search WHERE id=old.id;INSERT INTO memory_search VALUES(new.id,new.projectId,new.content,new.source);END;
       PRAGMA user_version=7;COMMIT;`);
+  }
+  /** Bound once per query: notes that expired or were superseded are not context. */
+  private nowIso() {
+    return new Date(this.clock()).toISOString();
   }
   private project(projectId: string) {
     if (
@@ -59,9 +67,9 @@ export class Knowledge {
     if (!tokens.length) {
       const rows = this.db
         .prepare(
-          "SELECT * FROM memory WHERE projectId=? OR scope='workspace' ORDER BY createdAt DESC,id",
+          `SELECT m.* FROM memory m WHERE (m.projectId=? OR m.scope='workspace') AND ${ACTIVE_MEMORY} ORDER BY m.createdAt DESC,m.id`,
         )
-        .all(projectId) as unknown as Memory[];
+        .all(projectId, this.nowIso()) as unknown as Memory[];
       return rows
         .filter(
           (row) =>
@@ -75,9 +83,9 @@ export class Knowledge {
     const match = tokens.map((token) => `"${token}"*`).join(" OR ");
     return this.db
       .prepare(
-        "SELECT m.* FROM memory_search JOIN memory m ON m.id=memory_search.id WHERE memory_search MATCH ? AND (m.projectId=? OR m.scope='workspace') ORDER BY bm25(memory_search),m.id LIMIT 50",
+        `SELECT m.* FROM memory_search JOIN memory m ON m.id=memory_search.id WHERE memory_search MATCH ? AND (m.projectId=? OR m.scope='workspace') AND ${ACTIVE_MEMORY} ORDER BY bm25(memory_search),m.id LIMIT 50`,
       )
-      .all(match, projectId) as unknown as Memory[];
+      .all(match, projectId, this.nowIso()) as unknown as Memory[];
   }
   build(
     projectId: string,
@@ -98,18 +106,18 @@ export class Knowledge {
     if (!Object.hasOwn(WORKFLOWS, key)) throw Error("INVALID_WORKFLOW");
     const pins = this.db
       .prepare(
-        "SELECT id FROM memory WHERE pinned=1 AND (projectId=? OR scope='workspace') ORDER BY createdAt,id LIMIT 21",
+        `SELECT m.id FROM memory m WHERE m.pinned=1 AND (m.projectId=? OR m.scope='workspace') AND ${ACTIVE_MEMORY} ORDER BY m.createdAt,m.id LIMIT 21`,
       )
-      .all(projectId)
+      .all(projectId, this.nowIso())
       .map((row) => String(row.id));
     const selected = [...new Set([...pins, ...ids])];
     if (selected.length > 20) throw Error("CONTEXT_BUDGET_EXCEEDED");
     const memory = selected.map((id) => {
       const row = this.db
         .prepare(
-          "SELECT * FROM memory WHERE (projectId=? OR scope='workspace') AND id=?",
+          `SELECT m.* FROM memory m WHERE (m.projectId=? OR m.scope='workspace') AND m.id=? AND ${ACTIVE_MEMORY}`,
         )
-        .get(projectId, text(id));
+        .get(projectId, text(id), this.nowIso());
       if (!row) throw Error("INVALID_CONTEXT");
       return row as unknown as Memory;
     });
@@ -224,9 +232,9 @@ export class Knowledge {
     this.project(projectId);
     const notes = this.db
       .prepare(
-        "SELECT * FROM memory WHERE projectId=? OR scope='workspace' ORDER BY pinned DESC,createdAt,id LIMIT 101",
+        `SELECT m.* FROM memory m WHERE (m.projectId=? OR m.scope='workspace') AND ${ACTIVE_MEMORY} ORDER BY m.pinned DESC,m.createdAt,m.id LIMIT 101`,
       )
-      .all(projectId) as unknown as Memory[];
+      .all(projectId, this.nowIso()) as unknown as Memory[];
     if (notes.length > 100) throw Error("CONTEXT_BUDGET_EXCEEDED");
     const body = [
       "# AGENTS.md — Project context / AI Evolution Polska",

@@ -199,6 +199,7 @@ try {
       "createTask",
       "taskAction",
       "createMemory",
+      "supersedeMemory",
       "deleteMemory",
       "setPreferences",
       "scheduleAction",

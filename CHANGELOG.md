@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Memory lifecycle** (schema v19): a note can expire (`expiresAt`) and can be replaced by a corrected one (`supersedeMemory`). Expired and superseded notes stay in the Memory screen and in backups, but are left out of search, recall, pinned context, explicit context selection and `AGENTS.md` export, so stale facts stop steering agents. Replacing a note is one transaction: the replacement inherits scope and pin, the old note is unpinned and linked to it. No UI control yet; available through `createMemory`/`supersedeMemory` IPC.
+
 - **Liquid glass chrome**: menus, the command palette, toasts, header controls and the composer use a translucent, blurred material with a light rim and soft press feedback. Content panels stay solid. "Reduce glass" and the system "reduce transparency" setting switch to solid surfaces.
 - **Theme gallery** in Settings: every palette as a preview card, selectable with the keyboard.
 - The header theme menu shows all seven palettes without scrolling.

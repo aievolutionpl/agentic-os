@@ -37,6 +37,7 @@ const REQUIRED_TABLES: [number, string[]][] = [
   [18, ["schedule_jobs", "schedule_runs"]],
 ];
 const REQUIRED_COLUMNS: [number, string, string[]][] = [
+  [19, "memory", ["expiresAt", "supersededBy"]],
   [18, "schedule_jobs", ["id", "state"]],
   [18, "schedule_runs", ["id", "jobId", "state"]],
   [9, "memory", ["scope"]],

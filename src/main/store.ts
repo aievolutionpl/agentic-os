@@ -13,6 +13,7 @@ import { Batches } from "./batches.js";
 import { CapabilityChecks } from "./capabilities.js";
 import { Policies } from "./policy.js";
 import { UsageLedger } from "./usage-ledger.js";
+import { migrateMemoryLifecycle, parseExpiry } from "./memory-lifecycle.js";
 import { AGENTS, THEMES } from "../shared.js";
 import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
@@ -44,7 +45,7 @@ function agent(input: unknown): Agent {
   return input as Agent;
 }
 /** Highest schema this build reads; newer databases are refused. */
-export const SCHEMA_VERSION = 18;
+export const SCHEMA_VERSION = 19;
 export class Store {
   private db: DatabaseSync;
   readonly lifecycle: Lifecycle;
@@ -61,10 +62,12 @@ export class Store {
   readonly capabilities: CapabilityChecks;
   readonly policies: Policies;
   readonly usage: UsageLedger;
+  private readonly now: () => number;
   constructor(
     readonly file: string,
     clock: () => number = Date.now,
   ) {
+    this.now = clock;
     this.db = new DatabaseSync(file);
     this.db.exec(
       "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;",
@@ -111,7 +114,7 @@ export class Store {
       )
         this.approvals.migrateArtifactBinding();
       this.runs = new Runs(this.db, clock);
-      this.knowledge = new Knowledge(this.db);
+      this.knowledge = new Knowledge(this.db, clock);
       this.extensions = new Extensions(this.db);
       migrateWorkspace(this.db);
       this.missions = new Missions(this.db);
@@ -136,6 +139,7 @@ export class Store {
       this.usage = new UsageLedger(this.db, clock);
       this.harness = new Harness(this.db);
       this.schedules = new Schedules(this.db, clock);
+      migrateMemoryLifecycle(this.db);
     } catch (error) {
       this.db.close();
       throw error;
@@ -334,10 +338,11 @@ export class Store {
       source: text(p.source, 1000),
       createdAt: new Date().toISOString(),
       scope: p.scope === "workspace" ? "workspace" : "project",
+      expiresAt: parseExpiry(p.expiresAt, this.now()),
     };
     this.db
       .prepare(
-        "INSERT INTO memory(id,projectId,content,source,createdAt,scope) VALUES(?,?,?,?,?,?)",
+        "INSERT INTO memory(id,projectId,content,source,createdAt,scope,expiresAt) VALUES(?,?,?,?,?,?,?)",
       )
       .run(
         result.id,
@@ -346,7 +351,64 @@ export class Store {
         result.source,
         result.createdAt,
         result.scope!,
+        result.expiresAt ?? null,
       );
+    return result;
+  }
+  /**
+   * Replace a note with a corrected one. The old note is kept, marked as superseded and
+   * unpinned; the new note inherits its scope and pin so context keeps working. Both
+   * changes happen in one transaction. An already superseded note cannot be replaced.
+   */
+  supersedeMemory(input: unknown): Memory {
+    const p = object(input);
+    const projectId = this.project(p.projectId);
+    const id = text(p.id);
+    const content = text(p.content, 20000);
+    const expiresAt = parseExpiry(p.expiresAt, this.now());
+    let result!: Memory;
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const old = this.db
+        .prepare("SELECT * FROM memory WHERE projectId=? AND id=?")
+        .get(projectId, id) as unknown as Memory | undefined;
+      if (!old) throw Error("MEMORY_NOT_FOUND");
+      if (old.supersededBy) throw Error("MEMORY_ALREADY_SUPERSEDED");
+      result = {
+        id: randomUUID(),
+        projectId,
+        content,
+        source: p.source === undefined ? old.source : text(p.source, 1000),
+        createdAt: new Date().toISOString(),
+        scope: old.scope === "workspace" ? "workspace" : "project",
+        pinned: old.pinned ? 1 : 0,
+        expiresAt,
+        supersededBy: null,
+      };
+      this.db
+        .prepare(
+          "INSERT INTO memory(id,projectId,content,source,createdAt,scope,pinned,expiresAt) VALUES(?,?,?,?,?,?,?,?)",
+        )
+        .run(
+          result.id,
+          result.projectId,
+          result.content,
+          result.source,
+          result.createdAt,
+          result.scope!,
+          result.pinned!,
+          result.expiresAt ?? null,
+        );
+      this.db
+        .prepare(
+          "UPDATE memory SET supersededBy=?,pinned=0,updatedAt=? WHERE projectId=? AND id=?",
+        )
+        .run(result.id, result.createdAt, projectId, id);
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
+    }
     return result;
   }
   deleteMemory(input: unknown) {

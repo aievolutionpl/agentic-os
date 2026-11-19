@@ -223,6 +223,10 @@ export interface Memory {
   scope?: "project" | "workspace";
   pinned?: number;
   updatedAt?: string | null;
+  /** ISO time after which the note is no longer used as context. */
+  expiresAt?: string | null;
+  /** Id of the note that replaced this one; superseded notes are not used as context. */
+  supersededBy?: string | null;
 }
 export interface MemoryGraph {
   nodes: {
@@ -1011,8 +1015,15 @@ export interface API {
     input: Pick<Task, "projectId" | "title" | "implementer" | "reviewer">,
   ): Promise<Task>;
   createMemory(
-    input: Pick<Memory, "projectId" | "content" | "source" | "scope">,
+    input: Pick<Memory, "projectId" | "content" | "source" | "scope" | "expiresAt">,
   ): Promise<Memory>;
+  supersedeMemory(input: {
+    projectId: string;
+    id: string;
+    content: string;
+    source?: string;
+    expiresAt?: string | null;
+  }): Promise<Memory>;
   deleteMemory(input: { projectId: string; id: string }): Promise<void>;
   setPreferences(input: Preferences): Promise<Preferences>;
   setMaster(input: { projectId: string; master: Agent }): Promise<void>;

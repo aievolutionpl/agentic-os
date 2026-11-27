@@ -20,7 +20,7 @@ import { Icon, Modal, agentName, connectionLabel, connectionState } from "./ui";
 import { ProviderIcon } from "./ProviderIcon";
 import { PaidApproval, policyMessage } from "./PolicyPanel";
 import { ErrorNote } from "./ErrorNote";
-import { MessageText } from "./MessageText";
+import { ChatMessageView, useStableCallback, type MessageAction } from "./ChatMessageView";
 import { copyText } from "./clipboard";
 import {
   chatStats,
@@ -436,6 +436,39 @@ export function ChatWorkspace({
   }
   const toggle = (values: string[], id: string) =>
     values.includes(id) ? values.filter((x) => x !== id) : [...values, id];
+  const onMessageAction = useStableCallback(
+    (kind: MessageAction, m: ChatMessage) => {
+      if (!chat) return;
+      if (kind === "remember") {
+        setSaving(m);
+        setNote(m.content);
+        setScope("project");
+      } else if (kind === "task") {
+        setHandoff(m);
+        setReviewer(READ_ONLY_AGENTS.find((a) => a !== chat.agent) ?? "codex");
+      } else if (kind === "second-opinion") {
+        const nextAgent =
+          AGENTS.find(
+            (a) =>
+              a !== chat.agent && providers.find((p) => p.id === a)?.configured,
+          ) ?? (chat.agent === "codex" ? "claude" : "codex");
+        const excerpt = m.content.slice(0, 3500);
+        const consultPrompt = pl
+          ? `Przeprowadź niezależny przegląd (Second Opinion) poniższej propozycji od agenta ${agentName(chat.agent)}. Wskaż słabe punkty, luki architektoniczne oraz lepsze alternatywy:\n\n---\n${excerpt}`
+          : `Provide an independent Second Opinion review of the following proposal from ${agentName(chat.agent)}. Identify blind spots, architectural trade-offs, and better alternatives:\n\n---\n${excerpt}`;
+        setAgent(nextAgent);
+        setModel("");
+        setMode(READ_ONLY_AGENTS.includes(nextAgent) ? "plan" : "chat");
+        drafts.set("", { message: consultPrompt, files: [] });
+        selectChat("");
+        setMessage(consultPrompt);
+      } else {
+        void copyText(m.content)
+          .then(() => setNotice(pl ? "Skopiowano." : "Copied."))
+          .catch(() => setError("COPY_FAILED"));
+      }
+    },
+  );
   return (
     <section
       className={`chat-workspace${chat ? " has-conversation" : ""}${!sessions.length ? " no-history" : ""}${historyOpen ? " history-open" : ""}`}
@@ -1231,120 +1264,13 @@ export function ChatWorkspace({
                   </div>
                 )}
                 {chat.messages.map((m) => (
-                  <article key={m.id} className={`chat-message ${m.role}`}>
-                    <div className="message-author">
-                      {m.role === "assistant" ? (
-                        <ProviderIcon provider={chat.agent} />
-                      ) : (
-                        <Icon name="user" />
-                      )}
-                      <strong>
-                        {m.role === "assistant"
-                          ? agentName(chat.agent)
-                          : pl
-                            ? "Ty"
-                            : "You"}
-                      </strong>
-                      <time>
-                        {new Date(m.at).toLocaleTimeString(language, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </time>
-                    </div>
-                    {m.attachments && (
-                      <AttachmentChips files={m.attachments} pl={pl} />
-                    )}
-                    {m.content ? (
-                      <MessageText content={m.content} pl={pl} />
-                    ) : m.status !== "streaming" ? (
-                      <span className="message-empty">
-                        {m.status === "cancelled"
-                          ? pl
-                            ? "Zatrzymano przed odpowiedzią."
-                            : "Stopped before a reply."
-                          : pl
-                            ? "Brak odpowiedzi — szczegóły poniżej."
-                            : "No reply — details below."}
-                      </span>
-                    ) : (
-                      <span className="thinking">
-                        <i />
-                        <i />
-                        <i />
-                        {pl ? "Agent pracuje…" : "Agent is working…"}
-                      </span>
-                    )}
-                    {m.role === "assistant" && m.status === "complete" && (
-                      <div className="message-actions">
-                        <button
-                          onClick={() => {
-                            setSaving(m);
-                            setNote(m.content);
-                            setScope("project");
-                          }}
-                        >
-                          <Icon name="memory" />
-                          {pl ? "Zapamiętaj" : "Remember"}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setHandoff(m);
-                            setReviewer(
-                              READ_ONLY_AGENTS.find((a) => a !== chat.agent) ??
-                                "codex",
-                            );
-                          }}
-                        >
-                          <Icon name="task" />
-                          {pl ? "Utwórz zadanie" : "Create task"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const nextAgent =
-                              AGENTS.find(
-                                (a) =>
-                                  a !== chat.agent &&
-                                  providers.find((p) => p.id === a)?.configured,
-                              ) ?? (chat.agent === "codex" ? "claude" : "codex");
-                            const excerpt = m.content.slice(0, 3500);
-                            const consultPrompt = pl
-                              ? `Przeprowadź niezależny przegląd (Second Opinion) poniższej propozycji od agenta ${agentName(chat.agent)}. Wskaż słabe punkty, luki architektoniczne oraz lepsze alternatywy:\n\n---\n${excerpt}`
-                              : `Provide an independent Second Opinion review of the following proposal from ${agentName(chat.agent)}. Identify blind spots, architectural trade-offs, and better alternatives:\n\n---\n${excerpt}`;
-                            setAgent(nextAgent);
-                            setModel("");
-                            setMode(
-                              READ_ONLY_AGENTS.includes(nextAgent)
-                                ? "plan"
-                                : "chat",
-                            );
-                            drafts.set("", {
-                              message: consultPrompt,
-                              files: [],
-                            });
-                            selectChat("");
-                            setMessage(consultPrompt);
-                          }}
-                        >
-                          <Icon name="swap" />
-                          {pl ? "Druga opinia" : "Second opinion"}
-                        </button>
-                        <button
-                          onClick={() =>
-                            void copyText(m.content)
-                              .then(() =>
-                                setNotice(pl ? "Skopiowano." : "Copied."),
-                              )
-                              .catch(() => setError("COPY_FAILED"))
-                          }
-                        >
-                          <Icon name="copy" />
-                          {pl ? "Kopiuj" : "Copy"}
-                        </button>
-                      </div>
-                    )}
-                  </article>
+                  <ChatMessageView
+                    key={m.id}
+                    message={m}
+                    agent={chat.agent}
+                    language={language}
+                    onAction={onMessageAction}
+                  />
                 ))}
                 <div ref={bottom} />
               </div>

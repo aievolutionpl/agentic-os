@@ -2056,3 +2056,11 @@ summary:focus-visible {
 .task-node.in-batch {
   box-shadow: 0 0 0 2px var(--accent-ring);
 }
+
+/* Long conversations: let the browser skip layout and paint for messages far
+   from the viewport. The newest messages stay fully rendered so streaming,
+   auto-follow and screenshots behave as before. */
+.chat-message:not(:nth-last-child(-n + 6)) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
+}

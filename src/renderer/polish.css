@@ -123,23 +123,21 @@ html[data-theme] .project-sidebar:hover .project-tree {
 }
 
 /* With no subscription connected, the "connect" link joins the header row
-   instead of occupying a second one. Narrow windows keep the wrapped layout. */
-@media (min-width: 801px) {
-  .compact-workspace-header:has(.quota-empty) {
-    flex-wrap: nowrap;
-  }
-  .compact-workspace-header:has(.quota-empty) .top-bar {
-    flex: 1 1 auto;
-    min-width: 0;
-    width: auto;
-  }
-  .compact-workspace-header:has(.quota-empty) .quota-strip {
-    flex: 0 0 auto;
-    width: auto;
-    padding: 0 16px 0 0;
-    border: 0;
-    background: transparent;
-  }
+   when both fit. Flex items keep their content width, so the link wraps to
+   its own line whenever the available header width (not the viewport) is
+   too small, e.g. a narrow window with a wide project panel. */
+.compact-workspace-header:has(.quota-empty) .top-bar {
+  flex: 1 0 auto;
+  width: auto;
+  max-width: 100%;
+}
+.compact-workspace-header:has(.quota-empty) .quota-strip {
+  flex: 0 0 auto;
+  width: auto;
+  margin-left: auto;
+  padding: 0 16px 0 0;
+  border: 0;
+  background: transparent;
 }
 
 /* Phones: the conversation is the content. Previously header, metadata and

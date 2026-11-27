@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- **Faster long conversations** (Roadmap v5, sprint S1): each message is a memoized component compared field by field, so typing in the composer or a chat refresh no longer re-parses Markdown for the whole history. Messages far from the viewport use `content-visibility: auto`; the newest six stay fully rendered.
+- **Smaller app shell**: the header (`TopBar`), the settings dialog (`SettingsDialog`) and the command palette builder (`app-commands.ts`) moved out of `main.tsx` (1826 → 1577 lines). Behaviour is unchanged.
+
 - **Memory lifecycle** (schema v19): a note can expire (`expiresAt`) and can be replaced by a corrected one (`supersedeMemory`). Expired and superseded notes stay in the Memory screen and in backups, but are left out of search, recall, pinned context, explicit context selection and `AGENTS.md` export, so stale facts stop steering agents. Replacing a note is one transaction: the replacement inherits scope and pin, the old note is unpinned and linked to it. No UI control yet; available through `createMemory`/`supersedeMemory` IPC.
 
 - **Liquid glass chrome**: menus, the command palette, toasts, header controls and the composer use a translucent, blurred material with a light rim and soft press feedback. Content panels stay solid. "Reduce glass" and the system "reduce transparency" setting switch to solid surfaces.

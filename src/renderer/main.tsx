@@ -1,8 +1,6 @@
-import {VoiceSettings} from "./VoiceSettings";
 import { PluginsHub } from "./PluginsHub";
-import {WorkspaceCustomization,SidebarResize,applyWorkspaceLayout} from "./WorkspaceCustomization";
+import {SidebarResize,applyWorkspaceLayout} from "./WorkspaceCustomization";
 import { THEME_CHOICES } from "./theme-catalog";
-import { QuotaStrip } from "./QuotaStrip";
 import { ScheduleJobs } from "./ScheduleJobs";
 import { copyText } from "./clipboard";
 import React, { useEffect, useRef, useState } from "react";
@@ -23,7 +21,6 @@ import type {
 } from "../shared";
 import { words } from "./i18n";
 import {
-  agentName,
   Icon,
   Modal,
   SelectField,
@@ -37,7 +34,7 @@ import { UsageLedgerPanel } from "./UsageLedgerPanel";
 import { ExtensionsPanel } from "./ExtensionsPanel";
 import { BrowserPanel } from "./BrowserPanel";
 import { ControlCenter } from "./ControlCenter";
-import { Inbox, attentionWords } from "./Inbox";
+import { Inbox } from "./Inbox";
 import { CommandPalette, type Command } from "./CommandPalette";
 import { OpenQuotaPanel } from "./OpenQuotaPanel";
 import { OrchestrationPanel } from "./OrchestrationPanel";
@@ -54,11 +51,12 @@ import "./calm.css";
 import "./themes.css";
 import "./glass.css";
 import "./matrix.css";
-import { ThemeGallery } from "./ThemeGallery";
 import { MatrixRain } from "./MatrixRain";
 import { type HistoryEntry, type View, VIEW_SHORTCUTS, historyEntry, pushHistory, viewLabel } from "./views";
 import { ProjectOverview } from "./ProjectOverview";
-import companyLogo from "./assets/ai-evolution.png";
+import { buildCommands } from "./app-commands";
+import { SettingsDialog } from "./SettingsDialog";
+import { TopBar } from "./TopBar";
 import { WorkspaceNavigation } from "./WorkspaceNavigation";
 
 const TerminalPanel = React.lazy(() =>
@@ -511,211 +509,12 @@ function App() {
   }
 
   function commands(): Command[] {
-    const pl = prefs.language === "pl",
-      go = pl ? "Przejdź" : "Go to",
-      act = pl ? "Akcja" : "Action",
-      projects = pl ? "Projekt" : "Project";
-    const views: [View, string, boolean][] = [
-      ["center", "grid", !!api?.connectorScan],
-      ["chat", "message", !!api?.chatList],
-      ["terminal", "terminal", !!api?.terminalList],
-      ["inbox", "inbox", !!api?.attention],
-      ["skills", "skill", !!api?.chatList],
-      ["shared-memory", "memory", !!api?.chatList],
-      ["connections", "connections", !!api?.connectorScan],
-      ["quota", "tokens", !!api?.connectorScan],
-      ["plugins", "connections", !!api?.integrationList],
-      ["schedule", "clock", !!api?.scheduleList],
-      ["harness", "layers", !!api?.harnessGet],
-    ];
-    const list: Command[] = views
-      .filter(([, , available]) => available)
-      .map(([id, icon]) => ({
-        id: `view-${id}`,
-        label: viewLabel(id, prefs.language)!,
-        group: go,
-        hint: VIEW_SHORTCUTS[id] ? `${go} · Alt+${VIEW_SHORTCUTS[id]}` : go,
-        icon,
-        run: () => setView(id),
-      }));
-    const previous = history[history.length - 1];
-    if (previous)
-      list.unshift({
-        id: "view-back",
-        label: `${pl ? "Wstecz" : "Back"}: ${viewLabel(previous.view, prefs.language) ?? snapshot?.projects.find((item) => item.id === previous.project)?.name ?? projects}`,
-        group: go,
-        hint: `${go} · Alt+←`,
-        icon: "back",
-        run: goBack,
-      });
-    for (const item of attention?.decisions.slice(0, 8) ?? [])
-      list.push({
-        id: `attention-${item.kind}-${item.id}`,
-        label: `${attentionWords[prefs.language].kinds[item.kind]}: ${item.title}`,
-        group: attentionWords[prefs.language].title,
-        hint: item.projectName,
-        icon: "inbox",
-        run: () => openAttention(item),
-      });
-    for (const item of snapshot?.projects ?? [])
-      list.push({
-        id: `project-${item.id}`,
-        label: item.name,
-        group: projects,
-        hint: `${projects} · ${item.root || (pl ? "bez folderu" : "no folder")}`,
-        icon: "folder",
-        run: () => {
-          setView("project");
-          void selectProject(item.id);
-        },
-      });
-    if (snapshot && project) {
-      for (const t of [
-        ["master", "plan", "Master Agent", "Master Agent"],
-        ["tasks", "task", "Zadania", "Tasks"],
-        ["memory", "memory", "Pamięć projektu", "Project memory"],
-      ] as const)
-        list.push({
-          id: `tab-${t[0]}`,
-          label: `${project.name}: ${pl ? t[2] : t[3]}`,
-          group: projects,
-          icon: t[1],
-          run: () => {
-            setView("project");
-            setTab(t[0]);
-          },
-        });
-      for (const task of data.tasks.slice(0, 30))
-        list.push({
-          id: `task-${task.id}`,
-          label: task.title.split("\n")[0],
-          group: pl ? "Zadania" : "Tasks",
-          hint: `${project.name} · ${w.statuses[task.status]} · ${agentName(task.implementer)} → ${agentName(task.reviewer)}`,
-          icon: "task",
-          run: () => {
-            setRequestedTask(task.id);
-            setView("project");
-            setTab("tasks");
-          },
-        });
-      for (const mem of data.memory.slice(0, 20))
-        list.push({
-          id: `memory-${mem.id}`,
-          label: mem.content.split("\n")[0].slice(0, 90),
-          group: pl ? "Pamięć" : "Memory",
-          hint: `${project.name} · ${mem.source}`,
-          icon: "memory",
-          run: () => {
-            setView("project");
-            setTab("memory");
-            setQuery(mem.content.split("\n")[0].slice(0, 40));
-          },
-        });
-    }
-    list.push(
-      {
-        id: "action-new-project",
-        label: pl ? "Nowy projekt" : "New project",
-        group: act,
-        icon: "plus",
-        run: openProject,
-      },
-      ...(api?.createDemoProject
-        ? [
-            {
-              id: "action-demo-project",
-              label: pl
-                ? "Utwórz projekt treningowy (Demo Repo 1-klik)"
-                : "Create training project (1-click Demo Repo)",
-              group: act,
-              icon: "plan",
-              run: () => void startDemoProject(),
-            },
-          ]
-        : []),
-      ...(api?.backupCreate
-        ? [
-            {
-              id: "action-backup",
-              label: pl ? "Utwórz kopię zapasową danych" : "Back up data",
-              group: act,
-              icon: "download",
-              run: () =>
-                void api.backupCreate!()
-                  .then((s) => {
-                    if (s)
-                      setToast({
-                        message: pl
-                          ? `Zapisano kopię: ${s.file}`
-                          : `Backup saved: ${s.file}`,
-                      });
-                  })
-                  .catch(() =>
-                    setToast({
-                      message: pl
-                        ? "Nie udało się zapisać kopii."
-                        : "Could not save the backup.",
-                      error: true,
-                    }),
-                  ),
-            },
-            {
-              id: "action-data",
-              label: pl
-                ? "Przywróć z kopii lub eksportuj diagnostykę"
-                : "Restore a backup or export diagnostics",
-              group: act,
-              icon: "history",
-              run: () => {
-                setView("center");
-                setTimeout(
-                  () =>
-                    document
-                      .getElementById("data-title")
-                      ?.scrollIntoView({ block: "start" }),
-                  50,
-                );
-              },
-            },
-          ]
-        : []),
-      {
-        id: "action-rescan",
-        label: pl ? "Skanuj połączenia agentów" : "Rescan agent connections",
-        group: act,
-        icon: "refresh",
-        run: () => {
-          setView("center");
-          void runScan();
-        },
-      },
-      {
-        id: "action-theme",
-        label:
-          prefs.theme === "dark"
-            ? pl
-              ? "Jasny motyw"
-              : "Light theme"
-            : pl
-              ? "Ciemny motyw"
-              : "Dark theme",
-        group: act,
-        icon: prefs.theme === "dark" ? "sun" : "moon",
-        run: () =>
-          void preferences({
-            theme: prefs.theme === "dark" ? "light" : "dark",
-          }),
-      },
-      ...THEME_CHOICES.map(theme => ({id:`action-theme-${theme.value}`,label:`${pl ? "Motyw" : "Theme"}: ${theme.label}`,group:act,icon:"palette",run:()=>void preferences({theme:theme.value})})),
-      {
-        id: "action-language",
-        label: pl ? "Switch to English" : "Przełącz na polski",
-        group: act,
-        icon: "globe",
-        run: () => void preferences({ language: pl ? "en" : "pl" }),
-      },
-    );
-    return list;
+    return buildCommands({
+      api, prefs, history, snapshot, project, data, attention, w,
+      setView, setTab, setRequestedTask, setQuery, setToast, goBack,
+      openAttention, selectProject, openProject, startDemoProject, runScan,
+      preferences,
+    });
   }
   function openProject() {
     setProjectsExpanded(false);
@@ -774,52 +573,21 @@ function App() {
       {!narrow && <SidebarResize/>}
       <div className="body">
         {prefs.theme === "matrix" && <MatrixRain />}
-        <div className="compact-workspace-header"><header className="top-bar">
-          {narrow && (
-            <button
-              ref={projectsToggle}
-              className="projects-toggle icon-button"
-              title={w.projects}
-              aria-label={w.projects}
-              aria-controls="project-navigation"
-              aria-expanded={projectsExpanded}
-              onClick={() => setProjectsExpanded(true)}
-            >
-              <Icon name="menu" />
-            </button>
-          )}
-          {history.length > 0 && (
-            <button
-              className="icon-button view-back"
-              title={`${prefs.language === "pl" ? "Wstecz" : "Back"} (Alt+←)`}
-              aria-label={prefs.language === "pl" ? "Wstecz" : "Back"}
-              aria-keyshortcuts="Alt+ArrowLeft"
-              onClick={goBack}
-            >
-              <Icon name="back" />
-            </button>
-          )}
-          <div className="breadcrumb">
-            <span>{w.workspace}</span>
-            <Icon name="chevron" />
-            <strong title={view === "center" ? undefined : project?.name} aria-current="page">
-              {screenTitle}
-            </strong>
-          </div>
-          <div className="settings">
-            <SelectField label={prefs.language === "pl" ? "Kolorystyka" : "Color palette"} value={prefs.theme} options={THEME_CHOICES} icon="palette" className="top-theme-picker" disabled={busy || loading || !snapshot} onChange={theme => void preferences({theme:theme as Preferences["theme"]})} />
-            <button
-              className="palette-trigger"
-              aria-keyshortcuts="Control+K Meta+K"
-              onClick={() => setPalette(true)}
-            >
-              <Icon name="search" />
-              <span>{prefs.language === "pl" ? "Szukaj" : "Search"}</span>
-            </button>
-            <button className="icon-button" aria-label={prefs.language === "pl" ? "Ustawienia" : "Settings"} onClick={() => setSettingsOpen(true)}><Icon name="settings" /></button>
-          </div>
-        </header>
-        <QuotaStrip pl={prefs.language === "pl"} onOpen={() => setView("quota")} /></div>
+        <TopBar
+          prefs={prefs}
+          screenTitle={screenTitle}
+          projectName={view === "center" ? undefined : project?.name}
+          projectsExpanded={projectsExpanded}
+          projectsToggleRef={projectsToggle}
+          canGoBack={history.length > 0}
+          disabled={busy || loading || !snapshot}
+          onOpenProjects={narrow ? () => setProjectsExpanded(true) : undefined}
+          onBack={goBack}
+          onTheme={(theme) => void preferences({ theme })}
+          onSearch={() => setPalette(true)}
+          onSettings={() => setSettingsOpen(true)}
+          onQuota={() => setView("quota")}
+        />
         <main ref={contentPane} aria-busy={busy || loading}>
           <div className="workspace-content">
             {error && (
@@ -1641,37 +1409,15 @@ function App() {
           </footer>
         )}
       </div>
-      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} titleId="workspace-settings-title" className="workspace-settings-dialog">
-        <h2 id="workspace-settings-title">{prefs.language === "pl" ? "Ustawienia" : "Settings"}</h2>
-        <p>{prefs.language === "pl" ? "Wygląd i język" : "Appearance and language"}</p>
-        <div className="settings-fields">            <SelectField
-              label={w.language}
-              value={prefs.language}
-              options={[
-                { value: "en", label: "English" },
-                { value: "pl", label: "Polski" },
-              ]}
-              disabled={busy || loading || !snapshot}
-              onChange={(value) =>
-                void preferences({ language: value as Preferences["language"] })
-              }
-              icon="globe"
-              className="language-select"
-            />
-</div>
-        <ThemeGallery value={prefs.theme} pl={prefs.language === "pl"} disabled={busy || loading || !snapshot} onChange={theme => void preferences({ theme })} />
-        <WorkspaceCustomization pl={prefs.language === "pl"}/><VoiceSettings pl={prefs.language === "pl"}/>
-        <div className="settings-links">{([
-          ["connections", "connections", "Agenci i modele", "Agents and models"],
-          ["plugins", "connections", "Pluginy i aplikacje", "Plugins and apps"],
-          ["skills", "skill", "Biblioteka skili", "Skills library"],
-          ["harness", "layers", "Instrukcja agenta i pamięć", "Agent instructions and memory"],
-        ] as const).map(([id, icon, pl, en]) => <button className="secondary" key={id} onClick={() => { setView(id); setSettingsOpen(false); }}><Icon name={icon} />{prefs.language === "pl" ? pl : en}<Icon name="chevron" /></button>)}</div>
-        <section className="settings-about" aria-label="O aplikacji">
-          <img className="company-logo" src={companyLogo} alt="AI Evolution Polska" /><div><h3>Agenting OS</h3><p>{prefs.language === "pl" ? "Stworzone przez AI Evolution Polska. Rozmowy, projekty i pamięć agentów w jednej lokalnej przestrzeni pracy." : "Built by AI Evolution Polska. Conversations, projects and agent memory in one local workspace."}</p>
-          <div className="about-links">{[["GitHub", "https://github.com/aievolutionpl/agentic-os"], ["AI Evolution Polska", "https://www.aievolutionpolska.pl"]].map(([label, url]) => <button key={url} className="text-action" onClick={() => void api.openExternalLink?.({url: url!}).catch(() => setError(true))}>{label}<Icon name="arrow" /></button>)}</div></div>
-        </section>
-      </Modal>
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        prefs={prefs}
+        disabled={busy || loading || !snapshot}
+        onPreferences={(patch) => void preferences(patch)}
+        onNavigate={setView}
+        onError={() => setError(true)}
+      />
       <Modal
         open={projectOpen}
         onClose={() => setProjectOpen(false)}

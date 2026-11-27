@@ -51,6 +51,7 @@ import "./calm.css";
 import "./themes.css";
 import "./glass.css";
 import "./matrix.css";
+import "./polish.css";
 import { MatrixRain } from "./MatrixRain";
 import { type HistoryEntry, type View, VIEW_SHORTCUTS, historyEntry, pushHistory, viewLabel } from "./views";
 import { ProjectOverview } from "./ProjectOverview";

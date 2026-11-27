@@ -1,0 +1,168 @@
+/* Visual polish pass (Roadmap v5, design critique 2026-11-27).
+   Loaded last. Uses theme tokens only, so every palette, "Reduce glass",
+   "Plain background" and reduced motion keep working. */
+
+/* 1. Conversation: who is speaking should be obvious at a glance.
+   The user's turn becomes a compact, accent-tinted bubble on the right;
+   the agent's answer keeps the full reading width. */
+html[data-theme] .chat-message.user {
+  width: fit-content;
+  max-width: min(78%, 760px);
+  margin: 14px 0 14px auto;
+  padding: 12px 16px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 18px 18px 6px 18px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface));
+  box-shadow: none;
+}
+html[data-theme] .chat-message.user .message-author {
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+html[data-theme] .chat-message.user .message-author time {
+  margin-left: 12px;
+}
+html[data-theme] .chat-message.user .message-text {
+  color: var(--text);
+}
+
+/* 2. Composer: one writing surface. The card is the field, so the inner
+   textarea loses its second frame and its resize grip; the card's
+   focus ring (already defined per theme) marks the active field. */
+html[data-theme] .chat-workspace .chat-composer textarea {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  padding: 10px 12px;
+  margin: 0 0 8px;
+  resize: none;
+  line-height: 1.55;
+}
+html[data-theme] .chat-workspace .chat-composer textarea:focus,
+html[data-theme] .chat-workspace .chat-composer textarea:focus-visible {
+  outline: 0;
+  border: 0;
+}
+html[data-theme] .chat-workspace .chat-composer:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border-strong));
+}
+html[data-theme="white"] .chat-workspace .chat-composer textarea {
+  background: transparent;
+}
+
+/* 3. Header: with no connected subscription the limits bar is a single
+   link. Keep it, but as a quiet right-aligned line instead of a full band. */
+.quota-strip:has(.quota-empty) {
+  justify-content: flex-end;
+  padding-block: 4px 6px;
+}
+.quota-strip:has(.quota-empty) .quota-strip-label {
+  display: none;
+}
+.quota-strip .quota-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.quota-strip .quota-empty:hover,
+.quota-strip .quota-empty:focus-visible {
+  border-style: solid;
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* 4. Settings: checkboxes read as checkboxes, section titles as headings. */
+.workspace-settings-dialog input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 5px;
+  background: var(--surface);
+}
+.workspace-settings-dialog input[type="checkbox"]:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.workspace-settings-dialog .workspace-customization > legend {
+  float: left;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.workspace-settings-dialog .workspace-customization > legend + * {
+  clear: both;
+}
+
+/* 5. Sidebar: the project tree is a list, not a framed box. It can still be
+   resized; the grip only appears on hover. */
+html[data-theme] .project-sidebar .project-tree {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-theme] .project-sidebar .project-tree::-webkit-resizer {
+  background: transparent;
+}
+html[data-theme] .project-sidebar:hover .project-tree {
+  border-color: var(--nav-border, var(--border));
+}
+
+/* With no subscription connected, the "connect" link joins the header row
+   instead of occupying a second one. Narrow windows keep the wrapped layout. */
+@media (min-width: 801px) {
+  .compact-workspace-header:has(.quota-empty) {
+    flex-wrap: nowrap;
+  }
+  .compact-workspace-header:has(.quota-empty) .top-bar {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+  }
+  .compact-workspace-header:has(.quota-empty) .quota-strip {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0 16px 0 0;
+    border: 0;
+    background: transparent;
+  }
+}
+
+/* Phones: the conversation is the content. Previously header, metadata and
+   composer left about 40px for messages at 390px. Keep the title and the
+   agent line, drop secondary metadata, and give the composer a compact
+   starting height (it still grows as the user types). */
+@media (max-width: 600px) {
+  .chat-workspace.has-conversation .conversation-head .chat-root,
+  .chat-workspace.has-conversation .conversation-head .chat-stats,
+  .chat-workspace.has-conversation .composer-hint {
+    display: none;
+  }
+  .chat-workspace.has-conversation .chat-topline {
+    margin-bottom: 4px;
+  }
+  html[data-theme] .chat-workspace.has-conversation .chat-composer textarea {
+    min-height: 44px;
+    height: 52px;
+  }
+  .chat-workspace.has-conversation .chat-composer {
+    padding: 10px;
+  }
+  html[data-theme] .chat-message.user {
+    max-width: 88%;
+  }
+}

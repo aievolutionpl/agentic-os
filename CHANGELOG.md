@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **Project screen moved out of `main.tsx`** into a typed `ProjectView` component (main.tsx 1577 → 1001 lines). Behaviour is unchanged.
+- **Stable lifecycle UI test**: `tests/lifecycle-ui.test.mjs` picked the first dependency checkbox, but tasks created in the same millisecond are listed in id order, so on fast CI runners it sometimes linked "Loose" instead of "Parent" and timed out. It now selects the prerequisite by its label (reproduced 7/12 failures with a frozen clock, 0/12 after the fix).
+- **`npm run qa:contrast` works again** and covers the current UI: all seven palettes, chat, conversation, skills, memory, plugins, schedule and settings at 1440 and 390 px (105 screens). Text over gradients or glass is estimated and fails only below the WCAG threshold. It found one real issue, the timestamp in your message bubble in Pure White (4.41:1), now fixed.
+
 - **Visual polish** (design critique, `polish.css`, all seven palettes): your messages are compact accent-tinted bubbles on the right, the agent's answers keep the full width. The composer is one writing surface with no inner frame or resize grip. With no subscription connected, "Connect subscriptions" joins the header row instead of taking a second one. Settings checkboxes are square and section titles read as headings. The project tree no longer sits in an empty framed box. On phones the conversation gets about six times more room (secondary metadata and the shortcut hint are hidden, the composer starts smaller). Measured text contrast of the changed elements is at least 5.2:1 in every palette. [Before/after](docs/images/polish-v5).
 
 - **Faster long conversations** (Roadmap v5, sprint S1): each message is a memoized component compared field by field, so typing in the composer or a chat refresh no longer re-parses Markdown for the whole history. Messages far from the viewport use `content-visibility: auto`; the newest six stay fully rendered.

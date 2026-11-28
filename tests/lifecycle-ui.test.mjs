@@ -117,8 +117,11 @@ test("persisted lifecycle UI: dependency blocking, queue, journal, PL/EN, retry 
     await wait(() => row("Child"));
     row("Child").querySelector("h3 button").click();
     await wait(() => dom.window.document.querySelector(".task-panel").open);
-    dom.window.document
-      .querySelector('.task-panel input[type="checkbox"]')
+    // Tasks created in the same millisecond are listed in id order, so pick
+    // the prerequisite by its label rather than by position.
+    [...dom.window.document.querySelectorAll(".task-panel .dependency-choice")]
+      .find((choice) => choice.textContent.trim() === "Parent")
+      .querySelector('input[type="checkbox"]')
       .click();
     await wait(
       () =>

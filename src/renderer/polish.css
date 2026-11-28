@@ -19,7 +19,12 @@ html[data-theme] .chat-message.user .message-author {
   gap: 8px;
   margin-bottom: 4px;
   font-size: 12px;
-  color: var(--text-muted);
+  /* The accent tint lowers contrast; lean the muted text toward --text so
+     the timestamp stays above 4.5:1 in every palette. */
+  color: color-mix(in srgb, var(--text) 35%, var(--text-muted));
+}
+html[data-theme] .chat-message.user .message-author :is(strong, time) {
+  color: inherit;
 }
 html[data-theme] .chat-message.user .message-author time {
   margin-left: 12px;
